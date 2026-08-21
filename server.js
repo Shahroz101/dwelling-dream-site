@@ -690,7 +690,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (reqPath.startsWith('/uploads/')) {
-    const filePath = path.join(ROOT, reqPath.replace(/^\//, ''));
+    const filePath = path.join(UPLOADS_DIR, reqPath.slice('/uploads/'.length));
     if (filePath.startsWith(UPLOADS_DIR)) {
       serveFile(res, filePath);
       return;
