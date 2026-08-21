@@ -8,8 +8,6 @@ const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DIGITAL_DIR = path.join(DATA_DIR, 'digital-files');
-const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 if (!ADMIN_PASSWORD) {
@@ -18,6 +16,16 @@ if (!ADMIN_PASSWORD) {
   console.log('Set ADMIN_USERNAME/ADMIN_PASSWORD env vars to use a fixed login instead.');
 }
 const sessions = new Map();
+
+// Products and orders are stored in Supabase (Postgres via PostgREST), not
+// local files - product images and digital files still live on local disk
+// under UPLOADS_DIR/DIGITAL_DIR, only the catalog/order records moved.
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('SUPABASE_URL and SUPABASE_SERVICE_KEY env vars are required (Project Settings -> API in the Supabase dashboard).');
+  process.exit(1);
+}
 
 const DOWNLOAD_MIME_TYPES = {
   '.pdf': 'application/pdf',
@@ -30,46 +38,140 @@ function ensureDataFolders() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
   fs.mkdirSync(DIGITAL_DIR, { recursive: true });
-  if (!fs.existsSync(PRODUCTS_FILE)) {
-    fs.writeFileSync(PRODUCTS_FILE, '[]', 'utf8');
+}
+
+async function supabaseRequest(pathAndQuery, { method = 'GET', body } = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation'
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Supabase ${method} ${pathAndQuery} failed: ${res.status} ${detail}`);
   }
-  if (!fs.existsSync(ORDERS_FILE)) {
-    fs.writeFileSync(ORDERS_FILE, '[]', 'utf8');
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function rowToProduct(row) {
+  return {
+    id: row.id,
+    sku: row.sku,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    price: Number(row.price),
+    images: row.images || [],
+    digitalFiles: row.digital_files || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+async function readProducts() {
+  const rows = (await supabaseRequest('products?select=*&order=created_at.desc')) || [];
+  return rows.map(rowToProduct);
+}
+
+async function getProductById(productId) {
+  const rows = (await supabaseRequest(`products?id=eq.${encodeURIComponent(productId)}&select=*`)) || [];
+  return rows[0] ? rowToProduct(rows[0]) : null;
+}
+
+async function insertProduct(product) {
+  const row = {
+    id: product.id,
+    sku: product.sku,
+    title: product.title,
+    description: product.description,
+    category: product.category,
+    price: product.price,
+    images: product.images,
+    digital_files: product.digitalFiles,
+    created_at: product.createdAt,
+    updated_at: product.createdAt
+  };
+  const rows = await supabaseRequest('products', { method: 'POST', body: row });
+  return rowToProduct(rows[0]);
+}
+
+async function updateProduct(productId, patch) {
+  const rows = await supabaseRequest(`products?id=eq.${encodeURIComponent(productId)}`, { method: 'PATCH', body: patch });
+  return rows[0] ? rowToProduct(rows[0]) : null;
+}
+
+async function deleteProductRow(productId) {
+  await supabaseRequest(`products?id=eq.${encodeURIComponent(productId)}`, { method: 'DELETE' });
+}
+
+function rowToOrder(row) {
+  return {
+    id: row.id,
+    token: row.token,
+    items: row.items || [],
+    total: Number(row.total),
+    paid: Boolean(row.paid),
+    createdAt: row.created_at
+  };
+}
+
+async function insertOrder(order) {
+  const row = {
+    id: order.id,
+    token: order.token,
+    items: order.items,
+    total: order.total,
+    paid: order.paid,
+    created_at: order.createdAt
+  };
+  const rows = await supabaseRequest('orders', { method: 'POST', body: row });
+  return rowToOrder(rows[0]);
+}
+
+async function findOrder(orderId, token) {
+  const rows = (await supabaseRequest(`orders?id=eq.${encodeURIComponent(orderId)}&select=*`)) || [];
+  const row = rows[0];
+  if (!row || row.token !== token) return null;
+  return rowToOrder(row);
+}
+
+async function deleteProductById(productId) {
+  const product = await getProductById(productId);
+  if (!product) return false;
+
+  await deleteProductRow(productId);
+
+  const uploadRoot = path.resolve(UPLOADS_DIR);
+  for (const image of product.images || []) {
+    if (typeof image !== 'string' || !image.startsWith('/uploads/')) continue;
+
+    const fileName = image.replace(/^\/uploads\//, '');
+    const filePath = path.join(uploadRoot, fileName);
+    const resolvedFilePath = path.resolve(filePath);
+
+    if (resolvedFilePath.startsWith(uploadRoot) && fs.existsSync(resolvedFilePath)) {
+      fs.unlinkSync(resolvedFilePath);
+    }
   }
-}
 
-function readProducts() {
-  try {
-    const data = fs.readFileSync(PRODUCTS_FILE, 'utf8');
-    const parsed = JSON.parse(data || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
+  const digitalRoot = path.resolve(DIGITAL_DIR);
+  for (const digitalFile of product.digitalFiles || []) {
+    if (!digitalFile || !digitalFile.storedName) continue;
+    const resolvedFilePath = path.resolve(path.join(digitalRoot, digitalFile.storedName));
+    if (resolvedFilePath.startsWith(digitalRoot) && fs.existsSync(resolvedFilePath)) {
+      fs.unlinkSync(resolvedFilePath);
+    }
   }
-}
 
-function writeProducts(products) {
-  fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2), 'utf8');
-}
-
-function readOrders() {
-  try {
-    const data = fs.readFileSync(ORDERS_FILE, 'utf8');
-    const parsed = JSON.parse(data || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function writeOrders(orders) {
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8');
-}
-
-function findOrder(orderId, token) {
-  const order = readOrders().find(item => String(item.id) === String(orderId));
-  if (!order || order.token !== token) return null;
-  return order;
+  return true;
 }
 
 function getMimeType(filePath) {
@@ -259,45 +361,19 @@ function handleApiLogin(req, res) {
   });
 }
 
-function deleteProductById(productId) {
-  const products = readProducts();
-  const index = products.findIndex(product => String(product.id) === String(productId));
-  if (index === -1) return false;
-
-  const [product] = products.splice(index, 1);
-  const uploadRoot = path.resolve(UPLOADS_DIR);
-
-  for (const image of product.images || []) {
-    if (typeof image !== 'string' || !image.startsWith('/uploads/')) continue;
-
-    const fileName = image.replace(/^\/uploads\//, '');
-    const filePath = path.join(uploadRoot, fileName);
-    const resolvedFilePath = path.resolve(filePath);
-
-    if (resolvedFilePath.startsWith(uploadRoot) && fs.existsSync(resolvedFilePath)) {
-      fs.unlinkSync(resolvedFilePath);
-    }
-  }
-
-  const digitalRoot = path.resolve(DIGITAL_DIR);
-  for (const digitalFile of product.digitalFiles || []) {
-    if (!digitalFile || !digitalFile.storedName) continue;
-    const resolvedFilePath = path.resolve(path.join(digitalRoot, digitalFile.storedName));
-    if (resolvedFilePath.startsWith(digitalRoot) && fs.existsSync(resolvedFilePath)) {
-      fs.unlinkSync(resolvedFilePath);
-    }
-  }
-
-  writeProducts(products);
-  return true;
-}
-
-function handleApiProducts(req, res) {
+async function handleApiProducts(req, res) {
   if (req.method === 'GET') {
     // Never expose the internal storedName (the real on-disk filename) for
     // digital files - downloads only ever happen through the token-gated
     // /api/download route.
-    const publicProducts = readProducts().map(product => ({
+    let products;
+    try {
+      products = await readProducts();
+    } catch (error) {
+      sendJson(res, 500, { success: false, message: 'Failed to reach the product database.', error: error.message });
+      return;
+    }
+    const publicProducts = products.map(product => ({
       ...product,
       digitalFiles: (product.digitalFiles || [])
         .filter(f => f && typeof f === 'object')
@@ -319,7 +395,7 @@ function handleApiProducts(req, res) {
       body += chunk;
     });
 
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body || '{}');
         const productId = String(payload.id || '').trim();
@@ -329,7 +405,7 @@ function handleApiProducts(req, res) {
           return;
         }
 
-        const deleted = deleteProductById(productId);
+        const deleted = await deleteProductById(productId);
         if (!deleted) {
           sendJson(res, 404, { success: false, message: 'Product not found.' });
           return;
@@ -337,7 +413,7 @@ function handleApiProducts(req, res) {
 
         sendJson(res, 200, { success: true, message: 'Product deleted successfully.' });
       } catch (error) {
-        sendJson(res, 400, { success: false, message: 'Invalid request body.' });
+        sendJson(res, 500, { success: false, message: 'Failed to delete product.', error: error.message });
       }
     });
     return;
@@ -348,7 +424,7 @@ function handleApiProducts(req, res) {
 
     req.on('data', chunk => { body += chunk; });
 
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body || '{}');
         const productId = String(payload.id || '').trim();
@@ -357,14 +433,12 @@ function handleApiProducts(req, res) {
           return;
         }
 
-        const products = readProducts();
-        const index = products.findIndex(item => String(item.id) === productId);
-        if (index === -1) {
+        const existing = await getProductById(productId);
+        if (!existing) {
           sendJson(res, 404, { success: false, message: 'Product not found.' });
           return;
         }
 
-        const existing = products[index];
         const title = String(payload.title || '').trim();
         const description = String(payload.description || '').trim();
         const category = String(payload.category || '').trim();
@@ -428,7 +502,24 @@ function handleApiProducts(req, res) {
           return;
         }
 
-        // Validation passed - now it's safe to remove whatever was dropped from the "keep" lists.
+        const updatedAt = new Date().toISOString();
+        try {
+          await updateProduct(productId, {
+            title,
+            description,
+            category,
+            price,
+            images: finalImages,
+            digital_files: finalDigital,
+            updated_at: updatedAt
+          });
+        } catch (error) {
+          sendJson(res, 500, { success: false, message: 'Failed to update product.', error: error.message });
+          return;
+        }
+
+        // Only remove whatever was dropped from the "keep" lists after the
+        // database write succeeds, so a failed update never orphans files.
         (existing.images || []).forEach(imagePath => {
           if (keepImages.includes(imagePath)) return;
           if (typeof imagePath !== 'string' || !imagePath.startsWith('/uploads/')) return;
@@ -455,10 +546,8 @@ function handleApiProducts(req, res) {
           price,
           images: finalImages,
           digitalFiles: finalDigital,
-          updatedAt: new Date().toISOString()
+          updatedAt
         };
-        products[index] = updatedProduct;
-        writeProducts(products);
 
         sendJson(res, 200, { success: true, message: 'Product updated successfully.', product: updatedProduct });
       } catch (error) {
@@ -475,7 +564,7 @@ function handleApiProducts(req, res) {
       body += chunk;
     });
 
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body || '{}');
         const title = String(payload.title || '').trim();
@@ -521,9 +610,12 @@ function handleApiProducts(req, res) {
           createdAt: new Date().toISOString()
         };
 
-        const products = readProducts();
-        products.unshift(product);
-        writeProducts(products);
+        try {
+          await insertProduct(product);
+        } catch (error) {
+          sendJson(res, 500, { success: false, message: 'Failed to save product.', error: error.message });
+          return;
+        }
 
         sendJson(res, 201, { success: true, message: 'Product saved successfully.', product });
       } catch (error) {
@@ -545,11 +637,19 @@ function handleApiOrders(req, res) {
 
   let body = '';
   req.on('data', chunk => { body += chunk; });
-  req.on('end', () => {
+  req.on('end', async () => {
     try {
       const payload = JSON.parse(body || '{}');
       const requestedItems = Array.isArray(payload.items) ? payload.items : [];
-      const productsById = new Map(readProducts().map(product => [String(product.id), product]));
+
+      let products;
+      try {
+        products = await readProducts();
+      } catch (error) {
+        sendJson(res, 500, { success: false, message: 'Failed to reach the product database.', error: error.message });
+        return;
+      }
+      const productsById = new Map(products.map(product => [String(product.id), product]));
 
       const orderItems = [];
       let total = 0;
@@ -589,9 +689,12 @@ function handleApiOrders(req, res) {
         createdAt: new Date().toISOString()
       };
 
-      const orders = readOrders();
-      orders.unshift(order);
-      writeOrders(orders);
+      try {
+        await insertOrder(order);
+      } catch (error) {
+        sendJson(res, 500, { success: false, message: 'Failed to save order.', error: error.message });
+        return;
+      }
 
       sendJson(res, 201, { success: true, order });
     } catch (error) {
@@ -613,7 +716,7 @@ function handleLogout(req, res) {
   res.end(JSON.stringify({ success: true, message: 'Logged out.' }));
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   // Decode %20 etc. so routes/filenames with spaces (all the "Dwelling Dream
   // *.dc.html" pages) match, mirroring server.py's unquote(url.path).
@@ -630,19 +733,25 @@ const server = http.createServer((req, res) => {
   }
 
   if (reqPath === '/api/products') {
-    handleApiProducts(req, res);
+    await handleApiProducts(req, res);
     return;
   }
 
   if (reqPath === '/api/orders') {
-    handleApiOrders(req, res);
+    await handleApiOrders(req, res);
     return;
   }
 
   if (reqPath.startsWith('/api/orders/') && req.method === 'GET') {
     const orderId = reqPath.slice('/api/orders/'.length);
     const token = url.searchParams.get('token') || '';
-    const order = findOrder(orderId, token);
+    let order;
+    try {
+      order = await findOrder(orderId, token);
+    } catch (error) {
+      sendJson(res, 500, { success: false, message: 'Failed to reach the order database.', error: error.message });
+      return;
+    }
     if (!order) {
       sendJson(res, 404, { success: false, message: 'Order not found.' });
       return;
@@ -656,7 +765,13 @@ const server = http.createServer((req, res) => {
     const token = url.searchParams.get('token') || '';
     const fileId = url.searchParams.get('file') || '';
 
-    const order = findOrder(orderId, token);
+    let order;
+    try {
+      order = await findOrder(orderId, token);
+    } catch (error) {
+      sendJson(res, 500, { success: false, message: 'Failed to reach the order database.', error: error.message });
+      return;
+    }
     if (!order || !order.paid) {
       sendJson(res, 403, { success: false, message: "This download link is invalid or the order hasn't been paid." });
       return;
@@ -671,8 +786,15 @@ const server = http.createServer((req, res) => {
     }
 
     const digitalRoot = path.resolve(DIGITAL_DIR);
+    let products;
+    try {
+      products = await readProducts();
+    } catch (error) {
+      sendJson(res, 500, { success: false, message: 'Failed to reach the product database.', error: error.message });
+      return;
+    }
     let found = null;
-    for (const product of readProducts()) {
+    for (const product of products) {
       const match = (product.digitalFiles || []).find(f => f && f.id === fileId);
       if (match) { found = match; break; }
     }

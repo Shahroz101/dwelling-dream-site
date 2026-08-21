@@ -6,7 +6,8 @@ import os
 import random
 import re
 import socketserver
-import threading
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -16,8 +17,6 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 UPLOADS_DIR = DATA_DIR / "uploads"
 DIGITAL_DIR = DATA_DIR / "digital-files"
-PRODUCTS_FILE = DATA_DIR / "products.json"
-ORDERS_FILE = DATA_DIR / "orders.json"
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
@@ -27,13 +26,16 @@ if not ADMIN_PASSWORD:
 PORT = int(os.environ.get("PORT", "3000"))
 SESSIONS = {}
 
-# ThreadingHTTPServer handles each request on its own thread, but products.json
-# and orders.json are plain files with no locking of their own. Without these,
-# two overlapping read-modify-write sequences can race and silently drop
-# whichever write loses - guard every read-modify-write critical section with
-# the matching lock, held for the full sequence, not just the read or write.
-PRODUCTS_LOCK = threading.Lock()
-ORDERS_LOCK = threading.Lock()
+# Products and orders are stored in Supabase (Postgres via PostgREST), not
+# local files - product images and digital files still live on local disk
+# under UPLOADS_DIR/DIGITAL_DIR, only the catalog/order records moved.
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    raise SystemExit(
+        "SUPABASE_URL and SUPABASE_SERVICE_KEY env vars are required "
+        "(Project Settings -> API in the Supabase dashboard)."
+    )
 
 DOWNLOAD_MIME_TYPES = {
     ".pdf": "application/pdf",
@@ -51,72 +53,134 @@ def ensure_storage():
     DATA_DIR.mkdir(exist_ok=True)
     UPLOADS_DIR.mkdir(exist_ok=True)
     DIGITAL_DIR.mkdir(exist_ok=True)
-    if not PRODUCTS_FILE.exists():
-        PRODUCTS_FILE.write_text("[]", encoding="utf-8")
-    if not ORDERS_FILE.exists():
-        ORDERS_FILE.write_text("[]", encoding="utf-8")
+
+
+def supabase_request(path_and_query, method="GET", body=None):
+    url = f"{SUPABASE_URL}/rest/v1/{path_and_query}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw = resp.read()
+            return json.loads(raw) if raw else None
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Supabase {method} {path_and_query} failed: {exc.code} {detail}")
+
+
+def row_to_product(row):
+    return {
+        "id": row["id"],
+        "sku": row["sku"],
+        "title": row["title"],
+        "description": row["description"],
+        "category": row["category"],
+        "price": float(row["price"]),
+        "images": row.get("images") or [],
+        "digitalFiles": row.get("digital_files") or [],
+        "createdAt": row.get("created_at"),
+        "updatedAt": row.get("updated_at"),
+    }
 
 
 def read_products():
-    try:
-        raw = PRODUCTS_FILE.read_text(encoding="utf-8")
-        data = json.loads(raw or "[]")
-        return data if isinstance(data, list) else []
-    except Exception:
-        return []
+    rows = supabase_request("products?select=*&order=created_at.desc") or []
+    return [row_to_product(row) for row in rows]
 
 
-def write_products(products):
-    PRODUCTS_FILE.write_text(json.dumps(products, indent=2), encoding="utf-8")
+def get_product_by_id(product_id):
+    rows = supabase_request(f"products?id=eq.{product_id}&select=*") or []
+    return row_to_product(rows[0]) if rows else None
 
 
-def read_orders():
-    try:
-        raw = ORDERS_FILE.read_text(encoding="utf-8")
-        data = json.loads(raw or "[]")
-        return data if isinstance(data, list) else []
-    except Exception:
-        return []
+def insert_product(product):
+    row = {
+        "id": product["id"],
+        "sku": product["sku"],
+        "title": product["title"],
+        "description": product["description"],
+        "category": product["category"],
+        "price": product["price"],
+        "images": product["images"],
+        "digital_files": product["digitalFiles"],
+        "created_at": product["createdAt"],
+        "updated_at": product["createdAt"],
+    }
+    rows = supabase_request("products", "POST", body=row)
+    return row_to_product(rows[0])
 
 
-def write_orders(orders):
-    ORDERS_FILE.write_text(json.dumps(orders, indent=2), encoding="utf-8")
+def update_product(product_id, patch):
+    rows = supabase_request(f"products?id=eq.{product_id}", "PATCH", body=patch)
+    return row_to_product(rows[0]) if rows else None
+
+
+def delete_product_row(product_id):
+    supabase_request(f"products?id=eq.{product_id}", "DELETE")
+
+
+def row_to_order(row):
+    return {
+        "id": row["id"],
+        "token": row["token"],
+        "items": row.get("items") or [],
+        "total": float(row["total"]),
+        "paid": bool(row["paid"]),
+        "createdAt": row.get("created_at"),
+    }
+
+
+def insert_order(order):
+    row = {
+        "id": order["id"],
+        "token": order["token"],
+        "items": order["items"],
+        "total": order["total"],
+        "paid": order["paid"],
+        "created_at": order["createdAt"],
+    }
+    rows = supabase_request("orders", "POST", body=row)
+    return row_to_order(rows[0])
 
 
 def delete_product_by_id(product_id):
-    with PRODUCTS_LOCK:
-        products = read_products()
-        product_to_delete = next((item for item in products if str(item.get("id")) == str(product_id)), None)
-        if not product_to_delete:
-            return False
+    product = get_product_by_id(product_id)
+    if not product:
+        return False
 
-        for image_path in product_to_delete.get("images", []):
-            try:
-                if not str(image_path).startswith("/uploads/"):
-                    continue
-                relative = str(image_path)[len("/uploads/"):]
-                safe_path = (UPLOADS_DIR / relative).resolve()
-                uploads_root = UPLOADS_DIR.resolve()
-                if str(safe_path).startswith(str(uploads_root)) and safe_path.exists():
-                    safe_path.unlink()
-            except Exception:
-                pass
+    delete_product_row(product_id)
 
-        for digital_file in product_to_delete.get("digitalFiles", []):
-            try:
-                stored_name = digital_file.get("storedName") if isinstance(digital_file, dict) else None
-                if not stored_name:
-                    continue
-                safe_path = (DIGITAL_DIR / stored_name).resolve()
-                digital_root = DIGITAL_DIR.resolve()
-                if str(safe_path).startswith(str(digital_root)) and safe_path.exists():
-                    safe_path.unlink()
-            except Exception:
-                pass
+    for image_path in product.get("images", []):
+        try:
+            if not str(image_path).startswith("/uploads/"):
+                continue
+            relative = str(image_path)[len("/uploads/"):]
+            safe_path = (UPLOADS_DIR / relative).resolve()
+            uploads_root = UPLOADS_DIR.resolve()
+            if str(safe_path).startswith(str(uploads_root)) and safe_path.exists():
+                safe_path.unlink()
+        except Exception:
+            pass
 
-        remaining = [item for item in products if str(item.get("id")) != str(product_id)]
-        write_products(remaining)
-        return True
+    for digital_file in product.get("digitalFiles", []):
+        try:
+            stored_name = digital_file.get("storedName") if isinstance(digital_file, dict) else None
+            if not stored_name:
+                continue
+            safe_path = (DIGITAL_DIR / stored_name).resolve()
+            digital_root = DIGITAL_DIR.resolve()
+            if str(safe_path).startswith(str(digital_root)) and safe_path.exists():
+                safe_path.unlink()
+        except Exception:
+            pass
+
+    return True
 
 
 def parse_cookies(cookie_header):
@@ -270,11 +334,13 @@ def serve_download(handler, file_path, download_name):
 
 
 def find_order(order_id, token):
-    orders = read_orders()
-    order = next((item for item in orders if str(item.get("id")) == str(order_id)), None)
-    if not order or order.get("token") != token:
+    rows = supabase_request(f"orders?id=eq.{order_id}&select=*") or []
+    if not rows:
         return None
-    return order
+    row = rows[0]
+    if row.get("token") != token:
+        return None
+    return row_to_order(row)
 
 
 class AdminHandler(BaseHTTPRequestHandler):
@@ -325,8 +391,13 @@ class AdminHandler(BaseHTTPRequestHandler):
             # GET is public - allow anyone to view the catalog. Never expose the
             # internal storedName (the real on-disk filename) for digital files -
             # downloads only ever happen through the token-gated /api/download route.
+            try:
+                fetched_products = read_products()
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
+                return
             public_products = []
-            for product in read_products():
+            for product in fetched_products:
                 public_product = dict(product)
                 public_product["digitalFiles"] = [
                     {"id": f.get("id"), "name": f.get("name"), "size": f.get("size", 0)}
@@ -342,7 +413,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             order_id = path.removeprefix("/api/orders/")
             query = parse_qs(url.query)
             token = (query.get("token") or [""])[0]
-            order = find_order(order_id, token)
+            try:
+                order = find_order(order_id, token)
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to reach the order database.", "error": str(exc)})
+                return
             if not order:
                 send_json(self, 404, {"success": False, "message": "Order not found."})
                 return
@@ -355,7 +430,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             token = (query.get("token") or [""])[0]
             file_id = (query.get("file") or [""])[0]
 
-            order = find_order(order_id, token)
+            try:
+                order = find_order(order_id, token)
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to reach the order database.", "error": str(exc)})
+                return
             if not order or not order.get("paid"):
                 send_json(self, 403, {"success": False, "message": "This download link is invalid or the order hasn't been paid."})
                 return
@@ -369,7 +448,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 send_json(self, 404, {"success": False, "message": "File not found in this order."})
                 return
 
-            products = read_products()
+            try:
+                products = read_products()
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
+                return
             for product in products:
                 for digital_file in product.get("digitalFiles", []):
                     if digital_file.get("id") == file_id:
@@ -418,7 +501,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             send_json(self, 400, {"success": False, "message": "Product ID is required."})
             return
 
-        deleted = delete_product_by_id(product_id)
+        try:
+            deleted = delete_product_by_id(product_id)
+        except RuntimeError as exc:
+            send_json(self, 500, {"success": False, "message": "Failed to delete product.", "error": str(exc)})
+            return
         if not deleted:
             send_json(self, 404, {"success": False, "message": "Product not found."})
             return
@@ -451,117 +538,124 @@ class AdminHandler(BaseHTTPRequestHandler):
             send_json(self, 400, {"success": False, "message": "Product ID is required."})
             return
 
-        with PRODUCTS_LOCK:
-            products = read_products()
-            index = next((i for i, item in enumerate(products) if str(item.get("id")) == product_id), None)
-            if index is None:
-                send_json(self, 404, {"success": False, "message": "Product not found."})
-                return
+        try:
+            existing = get_product_by_id(product_id)
+        except RuntimeError as exc:
+            send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
+            return
+        if existing is None:
+            send_json(self, 404, {"success": False, "message": "Product not found."})
+            return
 
-            existing = products[index]
+        title = str(payload.get("title", "")).strip()
+        description = str(payload.get("description", "")).strip()
+        category = str(payload.get("category", "")).strip()
+        price = float(payload.get("price") or 0)
+        valid_categories = {"Behr", "Sherwin Williams", "Benjamin Moore"}
 
-            title = str(payload.get("title", "")).strip()
-            description = str(payload.get("description", "")).strip()
-            category = str(payload.get("category", "")).strip()
-            price = float(payload.get("price") or 0)
-            valid_categories = {"Behr", "Sherwin Williams", "Benjamin Moore"}
+        if not title or not description or not category or price <= 0:
+            send_json(self, 400, {"success": False, "message": "Title, description, category, and price are required."})
+            return
 
-            if not title or not description or not category or price <= 0:
-                send_json(self, 400, {"success": False, "message": "Title, description, category, and price are required."})
-                return
+        if category not in valid_categories:
+            send_json(self, 400, {"success": False, "message": "Category must be Behr, Sherwin Williams, or Benjamin Moore."})
+            return
 
-            if category not in valid_categories:
-                send_json(self, 400, {"success": False, "message": "Category must be Behr, Sherwin Williams, or Benjamin Moore."})
-                return
+        keep_images = payload.get("keepImages") if isinstance(payload.get("keepImages"), list) else []
+        new_images_raw = payload.get("newImages") if isinstance(payload.get("newImages"), list) else []
+        keep_digital_ids = set(
+            payload.get("keepDigitalFiles") if isinstance(payload.get("keepDigitalFiles"), list) else []
+        )
+        new_digital_raw = payload.get("newDigitalFiles") if isinstance(payload.get("newDigitalFiles"), list) else []
 
-            keep_images = payload.get("keepImages") if isinstance(payload.get("keepImages"), list) else []
-            new_images_raw = payload.get("newImages") if isinstance(payload.get("newImages"), list) else []
-            keep_digital_ids = set(
-                payload.get("keepDigitalFiles") if isinstance(payload.get("keepDigitalFiles"), list) else []
-            )
-            new_digital_raw = payload.get("newDigitalFiles") if isinstance(payload.get("newDigitalFiles"), list) else []
+        sku = existing.get("sku") or generate_sku(title, category)
 
-            sku = existing.get("sku") or generate_sku(title, category)
+        # Save any newly-uploaded files first, so we know the true final counts
+        # before touching anything that's already on disk.
+        saved_new_images = []
+        for image in new_images_raw:
+            saved_path = save_base64_image(image, sku)
+            if saved_path:
+                saved_new_images.append(saved_path)
 
-            # Save any newly-uploaded files first, so we know the true final counts
-            # before touching anything that's already on disk.
-            saved_new_images = []
-            for image in new_images_raw:
-                saved_path = save_base64_image(image, sku)
-                if saved_path:
-                    saved_new_images.append(saved_path)
+        saved_new_digital = []
+        for entry in new_digital_raw:
+            if not isinstance(entry, dict):
+                continue
+            saved = save_base64_file(entry.get("data"), entry.get("name"), sku, len(saved_new_digital))
+            if saved:
+                saved_new_digital.append(saved)
 
-            saved_new_digital = []
-            for entry in new_digital_raw:
-                if not isinstance(entry, dict):
-                    continue
-                saved = save_base64_file(entry.get("data"), entry.get("name"), sku, len(saved_new_digital))
-                if saved:
-                    saved_new_digital.append(saved)
+        final_images = [img for img in existing.get("images", []) if img in keep_images] + saved_new_images
+        final_digital = [
+            f for f in existing.get("digitalFiles", []) if f.get("id") in keep_digital_ids
+        ] + saved_new_digital
 
-            final_images = [img for img in existing.get("images", []) if img in keep_images] + saved_new_images
-            final_digital = [
-                f for f in existing.get("digitalFiles", []) if f.get("id") in keep_digital_ids
-            ] + saved_new_digital
-
-            if not final_images:
-                # Reject the edit without touching the product's existing files - only
-                # clean up whatever we just wrote for this rejected attempt.
-                for image_path in saved_new_images:
-                    try:
-                        relative = image_path[len("/uploads/"):]
-                        safe_path = (UPLOADS_DIR / relative).resolve()
-                        if str(safe_path).startswith(str(UPLOADS_DIR.resolve())) and safe_path.exists():
-                            safe_path.unlink()
-                    except Exception:
-                        pass
-                for digital_file in saved_new_digital:
-                    try:
-                        safe_path = (DIGITAL_DIR / digital_file["storedName"]).resolve()
-                        if str(safe_path).startswith(str(DIGITAL_DIR.resolve())) and safe_path.exists():
-                            safe_path.unlink()
-                    except Exception:
-                        pass
-                send_json(self, 400, {"success": False, "message": "At least one product image is required."})
-                return
-
-            # Validation passed - now it's safe to remove whatever was dropped from the "keep" lists.
-            for image_path in existing.get("images", []):
-                if image_path in keep_images:
-                    continue
+        if not final_images:
+            # Reject the edit without touching the product's existing files - only
+            # clean up whatever we just wrote for this rejected attempt.
+            for image_path in saved_new_images:
                 try:
-                    if str(image_path).startswith("/uploads/"):
-                        relative = str(image_path)[len("/uploads/"):]
-                        safe_path = (UPLOADS_DIR / relative).resolve()
-                        if str(safe_path).startswith(str(UPLOADS_DIR.resolve())) and safe_path.exists():
-                            safe_path.unlink()
+                    relative = image_path[len("/uploads/"):]
+                    safe_path = (UPLOADS_DIR / relative).resolve()
+                    if str(safe_path).startswith(str(UPLOADS_DIR.resolve())) and safe_path.exists():
+                        safe_path.unlink()
                 except Exception:
                     pass
-
-            for digital_file in existing.get("digitalFiles", []):
-                if digital_file.get("id") in keep_digital_ids:
-                    continue
+            for digital_file in saved_new_digital:
                 try:
-                    stored_name = digital_file.get("storedName")
-                    if stored_name:
-                        safe_path = (DIGITAL_DIR / stored_name).resolve()
-                        if str(safe_path).startswith(str(DIGITAL_DIR.resolve())) and safe_path.exists():
-                            safe_path.unlink()
+                    safe_path = (DIGITAL_DIR / digital_file["storedName"]).resolve()
+                    if str(safe_path).startswith(str(DIGITAL_DIR.resolve())) and safe_path.exists():
+                        safe_path.unlink()
                 except Exception:
                     pass
+            send_json(self, 400, {"success": False, "message": "At least one product image is required."})
+            return
 
-            updated_product = {
-                **existing,
-                "title": title,
-                "description": description,
-                "category": category,
-                "price": price,
-                "images": final_images,
-                "digitalFiles": final_digital,
-                "updatedAt": now_iso(),
-            }
-            products[index] = updated_product
-            write_products(products)
+        updated_at = now_iso()
+        patch = {
+            "title": title,
+            "description": description,
+            "category": category,
+            "price": price,
+            "images": final_images,
+            "digital_files": final_digital,
+            "updated_at": updated_at,
+        }
+        try:
+            update_product(product_id, patch)
+        except RuntimeError as exc:
+            send_json(self, 500, {"success": False, "message": "Failed to update product.", "error": str(exc)})
+            return
+
+        # Only remove whatever was dropped from the "keep" lists after the
+        # database write succeeds, so a failed update never orphans files.
+        for image_path in existing.get("images", []):
+            if image_path in keep_images:
+                continue
+            try:
+                if str(image_path).startswith("/uploads/"):
+                    relative = str(image_path)[len("/uploads/"):]
+                    safe_path = (UPLOADS_DIR / relative).resolve()
+                    if str(safe_path).startswith(str(UPLOADS_DIR.resolve())) and safe_path.exists():
+                        safe_path.unlink()
+            except Exception:
+                pass
+
+        for digital_file in existing.get("digitalFiles", []):
+            if digital_file.get("id") in keep_digital_ids:
+                continue
+            try:
+                stored_name = digital_file.get("storedName")
+                if stored_name:
+                    safe_path = (DIGITAL_DIR / stored_name).resolve()
+                    if str(safe_path).startswith(str(DIGITAL_DIR.resolve())) and safe_path.exists():
+                        safe_path.unlink()
+            except Exception:
+                pass
+
+        updated_product = {**existing, "title": title, "description": description, "category": category,
+                            "price": price, "images": final_images, "digitalFiles": final_digital, "updatedAt": updated_at}
         send_json(self, 200, {"success": True, "message": "Product updated successfully.", "product": updated_product})
 
     def do_POST(self):
@@ -703,10 +797,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 "createdAt": now_iso(),
             }
 
-            with PRODUCTS_LOCK:
-                products = read_products()
-                products.insert(0, product)
-                write_products(products)
+            try:
+                insert_product(product)
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to save product.", "error": str(exc)})
+                return
             send_json(self, 201, {"success": True, "message": "Product saved successfully.", "product": product})
             return
 
@@ -721,7 +816,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
 
             requested_items = payload.get("items") if isinstance(payload.get("items"), list) else []
-            products_by_id = {str(product.get("id")): product for product in read_products()}
+            try:
+                products_by_id = {str(product.get("id")): product for product in read_products()}
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
+                return
 
             order_items = []
             total = 0.0
@@ -763,10 +862,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 "createdAt": now_iso(),
             }
 
-            with ORDERS_LOCK:
-                orders = read_orders()
-                orders.insert(0, order)
-                write_orders(orders)
+            try:
+                insert_order(order)
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to save order.", "error": str(exc)})
+                return
             send_json(self, 201, {"success": True, "order": order})
             return
 
