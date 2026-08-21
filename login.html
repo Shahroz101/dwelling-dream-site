@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dwelling Dream Admin Login</title>
+    <style>
+      :root {
+        --bg: #f5f2ea;
+        --panel: #fffdf9;
+        --ink: #292825;
+        --muted: #78736e;
+        --line: #d8d2c8;
+        --accent: #817a6e;
+        --error: #9d2c2c;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #efe7db, #f5f2ea 45%, #ece5da);
+        color: var(--ink);
+      }
+
+      .login-box {
+        width: min(440px, calc(100vw - 32px));
+        background: rgba(255,255,255,0.52);
+        border: 1px solid var(--line);
+        box-shadow: 0 30px 60px rgba(41, 40, 37, 0.1);
+        padding: 32px 28px;
+        backdrop-filter: blur(14px);
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2.2rem, 4vw, 3.1rem);
+        letter-spacing: -0.05em;
+      }
+
+      p {
+        margin: 0 0 22px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      label {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.6);
+        color: var(--ink);
+        padding: 14px 16px;
+        font-size: 16px;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(129, 122, 110, 0.15);
+      }
+
+      button {
+        width: 100%;
+        border: none;
+        background: var(--ink);
+        color: #f5f2ea;
+        padding: 16px 18px;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      button:hover {
+        opacity: 0.97;
+        transform: translateY(-1px);
+      }
+
+      .status {
+        min-height: 22px;
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--error);
+      }
+
+      .status.success {
+        color: #1b5b3a;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="login-box">
+      <div class="eyebrow">Authorized access</div>
+      <h1>Dwelling Dream</h1>
+      <p>Sign in to add new products, manage pricing, and store catalog entries in the project folder.</p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" value="admin" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="Enter password" required />
+        </div>
+
+        <button type="submit">Access dashboard</button>
+        <div id="status" class="status" aria-live="polite"></div>
+      </form>
+    </main>
+
+    <script>
+      const form = document.getElementById('loginForm');
+      const status = document.getElementById('status');
+
+      function getServerOrigin() {
+        return location.protocol === 'file:' ? 'http://127.0.0.1:3000' : '';
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.textContent = '';
+        status.classList.remove('success');
+
+        const payload = {
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        };
+
+        try {
+          const response = await fetch(`${getServerOrigin()}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            status.textContent = data.message || 'Login failed.';
+            return;
+          }
+
+          if (data.sessionToken) {
+            localStorage.setItem('dwellingDreamSessionToken', data.sessionToken);
+          }
+
+          status.textContent = 'Login successful. Redirecting...';
+          status.classList.add('success');
+          window.location.href = `${getServerOrigin()}/admin`;
+        } catch (error) {
+          status.textContent = 'Unable to reach the server. Please try again.';
+        }
+      });
+    </script>
+  </body>
+</html>

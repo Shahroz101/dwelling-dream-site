@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+
+# Runtime state: orders can contain real customer names/emails/addresses
+# once the store is used, and digital-files holds paid downloadable assets.
+# Keep the folders (so the server has somewhere to write) but never commit
+# their contents.
+data/orders.json
+data/digital-files/*
+!data/digital-files/.gitkeep
+
+.env
+.env.*

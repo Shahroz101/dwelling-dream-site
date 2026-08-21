@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="description" content="Dwelling Dream help centre — frequently asked questions, download help, terms of service, privacy policy, refunds and licensing." />
+<title>Help, FAQ &amp; Legal — Dwelling Dream</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  a { color: #292825; text-decoration: none; }
+  a:hover { color: #817A6E; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+  ::selection { background: #DFD3C3; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; overflow-x: hidden; background: #F5F2EA;">
+
+  <div data-progress="" style="position: fixed; top: 0; left: 0; height: 2px; width: 100%; background: #817A6E; transform: scaleX(0); transform-origin: 0 50%; z-index: 90; opacity: .5;"></div>
+
+  <header style="position: fixed; top: 0; left: 0; right: 0; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 18px clamp(18px, 3.4vw, 54px); pointer-events: none; background: rgba(245,242,234,.9); border-bottom: 1px solid #D8D2C8; backdrop-filter: blur(14px);">
+    <a href="Dwelling Dream Homepage v2.dc.html" aria-label="Dwelling Dream home" style="pointer-events: auto; display: inline-flex; align-items: center;">
+      <img src="assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
+    </a>
+    <nav aria-label="Primary" style="pointer-events: auto; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 36px);">
+      <a href="Dwelling Dream Homepage v2.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Home</a>
+      <a href="Dwelling Dream About.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">About</a>
+      <a href="#top" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Help</a>
+      <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 11px 22px; border: 1px solid #D8D2C8; border-radius: 999px; background: rgba(255,255,255,.5); font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; transition: background .35s ease, transform .45s cubic-bezier(.22,1,.36,1);" style-hover="background: #292825; color: #F5F2EA;">Explore Palettes</a>
+      <a data-cart="" href="Dwelling Dream Cart.dc.html" aria-label="Cart, 0 items" style="position: relative; display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: inherit; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, border-color .35s ease;">
+        <span aria-hidden="true" style="display: inline-block; width: 13px; height: 11px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; position: relative; top: 2px;">
+          <span style="position: absolute; left: 1.5px; right: 1.5px; top: -6px; height: 6px; border: 1.5px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0;"></span>
+        </span>
+        <span data-cart-count="">0</span>
+      </a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <section aria-labelledby="h-h" style="padding: clamp(120px, 17vh, 200px) clamp(18px, 3.4vw, 54px) clamp(40px, 6vh, 66px);">
+      <p style="margin: 0 0 20px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Help centre</p>
+      <h1 id="h-h" style="margin: 0 0 24px; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(40px, 6.2vw, 112px); line-height: .95; letter-spacing: -.015em;">Questions, answered <em style="font-style: italic; font-weight: 400;">plainly.</em></h1>
+      <p style="margin: 0; max-width: 56ch; font-size: clamp(15px, 1.15vw, 18px); line-height: 1.7; color: #5F5A54;">Everything about buying, downloading and using Dwelling Dream palettes — plus the legal detail, written to be read.</p>
+    </section>
+
+    <section aria-label="Help contents" style="padding: 0 clamp(18px, 3.4vw, 54px) clamp(40px, 6vh, 70px);">
+      <nav aria-label="Jump to section" style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: clamp(20px, 3vh, 30px); border-top: 1px solid #D8D2C8;">
+        <a href="#faq" style="padding: 10px 18px; border: 1px solid #D8D2C8; border-radius: 999px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; transition: background .3s ease;" style-hover="background: #EDEAE0; color: #292825;">FAQ</a>
+        <a href="#downloads" style="padding: 10px 18px; border: 1px solid #D8D2C8; border-radius: 999px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; transition: background .3s ease;" style-hover="background: #EDEAE0; color: #292825;">How downloads work</a>
+        <a href="#terms" style="padding: 10px 18px; border: 1px solid #D8D2C8; border-radius: 999px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; transition: background .3s ease;" style-hover="background: #EDEAE0; color: #292825;">Terms</a>
+        <a href="#privacy" style="padding: 10px 18px; border: 1px solid #D8D2C8; border-radius: 999px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; transition: background .3s ease;" style-hover="background: #EDEAE0; color: #292825;">Privacy</a>
+        <a href="#refunds" style="padding: 10px 18px; border: 1px solid #D8D2C8; border-radius: 999px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; transition: background .3s ease;" style-hover="background: #EDEAE0; color: #292825;">Refunds</a>
+        <a href="#licensing" style="padding: 10px 18px; border: 1px solid #D8D2C8; border-radius: 999px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; transition: background .3s ease;" style-hover="background: #EDEAE0; color: #292825;">Licensing</a>
+      </nav>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-h" style="padding: clamp(56px, 9vh, 110px) clamp(18px, 3.4vw, 54px); background: #EDEAE0;">
+      <div data-two="" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(26px, 5vw, 80px); align-items: start;">
+        <div data-sticky="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">01 — FAQ</p>
+          <h2 id="faq-h" style="margin: 0; max-width: 14ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4vw, 62px); line-height: 1;">Before you <em style="font-style: italic;">buy.</em></h2>
+        </div>
+
+        <div style="display: flex; flex-direction: column; border-top: 1px solid #D8D2C8;">
+          <div data-acc="" style="border-bottom: 1px solid #D8D2C8;">
+            <button data-acc-btn="" aria-expanded="true" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 22px 0; border: 0; background: none; text-align: left; cursor: pointer;">
+              <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(19px, 1.9vw, 28px); line-height: 1.2;">What exactly am I buying?</span>
+              <span data-acc-icon="" style="flex: 0 0 auto; font-size: 18px; transition: transform .45s cubic-bezier(.22,1,.36,1);">+</span>
+            </button>
+            <div data-acc-body="" style="overflow: hidden; max-height: 340px; transition: max-height .55s cubic-bezier(.22,1,.36,1), opacity .4s ease;">
+              <p style="margin: 0 0 22px; max-width: 60ch; font-size: 14px; line-height: 1.85; color: #5F5A54;">A digital bundle of PDF guides: the nine-color palette guide with hex codes, LRV values and two pairings per color, the Complete Paint Guide, and the Paint Project Planner. Nothing is shipped.</p>
+            </div>
+          </div>
+          <div data-acc="" style="border-bottom: 1px solid #D8D2C8;">
+            <button data-acc-btn="" aria-expanded="false" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 22px 0; border: 0; background: none; text-align: left; cursor: pointer;">
+              <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(19px, 1.9vw, 28px); line-height: 1.2;">Do I need to buy the paint from a specific brand?</span>
+              <span data-acc-icon="" style="flex: 0 0 auto; font-size: 18px; transition: transform .45s cubic-bezier(.22,1,.36,1);">+</span>
+            </button>
+            <div data-acc-body="" style="overflow: hidden; max-height: 0; opacity: 0; transition: max-height .55s cubic-bezier(.22,1,.36,1), opacity .4s ease;">
+              <p style="margin: 0 0 22px; max-width: 60ch; font-size: 14px; line-height: 1.85; color: #5F5A54;">Each palette is built around one brand's colors so the undertones stay consistent, but every color includes its hex value — any paint counter can colour-match from that if you prefer a different supplier.</p>
+            </div>
+          </div>
+          <div data-acc="" style="border-bottom: 1px solid #D8D2C8;">
+            <button data-acc-btn="" aria-expanded="false" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 22px 0; border: 0; background: none; text-align: left; cursor: pointer;">
+              <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(19px, 1.9vw, 28px); line-height: 1.2;">Will these colors work in my house?</span>
+              <span data-acc-icon="" style="flex: 0 0 auto; font-size: 18px; transition: transform .45s cubic-bezier(.22,1,.36,1);">+</span>
+            </button>
+            <div data-acc-body="" style="overflow: hidden; max-height: 0; opacity: 0; transition: max-height .55s cubic-bezier(.22,1,.36,1), opacity .4s ease;">
+              <p style="margin: 0 0 22px; max-width: 60ch; font-size: 14px; line-height: 1.85; color: #5F5A54;">Every palette is tested in rooms facing each direction, in daylight and lamplight. The guide tells you which shades suit north-facing rooms, which need strong light, and where each one belongs — walls, trim, cabinetry or accents. Always sample before committing.</p>
+            </div>
+          </div>
+          <div data-acc="" style="border-bottom: 1px solid #D8D2C8;">
+            <button data-acc-btn="" aria-expanded="false" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 22px 0; border: 0; background: none; text-align: left; cursor: pointer;">
+              <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(19px, 1.9vw, 28px); line-height: 1.2;">How many palettes do I need for one home?</span>
+              <span data-acc-icon="" style="flex: 0 0 auto; font-size: 18px; transition: transform .45s cubic-bezier(.22,1,.36,1);">+</span>
+            </button>
+            <div data-acc-body="" style="overflow: hidden; max-height: 0; opacity: 0; transition: max-height .55s cubic-bezier(.22,1,.36,1), opacity .4s ease;">
+              <p style="margin: 0 0 22px; max-width: 60ch; font-size: 14px; line-height: 1.85; color: #5F5A54;">One. Nine colors is enough to carry a whole house — that's the point. People buy a second palette when they want a different mood for a separate space, like a studio or a rental.</p>
+            </div>
+          </div>
+          <div data-acc="" style="border-bottom: 1px solid #D8D2C8;">
+            <button data-acc-btn="" aria-expanded="false" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 22px 0; border: 0; background: none; text-align: left; cursor: pointer;">
+              <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(19px, 1.9vw, 28px); line-height: 1.2;">Is this suitable if I'm not a designer?</span>
+              <span data-acc-icon="" style="flex: 0 0 auto; font-size: 18px; transition: transform .45s cubic-bezier(.22,1,.36,1);">+</span>
+            </button>
+            <div data-acc-body="" style="overflow: hidden; max-height: 0; opacity: 0; transition: max-height .55s cubic-bezier(.22,1,.36,1), opacity .4s ease;">
+              <p style="margin: 0 0 22px; max-width: 60ch; font-size: 14px; line-height: 1.85; color: #5F5A54;">It's written for exactly that. No jargon without explanation, and the planner walks you from sampling to final coat step by step.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="downloads" aria-labelledby="dl-h" style="padding: clamp(56px, 9vh, 110px) clamp(18px, 3.4vw, 54px);">
+      <div data-two="" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(26px, 5vw, 80px); align-items: start;">
+        <div data-sticky="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">02 — Downloads</p>
+          <h2 id="dl-h" style="margin: 0; max-width: 14ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4vw, 62px); line-height: 1;">How delivery <em style="font-style: italic;">works.</em></h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: clamp(20px, 3vh, 30px); max-width: 62ch;">
+          <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(20px, 2vw, 30px); line-height: 1.35;">Your files arrive the moment your payment clears — usually within a minute.</p>
+          <ol style="display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; border-top: 1px solid #D8D2C8;">
+            <li style="display: flex; gap: 18px; padding: 18px 0; border-bottom: 1px solid #D8D2C8;"><span style="flex: 0 0 auto; font-size: 11px; letter-spacing: .2em; color: #A9A29A;">01</span><span style="font-size: 14px; line-height: 1.75; color: #5F5A54;">Check out with any major card. No account required.</span></li>
+            <li style="display: flex; gap: 18px; padding: 18px 0; border-bottom: 1px solid #D8D2C8;"><span style="flex: 0 0 auto; font-size: 11px; letter-spacing: .2em; color: #A9A29A;">02</span><span style="font-size: 14px; line-height: 1.75; color: #5F5A54;">A download link is emailed to the address you enter — check spam if it hasn't landed in five minutes.</span></li>
+            <li style="display: flex; gap: 18px; padding: 18px 0; border-bottom: 1px solid #D8D2C8;"><span style="flex: 0 0 auto; font-size: 11px; letter-spacing: .2em; color: #A9A29A;">03</span><span style="font-size: 14px; line-height: 1.75; color: #5F5A54;">Files are PDFs. Read them on any phone, tablet or computer, and print the pages you want beside you while painting.</span></li>
+            <li style="display: flex; gap: 18px; padding: 18px 0; border-bottom: 1px solid #D8D2C8;"><span style="flex: 0 0 auto; font-size: 11px; letter-spacing: .2em; color: #A9A29A;">04</span><span style="font-size: 14px; line-height: 1.75; color: #5F5A54;">Your link stays active. Lost it? Write to us with your order email and we'll resend.</span></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="terms" aria-labelledby="terms-h" style="padding: clamp(56px, 9vh, 110px) clamp(18px, 3.4vw, 54px); background: #EDEAE0;">
+      <div data-two="" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(26px, 5vw, 80px); align-items: start;">
+        <div data-sticky="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">03 — Terms of service</p>
+          <h2 id="terms-h" style="margin: 0; max-width: 14ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4vw, 62px); line-height: 1;">The <em style="font-style: italic;">agreement.</em></h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 24px; max-width: 62ch;">
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">By purchasing from Dwelling Dream you agree to these terms. We sell digital guides for personal use in your own home or your clients' homes, with the licensing limits set out below.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">Our palettes are design guidance, not a guarantee of outcome. Paint appearance varies with light, surface preparation, primer, sheen and the batch you buy, so always test samples on your own walls before committing to a full room. We aren't liable for the cost of paint, labour or rework arising from a color you decide against.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">Color names and codes are referenced to help you buy the right paint. Dwelling Dream is independent and not affiliated with, endorsed by or sponsored by any paint manufacturer; all brand names remain the property of their owners.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">We may update guides, prices or these terms. Changes apply going forward, never retroactively to a purchase you've already made.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy" aria-labelledby="priv-h" style="padding: clamp(56px, 9vh, 110px) clamp(18px, 3.4vw, 54px);">
+      <div data-two="" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(26px, 5vw, 80px); align-items: start;">
+        <div data-sticky="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">04 — Privacy policy</p>
+          <h2 id="priv-h" style="margin: 0; max-width: 14ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4vw, 62px); line-height: 1;">What we <em style="font-style: italic;">keep.</em></h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 24px; max-width: 62ch;">
+          <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(20px, 2vw, 30px); line-height: 1.35;">The short version: your email, your order, nothing else.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">We collect the email address and order details needed to deliver your files and answer support questions, plus basic anonymous analytics about which pages are visited. Payment is handled by our payment processor — full card numbers never reach us.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">We don't sell or rent your data. Newsletter emails only go to people who asked for them, and every one carries a one-click unsubscribe.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">You can ask us for a copy of what we hold, or ask us to delete it, at any time. Write to the contact address and we'll action it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="refunds" aria-labelledby="ref-h" style="padding: clamp(56px, 9vh, 110px) clamp(18px, 3.4vw, 54px); background: #EDEAE0;">
+      <div data-two="" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(26px, 5vw, 80px); align-items: start;">
+        <div data-sticky="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">05 — Refund policy</p>
+          <h2 id="ref-h" style="margin: 0; max-width: 14ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4vw, 62px); line-height: 1;">If something's <em style="font-style: italic;">wrong.</em></h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 24px; max-width: 62ch;">
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">Because every purchase is delivered instantly and can't be returned, sales are final and we don't offer refunds for change of mind. Please read what's included before buying — it's all listed on each palette page.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.85; color: #5F5A54;">That said, we won't leave you stuck. If a file won't open, a download link fails, you were charged twice, or you received the wrong palette, write to us within 30 days and we'll fix it — resend, replace or refund as appropriate.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="licensing" aria-labelledby="lic-h" style="padding: clamp(56px, 9vh, 110px) clamp(18px, 3.4vw, 54px);">
+      <div data-two="" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(26px, 5vw, 80px); align-items: start;">
+        <div data-sticky="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">06 — Licensing &amp; usage</p>
+          <h2 id="lic-h" style="margin: 0; max-width: 14ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4vw, 62px); line-height: 1;">What you <em style="font-style: italic;">may do.</em></h2>
+        </div>
+        <div data-lic-grid="" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #D8D2C8; max-width: 900px;">
+          <div style="padding: clamp(22px, 2.4vw, 34px); background: #F5F2EA;">
+            <p style="margin: 0 0 16px; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #6E675E;">Yes, please</p>
+            <ul style="display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none;">
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Use the palette in your own home, as often as you like</li>
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Print pages for your own reference or to take to the paint counter</li>
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Use it with a client project you're personally working on</li>
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Share a photo of your finished room and tag us</li>
+            </ul>
+          </div>
+          <div style="padding: clamp(22px, 2.4vw, 34px); background: #F5F2EA;">
+            <p style="margin: 0 0 16px; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #6E675E;">Please don't</p>
+            <ul style="display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none;">
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Forward, upload or resell the files</li>
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Reproduce the guides in your own product or course</li>
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Redistribute the pages as a free download</li>
+              <li style="font-size: 13.5px; line-height: 1.7; color: #4E4A44;">Claim the palettes as your own work</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="cta-h" style="padding: clamp(64px, 10vh, 130px) clamp(18px, 3.4vw, 54px); background: #292825; color: #F5F2EA; text-align: center;">
+      <h2 id="cta-h" style="margin: 0 auto 18px; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4.6vw, 76px); line-height: .98;">Still stuck? <em style="font-style: italic; font-weight: 400;">Ask us.</em></h2>
+      <p style="margin: 0 auto 30px; max-width: 48ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: rgba(245,242,234,.84);">Real replies, usually within a day. No ticket numbers.</p>
+      <a data-magnetic="" href="mailto:hello@dwellingdream.com" style="display: inline-flex; align-items: center; padding: 19px 34px; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Email support</a>
+    </section>
+
+    <footer style="background: #292825; color: #A9A29A; padding: clamp(48px, 8vh, 88px) clamp(18px, 3.4vw, 54px) 30px;">
+      <div data-foot-grid="" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: clamp(28px, 4vw, 64px); padding-bottom: clamp(36px, 5vh, 56px); border-bottom: 1px solid rgba(245,242,234,.14);">
+
+        <div style="display: flex; flex-direction: column; gap: 18px; max-width: 34ch;">
+          <img src="assets/logo-mark-light.png" alt="Dwelling Dream" style="display: block; align-self: center; height: 62px; width: auto; flex: 0 0 auto;" />
+          <p style="margin: 0; font-size: 13px; line-height: 1.7; letter-spacing: 0; text-transform: none; color: #BEB7AD;">Beautifully curated colors for beautiful spaces. Nine-color palettes, guides and planners — instant digital downloads.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="#" aria-label="Dwelling Dream on Pinterest" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Pinterest</a>
+            <a href="#" aria-label="Dwelling Dream on Instagram" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Instagram</a>
+            <a href="#" aria-label="Dwelling Dream on Etsy" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Etsy</a>
+            <a href="#" aria-label="Dwelling Dream on TikTok" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">TikTok</a>
+          </div>
+        </div>
+
+        <nav aria-label="Shop" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Shop</h2>
+          <a href="Dwelling Dream Palettes.dc.html" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">All Palettes</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#featured" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Best Sellers</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#styles" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Shop by Style</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#loved" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Paint Guides</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#loved" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Project Planner</a>
+        </nav>
+
+        <nav aria-label="Studio" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Studio</h2>
+          <a href="Dwelling Dream About.dc.html" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">About</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Blog</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Color Consultations</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Contact</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Newsletter</a>
+        </nav>
+
+        <nav aria-label="Help and legal" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Help &amp; Legal</h2>
+          <a href="#faq" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">FAQ</a>
+          <a href="#downloads" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">How Downloads Work</a>
+          <a href="#terms" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Terms of Service</a>
+          <a href="#privacy" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Privacy Policy</a>
+          <a href="#refunds" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Refund Policy</a>
+          <a href="#licensing" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Licensing &amp; Usage</a>
+        </nav>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-top: 26px; font-size: 10px; letter-spacing: .2em; text-transform: uppercase;">
+        <span>© 2026 Dwelling Dream</span>
+        <span>Digital downloads · No physical product shipped</span>
+        <a href="#top" style="color: #A9A29A;" style-hover="color: #F5F2EA;">Back to top ↑</a>
+      </div>
+    </footer>
+  </main>
+</div>
+
+</x-dc>
+<script type="module">
+  import { initDwellingDream } from './interactions.js';
+  import { syncCartBadge } from './cart.js';
+
+  initDwellingDream(document, { navThreshold: -1 });
+  syncCartBadge(document);
+</script>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motionIntensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+class Component extends DCLogic {
+  renderVals() { return {}; }
+  componentDidMount() { this.setup(); }
+  componentDidUpdate() { this.setup(); }
+  componentWillUnmount() { (this._off || []).forEach(f => f()); }
+
+  setup() {
+    if (this._done) return;
+    if (!document.querySelector('[data-acc]')) return;
+    this._done = true;
+    this._off = [];
+    this.rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.k = this.props.motionIntensity ?? 1;
+    this.$ = s => document.querySelector(s);
+    this.$$ = s => Array.from(document.querySelectorAll(s));
+    this.on = (t, e, f, o) => { t.addEventListener(e, f, o); this._off.push(() => t.removeEventListener(e, f, o)); };
+    this.initScroll(); this.initAccordion(); this.initResponsive(); this.initMagnetic();
+  }
+
+  initScroll() {
+    const bar = this.$('[data-progress]');
+    let queued = false;
+    const run = () => {
+      queued = false;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, window.scrollY / max) : 0) + ')';
+    };
+    this.on(window, 'scroll', () => { if (!queued) { queued = true; requestAnimationFrame(run); } }, { passive: true });
+    run();
+  }
+
+  initAccordion() {
+    this.$$('[data-acc]').forEach(acc => {
+      const btn = acc.querySelector('[data-acc-btn]'), body = acc.querySelector('[data-acc-body]'), icon = acc.querySelector('[data-acc-icon]');
+      const set = open => {
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        body.style.maxHeight = open ? '340px' : '0';
+        body.style.opacity = open ? '1' : '0';
+        icon.style.transform = open ? 'rotate(45deg)' : 'none';
+      };
+      set(btn.getAttribute('aria-expanded') === 'true');
+      this.on(btn, 'click', () => set(btn.getAttribute('aria-expanded') !== 'true'));
+    });
+  }
+
+  initResponsive() {
+    const twos = this.$$('[data-two]'), stickies = this.$$('[data-sticky]'), lic = this.$('[data-lic-grid]');
+    const apply = () => {
+      const narrow = window.innerWidth < 900;
+      twos.forEach(t => { t.style.gridTemplateColumns = narrow ? '1fr' : '0.8fr 1.2fr'; });
+      stickies.forEach(s => { s.style.position = narrow ? 'static' : 'sticky'; });
+      if (lic) lic.style.gridTemplateColumns = narrow ? '1fr' : '1fr 1fr';
+    };
+    this.on(window, 'resize', apply);
+    apply();
+  }
+
+  initMagnetic() {
+    if (this.rm) return;
+    this.$$('[data-magnetic]').forEach(el => {
+      this.on(el, 'pointermove', e => {
+        const r = el.getBoundingClientRect();
+        const dx = (e.clientX - (r.left + r.width / 2)) / r.width, dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+        el.style.transform = 'translate(' + (dx * 10 * this.k).toFixed(1) + 'px,' + (dy * 7 * this.k).toFixed(1) + 'px)';
+      });
+      this.on(el, 'pointerleave', () => { el.style.transform = 'none'; });
+    });
+  }
+}
+</script>
+</body>
+</html>

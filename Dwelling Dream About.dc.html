@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="description" content="About Dwelling Dream — how Shahroz builds nine-color paint palettes designed to make choosing color feel simple." />
+<title>About — Dwelling Dream</title>
+<script src="./image-slot.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  a { color: #292825; text-decoration: none; }
+  a:hover { color: #817A6E; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+  ::selection { background: #DFD3C3; }
+  @keyframes dd-float { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-12px) rotate(var(--r,0deg)); } }
+  @keyframes dd-drip { 0% { transform: scaleY(.34); } 100% { transform: scaleY(1); } }
+  @keyframes dd-bead { 0%, 68% { transform: translateY(0) scale(.6); opacity: 0; } 82% { transform: translateY(6px) scale(1); opacity: 1; } 100% { transform: translateY(26px) scale(.55); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; overflow-x: hidden; background: #F5F2EA;">
+
+  <div data-progress="" style="position: fixed; top: 0; left: 0; height: 2px; width: 100%; background: #817A6E; transform: scaleX(0); transform-origin: 0 50%; z-index: 90; opacity: .5;"></div>
+
+  <header data-nav="" style="position: fixed; top: 0; left: 0; right: 0; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 18px clamp(18px, 3.4vw, 54px); pointer-events: none; color: #292825; background: rgba(245,242,234,.9); border-bottom: 1px solid #D8D2C8; backdrop-filter: blur(14px); transition: padding .5s ease;">
+    <a href="Dwelling Dream Homepage v2.dc.html" aria-label="Dwelling Dream home" style="pointer-events: auto; display: inline-flex; align-items: center; color: inherit;">
+      <img src="assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
+    </a>
+    <nav aria-label="Primary" style="pointer-events: auto; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 36px);">
+      <a href="Dwelling Dream Homepage v2.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Home</a>
+      <a href="#top" style="color: inherit; font-size: 13px; letter-spacing: .1em;">About</a>
+      <a href="Dwelling Dream Help.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Help</a>
+      <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 11px 22px; border: 1px solid #D8D2C8; border-radius: 999px; background: rgba(255,255,255,.5); font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; transition: background .35s ease, transform .45s cubic-bezier(.22,1,.36,1);" style-hover="background: #292825; color: #F5F2EA;">Explore Palettes</a>
+      <a data-cart="" href="Dwelling Dream Cart.dc.html" aria-label="Cart, 0 items" style="position: relative; display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: inherit; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, border-color .35s ease;">
+        <span aria-hidden="true" style="display: inline-block; width: 13px; height: 11px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; position: relative; top: 2px;">
+          <span style="position: absolute; left: 1.5px; right: 1.5px; top: -6px; height: 6px; border: 1.5px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0;"></span>
+        </span>
+        <span data-cart-count="">0</span>
+      </a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <section aria-labelledby="about-h" style="position: relative; padding: clamp(120px, 17vh, 200px) clamp(18px, 3.4vw, 54px) clamp(64px, 10vh, 120px); overflow: hidden;">
+      <div data-depth="1.2" style="position: absolute; right: -3%; top: 5%; width: clamp(130px, 14vw, 220px); z-index: 0; animation: dd-float 13s ease-in-out infinite; pointer-events: none;" aria-hidden="true">
+        <span style="position: absolute; left: 30%; top: 26%; width: 20%; aspect-ratio: 1; border-radius: 50%; background: #DFD3C3;"></span>
+        <span style="position: absolute; left: 58%; top: 12%; width: 8%; aspect-ratio: 1; border-radius: 50%; background: #ACAD97;"></span>
+        <span style="position: absolute; left: 16%; top: 52%; width: 12%; aspect-ratio: 1; border-radius: 50%; background: #C2DAE0;"></span>
+        <span style="position: absolute; left: 70%; top: 44%; width: 5.5%; aspect-ratio: 1; border-radius: 50%; background: #AC6B53;"></span>
+        <span style="position: absolute; left: 46%; top: 64%; width: 7%; aspect-ratio: 1; border-radius: 50%; background: #9BBFC9;"></span>
+        <span style="position: absolute; left: 24%; top: 10%; width: 4%; aspect-ratio: 1; border-radius: 50%; background: #817A6E;"></span>
+        <span style="position: absolute; left: 78%; top: 68%; width: 3.6%; aspect-ratio: 1; border-radius: 50%; background: #DFD3C3;"></span>
+        <span style="position: absolute; left: 56%; top: 82%; width: 2.8%; aspect-ratio: 1; border-radius: 50%; background: #ACAD97;"></span>
+        <span style="position: absolute; left: 8%; top: 34%; width: 2.4%; aspect-ratio: 1; border-radius: 50%; background: #AC6B53;"></span>
+        <span style="position: absolute; left: 40%; top: 44%; width: 2%; aspect-ratio: 1; border-radius: 50%; background: #78736E;"></span>
+      </div>
+      <div data-depth="2" style="position: absolute; left: -1.5%; bottom: -3%; width: clamp(80px, 9vw, 132px); z-index: 0; animation: dd-float 9.5s ease-in-out infinite; pointer-events: none;" aria-hidden="true">
+        <span style="position: absolute; left: 34%; top: 30%; width: 19%; aspect-ratio: 1; border-radius: 50%; background: #C2DAE0;"></span>
+        <span style="position: absolute; left: 14%; top: 58%; width: 9%; aspect-ratio: 1; border-radius: 50%; background: #DFD3C3;"></span>
+        <span style="position: absolute; left: 64%; top: 20%; width: 6.5%; aspect-ratio: 1; border-radius: 50%; background: #9BBFC9;"></span>
+        <span style="position: absolute; left: 60%; top: 66%; width: 4.6%; aspect-ratio: 1; border-radius: 50%; background: #ACAD97;"></span>
+        <span style="position: absolute; left: 26%; top: 16%; width: 3.2%; aspect-ratio: 1; border-radius: 50%; background: #817A6E;"></span>
+        <span style="position: absolute; left: 82%; top: 46%; width: 2.8%; aspect-ratio: 1; border-radius: 50%; background: #AC6B53;"></span>
+      </div>
+
+
+      <div data-hero-grid="" style="position: relative; z-index: 1; display: grid; grid-template-columns: 1.5fr 0.85fr; gap: clamp(28px, 5vw, 76px); align-items: end;">
+      <div style="display: flex; flex-direction: column; gap: clamp(18px, 2.6vh, 26px);">
+      <p data-reveal="" style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">About · Dwelling Dream</p>
+      <h1 id="about-h" data-reveal="" style="margin: 0; max-width: 24ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(42px, 7vw, 124px); line-height: .95; letter-spacing: -.015em; text-wrap: balance;">I started with forty paint chips and <em style="font-style: italic; font-weight: 400;">no idea.</em></h1>
+      <p data-reveal="" style="margin: 0; max-width: 58ch; font-size: clamp(15px, 1.2vw, 19px); line-height: 1.7; color: #5F5A54;">Hi, I'm Shahroz. Dwelling Dream is the shortcut I wish I'd had — nine colors that already agree with each other, so you can stop guessing and start painting.</p>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+      <div data-portrait="" data-reveal="" style="position: relative; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; background: #E3DED3;">
+        <img src="assets/dd2-owner.webp" alt="Founder portrait — Shahroz" style="width: 100%; height: 100%; display: block; object-fit: cover;" />
+      </div>
+      <p data-reveal="" style="margin: 12px 0 0; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: #A9A29A;">Shahroz · Founder, Dwelling Dream</p>
+      </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="story-h" style="position: relative; padding: clamp(60px, 9vh, 110px) clamp(18px, 3.4vw, 54px) clamp(70px, 11vh, 130px); background: #EDEAE0;">
+      <div data-story-grid="" style="display: grid; grid-template-columns: 0.75fr 1.25fr; gap: clamp(26px, 5vw, 90px); align-items: start;">
+        <div data-reveal="" style="position: sticky; top: clamp(110px, 14vh, 150px);">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">The story</p>
+          <h2 id="story-h" style="margin: 0; max-width: 16ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 3.8vw, 62px); line-height: 1;">How this <em style="font-style: italic;">began.</em></h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: clamp(20px, 3vh, 30px); max-width: 62ch;">
+          <p data-reveal="" style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(21px, 2.1vw, 32px); line-height: 1.35; color: #292825;">The first room I painted took me three weekends. Not because of the painting — because of the deciding.</p>
+          <p data-reveal="" style="margin: 0; font-size: clamp(14px, 1.05vw, 16.5px); line-height: 1.8; color: #5F5A54;">I taped chips to the wall, looked at them in the morning, hated them by evening, and bought four more. Every color looked right on its own and wrong next to the last one. What I was missing wasn't taste — it was a plan. No one tells you that a color is only ever as good as the eight colors around it.</p>
+          <p data-reveal="" style="margin: 0; font-size: clamp(14px, 1.05vw, 16.5px); line-height: 1.8; color: #5F5A54;">So I started building palettes instead of picking colors. Nine shades at a time: the whites and warm neutrals that carry most of a home, the mid-tones that give rooms their mood, and the deep anchors that make everything else look intentional. I tested them in north-facing rooms and south-facing ones, under daylight and under a single lamp at night.</p>
+          <p data-reveal="" style="margin: 0; font-size: clamp(14px, 1.05vw, 16.5px); line-height: 1.8; color: #5F5A54;">Friends started asking for the lists. Then their friends did. Dwelling Dream is what those lists became — palettes, guides and planners for anyone standing in front of a wall with too many options and not enough time.</p>
+          <p data-reveal="" style="margin: 6px 0 0; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(20px, 1.9vw, 30px); color: #292825;">— Shahroz</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="phil-h" style="position: relative; padding: clamp(70px, 11vh, 140px) clamp(18px, 3.4vw, 54px); background: #F5F2EA;">
+      <div data-reveal="" style="max-width: 700px; margin-bottom: clamp(38px, 6vh, 68px);">
+        <p style="margin: 0 0 16px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Color philosophy</p>
+        <h2 id="phil-h" style="margin: 0 0 18px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 4.6vw, 78px); line-height: .98;">Four things I believe about <em style="font-style: italic;">color.</em></h2>
+        <p style="margin: 0; max-width: 54ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: #78736E;">Everything on this site comes out of these four ideas.</p>
+      </div>
+
+      <div data-beliefs="" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #D8D2C8;">
+
+        <article data-belief="" style="position: relative; display: flex; flex-direction: column; gap: 14px; padding: clamp(26px, 3vw, 48px); background: #F5F2EA; transition: background .5s ease;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #A9A29A;">01</span>
+            <span data-chip="" style="width: 34px; height: 34px; border-radius: 50%; background: #DFD3C3; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+          </div>
+          <h3 style="margin: 0; max-width: 20ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(24px, 2.4vw, 40px); line-height: 1.05;">Fewer options, better rooms.</h3>
+          <p style="margin: 0; max-width: 44ch; font-size: 14px; line-height: 1.75; color: #5F5A54;">A thousand paint chips is not freedom, it's paralysis. Nine is enough to decorate a whole house — and few enough to actually decide.</p>
+        </article>
+
+        <article data-belief="" style="position: relative; display: flex; flex-direction: column; gap: 14px; padding: clamp(26px, 3vw, 48px); background: #F5F2EA; transition: background .5s ease;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #A9A29A;">02</span>
+            <span data-chip="" style="width: 34px; height: 34px; border-radius: 50%; background: #9BBFC9; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+          </div>
+          <h3 style="margin: 0; max-width: 20ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(24px, 2.4vw, 40px); line-height: 1.05;">Light decides everything.</h3>
+          <p style="margin: 0; max-width: 44ch; font-size: 14px; line-height: 1.75; color: #5F5A54;">The same white is cream in a south-facing room and grey in a north-facing one. That's why every palette lists LRV values and comes tested in both.</p>
+        </article>
+
+        <article data-belief="" style="position: relative; display: flex; flex-direction: column; gap: 14px; padding: clamp(26px, 3vw, 48px); background: #F5F2EA; transition: background .5s ease;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #A9A29A;">03</span>
+            <span data-chip="" style="width: 34px; height: 34px; border-radius: 50%; background: #ACAD97; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+          </div>
+          <h3 style="margin: 0; max-width: 20ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(24px, 2.4vw, 40px); line-height: 1.05;">A home should read as one idea.</h3>
+          <p style="margin: 0; max-width: 44ch; font-size: 14px; line-height: 1.75; color: #5F5A54;">Rooms chosen one at a time fight each other in the hallway. Palettes are built to flow, so moving between rooms feels like a change of key, not a change of subject.</p>
+        </article>
+
+        <article data-belief="" style="position: relative; display: flex; flex-direction: column; gap: 14px; padding: clamp(26px, 3vw, 48px); background: #F5F2EA; transition: background .5s ease;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #A9A29A;">04</span>
+            <span data-chip="" style="width: 34px; height: 34px; border-radius: 50%; background: #AC6B53; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+          </div>
+          <h3 style="margin: 0; max-width: 20ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(24px, 2.4vw, 40px); line-height: 1.05;">Warm neutrals are not boring.</h3>
+          <p style="margin: 0; max-width: 44ch; font-size: 14px; line-height: 1.75; color: #5F5A54;">Restraint is what makes one terracotta or one deep navy land. The quiet colors do the work; the bold one gets the credit.</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="news-h" style="position: relative; padding: clamp(76px, 12vh, 150px) clamp(18px, 3.4vw, 54px) clamp(70px, 11vh, 130px); background: #292825; color: #F5F2EA; overflow: hidden;">
+      <div style="position: absolute; inset: 0; pointer-events: none; opacity: .2; mix-blend-mode: overlay; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E&quot;);"></div>
+      <div data-depth="1.6" aria-hidden="true" style="position: absolute; left: 8%; top: 22%; width: clamp(50px, 5.5vw, 82px); height: clamp(50px, 5.5vw, 82px); border-radius: 50%; background: radial-gradient(circle at 32% 26%, #FFFFFF, #DFD3C3 54%, #A2947F); box-shadow: 18px 26px 40px rgba(0,0,0,.42); animation: dd-float 11s ease-in-out infinite; pointer-events: none;"></div>
+
+      <div style="position: relative; max-width: 760px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 22px;">
+        <p data-reveal="" style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: rgba(245,242,234,.7);">The letter</p>
+        <h2 id="news-h" data-reveal="" style="margin: 0; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(34px, 5.4vw, 90px); line-height: .97;">One palette, once a <em style="font-style: italic; font-weight: 400;">month.</em></h2>
+        <p data-reveal="" style="margin: 0; max-width: 50ch; font-size: clamp(14px, 1vw, 16.5px); line-height: 1.75; color: rgba(245,242,234,.84);">A new nine-color palette, where it came from, and how to use it — plus the occasional honest note about a color that didn't work.</p>
+        <form data-news="" data-reveal="" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 520px; margin-top: 8px;">
+          <label for="dda-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+          <input id="dda-email" data-news-input="" type="email" required="" placeholder="you@email.com" style="flex: 1 1 240px; min-width: 0; padding: 17px 20px; border: 1px solid rgba(245,242,234,.34); border-radius: 999px; background: rgba(245,242,234,.06); color: #F5F2EA; font-family: inherit; font-size: 14px; transition: border-color .3s ease, background .3s ease;" />
+          <button data-magnetic="" type="submit" style="flex: 0 0 auto; padding: 17px 30px; border: 0; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Join</button>
+        </form>
+        <p data-news-msg="" role="status" aria-live="polite" style="margin: 0; min-height: 18px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(245,242,234,.7);"></p>
+      </div>
+    </section>
+
+    <footer style="background: #292825; color: #A9A29A; padding: clamp(48px, 8vh, 88px) clamp(18px, 3.4vw, 54px) 30px;">
+      <div data-foot-grid="" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: clamp(28px, 4vw, 64px); padding-bottom: clamp(36px, 5vh, 56px); border-bottom: 1px solid rgba(245,242,234,.14);">
+
+        <div style="display: flex; flex-direction: column; gap: 18px; max-width: 34ch;">
+          <img src="assets/logo-mark-light.png" alt="Dwelling Dream" style="display: block; align-self: center; height: 62px; width: auto; flex: 0 0 auto;" />
+          <p style="margin: 0; font-size: 13px; line-height: 1.7; letter-spacing: 0; text-transform: none; color: #BEB7AD;">Beautifully curated colors for beautiful spaces. Nine-color palettes, guides and planners — instant digital downloads.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="#" aria-label="Dwelling Dream on Pinterest" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Pinterest</a>
+            <a href="#" aria-label="Dwelling Dream on Instagram" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Instagram</a>
+            <a href="#" aria-label="Dwelling Dream on Etsy" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Etsy</a>
+            <a href="#" aria-label="Dwelling Dream on TikTok" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">TikTok</a>
+          </div>
+        </div>
+
+        <nav aria-label="Shop" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Shop</h2>
+          <a href="Dwelling Dream Palettes.dc.html" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">All Palettes</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#featured" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Best Sellers</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#styles" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Shop by Style</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#loved" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Paint Guides</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#loved" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Project Planner</a>
+        </nav>
+
+        <nav aria-label="Studio" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Studio</h2>
+          <a href="#top" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">About</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Blog</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Color Consultations</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Contact</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Newsletter</a>
+        </nav>
+
+        <nav aria-label="Help and legal" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Help &amp; Legal</h2>
+          <a href="Dwelling Dream Help.dc.html#faq" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">FAQ</a>
+          <a href="Dwelling Dream Help.dc.html#downloads" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">How Downloads Work</a>
+          <a href="Dwelling Dream Help.dc.html#terms" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Terms of Service</a>
+          <a href="Dwelling Dream Help.dc.html#privacy" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Privacy Policy</a>
+          <a href="Dwelling Dream Help.dc.html#refunds" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Refund Policy</a>
+          <a href="Dwelling Dream Help.dc.html#licensing" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Licensing &amp; Usage</a>
+        </nav>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-top: 26px; font-size: 10px; letter-spacing: .2em; text-transform: uppercase;">
+        <span>© 2026 Dwelling Dream</span>
+        <span>Digital downloads · No physical product shipped</span>
+        <a href="#top" style="color: #A9A29A;" style-hover="color: #F5F2EA;">Back to top ↑</a>
+      </div>
+    </footer>
+  </main>
+</div>
+
+</x-dc>
+<script type="module">
+  import { initDwellingDream } from './interactions.js';
+  import { syncCartBadge } from './cart.js';
+
+  initDwellingDream(document, { navThreshold: -1 });
+  syncCartBadge(document);
+</script>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motionIntensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+class Component extends DCLogic {
+  renderVals() { return {}; }
+  componentDidMount() { this.setup(); }
+  componentDidUpdate() { this.setup(); }
+  componentWillUnmount() { (this._off || []).forEach(f => f()); }
+
+  setup() {
+    if (this._done) return;
+    if (!document.querySelector('[data-beliefs]')) return;
+    this._done = true;
+    this._off = [];
+    this.rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.k = this.props.motionIntensity ?? 1;
+    this.$ = s => document.querySelector(s);
+    this.$$ = s => Array.from(document.querySelectorAll(s));
+    this.on = (t, e, f, o) => { t.addEventListener(e, f, o); this._off.push(() => t.removeEventListener(e, f, o)); };
+    this.initScroll(); this.initCursor(); this.initReveal();
+    this.initBeliefs(); this.initNews(); this.initMagnetic(); this.initResponsive();
+  }
+
+  initScroll() {
+    const bar = this.$('[data-progress]'), nav = this.$('[data-nav]'), portrait = this.$('[data-portrait]');
+    let queued = false;
+    const run = () => {
+      queued = false;
+      const y = window.scrollY, vh = window.innerHeight;
+      const max = document.documentElement.scrollHeight - vh;
+      if (bar) bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, y / max) : 0) + ')';
+      if (nav) { nav.style.paddingTop = nav.style.paddingBottom = y > 40 ? '12px' : '18px'; }
+      if (portrait && !this.rm) {
+        const r = portrait.getBoundingClientRect();
+        if (r.top < vh && r.bottom > 0) {
+          const p = 1 - (r.top + r.height / 2) / (vh + r.height / 2);
+          const slot = portrait.firstElementChild;
+          if (slot) { slot.style.transform = 'scale(' + (1.06 + p * 0.05).toFixed(3) + ') translateY(' + (p * -2).toFixed(2) + '%)'; slot.style.transformOrigin = '50% 40%'; }
+        }
+      }
+    };
+    this.on(window, 'scroll', () => { if (!queued) { queued = true; requestAnimationFrame(run); } }, { passive: true });
+    this.on(window, 'resize', run);
+    run();
+  }
+
+  initCursor() {
+    if (this.rm) return;
+    const objs = this.$$('[data-depth]').map(el => ({ el, d: parseFloat(el.dataset.depth) || 1, x: 0, y: 0, tx: 0, ty: 0 }));
+    if (!objs.length) return;
+    const tick = () => {
+      let moving = false;
+      objs.forEach(o => {
+        o.x += (o.tx - o.x) * 0.07; o.y += (o.ty - o.y) * 0.07;
+        if (Math.abs(o.tx - o.x) > 0.1 || Math.abs(o.ty - o.y) > 0.1) moving = true;
+        o.el.style.translate = o.x.toFixed(2) + 'px ' + o.y.toFixed(2) + 'px';
+      });
+      this._raf = moving ? requestAnimationFrame(tick) : null;
+    };
+    this.on(window, 'pointermove', e => {
+      const cx = e.clientX / window.innerWidth - 0.5, cy = e.clientY / window.innerHeight - 0.5;
+      objs.forEach(o => { o.tx = -cx * 24 * o.d * this.k; o.ty = -cy * 18 * o.d * this.k; });
+      if (!this._raf) this._raf = requestAnimationFrame(tick);
+    }, { passive: true });
+  }
+
+  initReveal() {
+    const els = this.$$('[data-reveal]');
+    if (this.rm) return;
+    els.forEach((el, i) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity .9s ease ' + ((i % 4) * 80) + 'ms, transform .9s cubic-bezier(.22,1,.36,1) ' + ((i % 4) * 80) + 'ms';
+    });
+    const show = el => { el.style.opacity = '1'; el.style.transform = 'none'; };
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } }), { rootMargin: '0px 0px -12% 0px' });
+    els.forEach(el => io.observe(el));
+    const t = setTimeout(() => els.forEach(show), 4000);
+    this._off.push(() => { io.disconnect(); clearTimeout(t); });
+  }
+
+  initBeliefs() {
+    if (this.rm) return;
+    this.$$('[data-belief]').forEach(card => {
+      const chip = card.querySelector('[data-chip]');
+      this.on(card, 'pointerenter', () => {
+        card.style.background = '#EDEAE0';
+        if (chip) chip.style.transform = 'scale(1.6)';
+      });
+      this.on(card, 'pointerleave', () => {
+        card.style.background = '#F5F2EA';
+        if (chip) chip.style.transform = 'none';
+      });
+    });
+  }
+
+  initNews() {
+    const form = this.$('[data-news]'), input = this.$('[data-news-input]'), msg = this.$('[data-news-msg]');
+    if (!form) return;
+    this.on(input, 'focus', () => { input.style.borderColor = 'rgba(245,242,234,.7)'; input.style.background = 'rgba(245,242,234,.12)'; });
+    this.on(input, 'blur', () => { input.style.borderColor = 'rgba(245,242,234,.34)'; input.style.background = 'rgba(245,242,234,.06)'; });
+    this.on(form, 'submit', e => {
+      e.preventDefault();
+      if (!input.value || !input.checkValidity()) { msg.textContent = 'Please enter a valid email'; return; }
+      msg.textContent = 'Thank you — the next palette is on its way';
+      input.value = '';
+    });
+  }
+
+  initMagnetic() {
+    if (this.rm) return;
+    this.$$('[data-magnetic]').forEach(el => {
+      this.on(el, 'pointermove', e => {
+        const r = el.getBoundingClientRect();
+        const dx = (e.clientX - (r.left + r.width / 2)) / r.width, dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+        el.style.transform = 'translate(' + (dx * 12 * this.k).toFixed(1) + 'px,' + (dy * 8 * this.k).toFixed(1) + 'px)';
+      });
+      this.on(el, 'pointerleave', () => { el.style.transform = 'none'; });
+    });
+  }
+
+  initResponsive() {
+    const story = this.$('[data-story-grid]'), beliefs = this.$('[data-beliefs]'), sticky = story && story.firstElementChild;
+    const apply = () => {
+      const narrow = window.innerWidth < 900;
+      if (story) story.style.gridTemplateColumns = narrow ? '1fr' : '0.75fr 1.25fr';
+      const heroGrid = this.$('[data-hero-grid]');
+      if (heroGrid) heroGrid.style.gridTemplateColumns = narrow ? '1fr' : '1.5fr 0.85fr';
+      if (sticky) sticky.style.position = narrow ? 'static' : 'sticky';
+      if (beliefs) beliefs.style.gridTemplateColumns = narrow ? '1fr' : 'repeat(2, 1fr)';
+    };
+    this.on(window, 'resize', apply);
+    apply();
+  }
+}
+</script>
+</body>
+</html>

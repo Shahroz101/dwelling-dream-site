@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="description" content="Dwelling Dream — curated paint palettes drawn from real interiors. Explore nine-color palettes built around the way you want your home to feel.">
+<title>Dwelling Dream — Colors that make a house feel like home</title>
+<script src="./image-slot.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&amp;family=Manrope:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  a { color: #292825; text-decoration: none; }
+  a:hover { color: #817A6E; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+  ::selection { background: #DFD3C3; }
+  @keyframes dd-float { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-12px) rotate(var(--r,0deg)); } }
+  @keyframes dd-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; overflow-x: hidden; background: #F5F2EA;">
+
+  <div data-progress="" style="position: fixed; top: 0; left: 0; height: 2px; width: 100%; background: #817A6E; transform: scaleX(0); transform-origin: 0 50%; z-index: 90; opacity: .5;"></div>
+
+  <header data-nav="" style="position: fixed; top: 0; left: 0; right: 0; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 22px clamp(18px, 3.4vw, 54px); pointer-events: none; color: #F5F2EA; background: rgba(245,242,234,0); border-bottom: 1px solid rgba(216,210,200,0); transition: background .5s ease, border-color .5s ease, backdrop-filter .5s ease, color .5s ease, padding .5s ease;">
+    <a data-navlink="" href="#top" aria-label="Dwelling Dream home" style="pointer-events: auto; display: inline-flex; align-items: center; color: inherit;">
+      <span style="position: relative; display: inline-block; height: clamp(38px, 4.4vw, 54px);">
+        <img data-logo-light="" src="assets/logo-mark-light.png" alt="Dwelling Dream" style="display: block; height: 100%; width: auto; transition: opacity .5s ease;">
+        <img data-logo-dark="" src="assets/logo-mark.png" alt="" aria-hidden="true" style="position: absolute; left: 0; top: 0; display: block; height: 100%; width: auto; opacity: 0; transition: opacity .5s ease;">
+      </span>
+    </a>
+    <nav aria-label="Primary" style="pointer-events: auto; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 36px);">
+      <a data-navlink="" href="Dwelling Dream Homepage v2.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Home</a>
+      <a data-navlink="" href="Dwelling Dream About.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">About</a>
+      <a data-navlink="" href="Dwelling Dream Help.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Help</a>
+      <a data-magnetic="" data-navcta="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 11px 22px; border: 1px solid rgba(245,242,234,.5); border-radius: 999px; color: inherit; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; background: rgba(245,242,234,.1); transition: background .35s ease, border-color .35s ease, color .35s ease, transform .45s cubic-bezier(.22,1,.36,1);">Explore Palettes</a>
+      <a data-cart="" href="Dwelling Dream Cart.dc.html" aria-label="Cart, 0 items" style="position: relative; display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: inherit; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, border-color .35s ease;">
+        <span aria-hidden="true" style="display: inline-block; width: 13px; height: 11px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; position: relative; top: 2px;">
+          <span style="position: absolute; left: 1.5px; right: 1.5px; top: -6px; height: 6px; border: 1.5px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0;"></span>
+        </span>
+        <span data-cart-count="">0</span>
+      </a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <section aria-labelledby="hero-h" style="position: relative; min-height: 100vh; overflow: hidden; background: #292825;">
+      <div data-hero-media="" style="position: absolute; inset: 0; z-index: 0; pointer-events: auto;">
+        <img src="assets/dd2-hero.webp" alt="Warm neutral living room interior" style="width: 100%; height: 100%; display: block; object-fit: cover;">
+      </div>
+      <div data-hero-grade="" style="position: absolute; inset: 0; background: #DFD3C3; mix-blend-mode: soft-light; opacity: 0; transition: background 1s cubic-bezier(.4,0,.2,1), opacity 1s ease; pointer-events: none;"></div>
+      <div style="position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 80% at 50% 48%, rgba(41,40,37,.62) 0%, rgba(41,40,37,.34) 55%, rgba(41,40,37,.2) 100%), linear-gradient(180deg, rgba(41,40,37,.5) 0%, rgba(41,40,37,.1) 30%, rgba(41,40,37,.34) 70%, rgba(41,40,37,.72) 100%);"></div>
+      <div style="position: absolute; inset: 0; pointer-events: none; opacity: .2; mix-blend-mode: overlay; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E&quot;);"></div>
+
+
+      <div data-hero-copy="" style="position: relative; min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; gap: clamp(18px, 3vh, 32px); padding: clamp(92px, 11vh, 150px) clamp(18px, 3.4vw, 54px) clamp(26px, 4vh, 46px); color: #F5F2EA; will-change: transform; pointer-events: none;">
+        <p style="margin: 0; text-align: center; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: rgba(245,242,234,.8);">Beautifully curated colors for beautiful spaces</p>
+
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: clamp(18px, 2.6vh, 30px); width: 100%; max-width: 1180px; margin: 0 auto;">
+          <h1 id="hero-h" style="margin: 0; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(42px, min(6.6vw, 12vh), 130px); line-height: 1.02; letter-spacing: -.015em; text-wrap: balance; text-shadow: 0 4px 26px rgba(41,40,37,.5), 0 1px 3px rgba(41,40,37,.4);">Colors that make a house <em style="font-style: italic; font-weight: 400;">feel like home.</em></h1>
+          <p style="margin: 0; max-width: 54ch; font-size: clamp(15px, 1.15vw, 18px); line-height: 1.7; color: rgba(245,242,234,.92); text-shadow: 0 2px 14px rgba(41,40,37,.55);">Curated paint palettes designed to help you create spaces that feel intentional, beautiful, and completely yours.</p>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; pointer-events: auto;">
+            <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 18px 32px; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 20px 40px rgba(0,0,0,.3); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Explore Palettes</a>
+            <a data-magnetic="" href="#styles" style="display: inline-flex; align-items: center; padding: 18px 30px; border-radius: 999px; border: 1px solid rgba(245,242,234,.55); color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: rgba(245,242,234,.14); color: #F5F2EA;">Find Your Style</a>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: flex-end; justify-content: center; gap: 28px; flex-wrap: wrap;">
+          <p style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.72);">Scroll to explore <span style="display: inline-block; animation: dd-bob 2.4s ease-in-out infinite;">↓</span></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="featured" aria-labelledby="feat-h" style="position: relative; padding: clamp(70px, 11vh, 140px) clamp(18px, 3.4vw, 54px); background: #EDEAE0;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; margin-bottom: clamp(34px, 5vh, 60px);">
+        <div data-reveal="" style="max-width: 620px;">
+          <p style="margin: 0 0 16px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Featured this season</p>
+          <h2 id="feat-h" style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 4.4vw, 72px); line-height: .98;">Our three <em style="font-style: italic;">best sellers.</em></h2>
+        </div>
+        <a data-magnetic="" data-reveal="" href="Dwelling Dream Palettes.dc.html" style="font-size: 11px; letter-spacing: .2em; text-transform: uppercase; border-bottom: 1px solid #D8D2C8; padding-bottom: 4px; transition: transform .45s cubic-bezier(.22,1,.36,1), color .3s ease;">See all palettes →</a>
+      </div>
+
+      <div data-featured="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: clamp(16px, 2vw, 32px);">
+
+        <a data-reveal="" href="Dwelling Dream Product.dc.html?id=de009adaf9414f08" style="display: flex; flex-direction: column; text-decoration: none; color: inherit;">
+          <article data-fcard="" style="display: flex; flex-direction: column; background: #F5F2EA; transition: transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease;">
+            <div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;"><img src="assets/dd2-feat-seasalt.webp" alt="Sea Salt room photo" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 22px 24px;">
+              <div>
+                <h3 style="margin: 0 0 5px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(22px, 2vw, 32px); line-height: 1;">Sea Salt</h3>
+                <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #78736E;">Cool ivory and sea glass, deep navy anchor.</p>
+              </div>
+              <span style="font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #A9A29A; white-space: nowrap;">9 colors</span>
+            </div>
+          </article>
+        </a>
+
+        <a data-reveal="" href="Dwelling Dream Product.dc.html?id=e75ff308492d6ec2" style="display: flex; flex-direction: column; text-decoration: none; color: inherit;">
+          <article data-fcard="" style="display: flex; flex-direction: column; background: #F5F2EA; transition: transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease;">
+            <div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;"><img src="assets/dd2-feat-midcentury.webp" alt="Mid-century room photo" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 22px 24px;">
+              <div>
+                <h3 style="margin: 0 0 5px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(22px, 2vw, 32px); line-height: 1;">Mid-Century</h3>
+                <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #78736E;">Warm woods, ochre and confident lines.</p>
+              </div>
+              <span style="font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #A9A29A; white-space: nowrap;">9 colors</span>
+            </div>
+          </article>
+        </a>
+
+        <a data-reveal="" href="Dwelling Dream Product.dc.html?id=edd6aa239e9091ca" style="display: flex; flex-direction: column; text-decoration: none; color: inherit;">
+          <article data-fcard="" style="display: flex; flex-direction: column; background: #F5F2EA; transition: transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease;">
+            <div style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;"><img src="assets/dd2-feat-cottagecore.webp" alt="Cottagecore room photo" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 22px 24px;">
+              <div>
+                <h3 style="margin: 0 0 5px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(22px, 2vw, 32px); line-height: 1;">Cottagecore</h3>
+                <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #78736E;">Pressed flowers, old books, mauve dusk.</p>
+              </div>
+              <span style="font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #A9A29A; white-space: nowrap;">9 colors</span>
+            </div>
+          </article>
+        </a>
+      </div>
+    </section>
+
+    <section id="inspiration" aria-labelledby="insp-h" style="position: relative; padding: clamp(76px, 12vh, 150px) clamp(18px, 3.4vw, 54px) clamp(64px, 9vh, 120px); background: #F5F2EA;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; margin-bottom: clamp(40px, 6vh, 76px);">
+        <div data-reveal="" style="max-width: 640px;">
+          <p style="margin: 0 0 18px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">02 — Inspiration</p>
+          <h2 id="insp-h" style="margin: 0 0 18px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(36px, 5.2vw, 86px); line-height: .96;">Color inspiration for <em style="font-style: italic;">real spaces.</em></h2>
+          <p style="margin: 0; max-width: 52ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: #78736E;">Explore curated palettes inspired by the spaces, moods, and styles you love.</p>
+        </div>
+        <p data-reveal="" style="margin: 0; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #A9A29A;">Six palettes · 54 colors</p>
+      </div>
+
+      <div data-panels="" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: clamp(14px, 1.8vw, 30px);">
+
+        <article data-reveal="" data-span="7" style="grid-column: span 7; position: relative; height: clamp(360px, 62vh, 640px); overflow: hidden; background: #EDEAE0;">
+          <a href="Dwelling Dream Product.dc.html?id=de009adaf9414f08" aria-label="View Sea Salt product" style="position: absolute; inset: 0; z-index: 0; display: block;">
+            <div data-pan-media="" style="position: absolute; inset: 0; transition: transform 1s cubic-bezier(.22,1,.36,1);"><img src="assets/dd2-panel-french.webp" alt="Sea Salt interior" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(41,40,37,.72) 0%, rgba(41,40,37,.12) 46%, rgba(41,40,37,0) 70%);"></div>
+          </a>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(20px, 2.4vw, 34px); color: #F5F2EA; pointer-events: none;">
+            <p style="margin: 0 0 6px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.7);">Palette 01</p>
+            <h3 style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(28px, 3vw, 48px); line-height: 1;"><a href="Dwelling Dream Product.dc.html?id=de009adaf9414f08" style="color: inherit; pointer-events: auto;">Sea Salt</a></h3>
+            <p style="margin: 0 0 16px; max-width: 40ch; font-size: 13px; line-height: 1.65; color: rgba(245,242,234,.82);">Cool ivory and sea glass, grounded by deep navy and charcoal.</p>
+            <ul aria-label="Sea Salt palette colors" style="display: flex; gap: 3px; list-style: none; margin: 0 0 18px; padding: 0; height: 26px; pointer-events: auto;">
+              <li title="#DCDDD8" style="flex: 1; background: #DCDDD8;"></li><li title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></li><li title="#F0E1D8" style="flex: 1; background: #F0E1D8;"></li><li title="#D1C7B8" style="flex: 1; background: #D1C7B8;"></li><li title="#CDD2CA" style="flex: 1; background: #CDD2CA;"></li><li title="#C8CBC4" style="flex: 1; background: #C8CBC4;"></li><li title="#596E79" style="flex: 1; background: #596E79;"></li><li title="#2F3D4C" style="flex: 1; background: #2F3D4C;"></li><li title="#434341" style="flex: 1; background: #434341;"></li>
+            </ul>
+            <button data-goto="0" style="padding: 0; border: 0; background: none; color: #F5F2EA; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(245,242,234,.6); pointer-events: auto;">Explore palette →</button>
+          </div>
+        </article>
+
+        <article data-reveal="" data-span="5" style="grid-column: span 5; position: relative; height: clamp(360px, 62vh, 640px); margin-top: clamp(0px, 5vh, 64px); overflow: hidden; background: #EDEAE0;">
+          <a href="Dwelling Dream Product.dc.html?id=6c608334f4286849" aria-label="View Greek Villa product" style="position: absolute; inset: 0; z-index: 0; display: block;">
+            <div data-pan-media="" style="position: absolute; inset: 0; transition: transform 1s cubic-bezier(.22,1,.36,1);"><img src="assets/dd2-panel-coastal.webp" alt="Greek Villa interior" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(41,40,37,.74) 0%, rgba(41,40,37,.1) 48%, rgba(41,40,37,0) 72%);"></div>
+          </a>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(20px, 2.4vw, 34px); color: #F5F2EA; pointer-events: none;">
+            <p style="margin: 0 0 6px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.7);">Palette 02</p>
+            <h3 style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.6vw, 42px); line-height: 1;"><a href="Dwelling Dream Product.dc.html?id=6c608334f4286849" style="color: inherit; pointer-events: auto;">Greek Villa</a></h3>
+            <p style="margin: 0 0 16px; max-width: 34ch; font-size: 13px; line-height: 1.65; color: rgba(245,242,234,.82);">Sunlit plaster, soft olive and a quiet slate blue.</p>
+            <ul aria-label="Greek Villa palette colors" style="display: flex; gap: 3px; list-style: none; margin: 0 0 18px; padding: 0; height: 26px; pointer-events: auto;">
+              <li title="#EDECE6" style="flex: 1; background: #EDECE6;"></li><li title="#F0ECE2" style="flex: 1; background: #F0ECE2;"></li><li title="#DFD3C3" style="flex: 1; background: #DFD3C3;"></li><li title="#C8BCAB" style="flex: 1; background: #C8BCAB;"></li><li title="#95978A" style="flex: 1; background: #95978A;"></li><li title="#CDD2CA" style="flex: 1; background: #CDD2CA;"></li><li title="#708D9E" style="flex: 1; background: #708D9E;"></li><li title="#7B8070" style="flex: 1; background: #7B8070;"></li><li title="#5D6F7F" style="flex: 1; background: #5D6F7F;"></li>
+            </ul>
+            <button data-goto="1" style="padding: 0; border: 0; background: none; color: #F5F2EA; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(245,242,234,.6); pointer-events: auto;">Explore palette →</button>
+          </div>
+        </article>
+
+        <article data-reveal="" data-span="5" style="grid-column: span 5; position: relative; height: clamp(360px, 58vh, 600px); overflow: hidden; background: #EDEAE0;">
+          <a href="Dwelling Dream Product.dc.html?id=c3d66d558e3f2705" aria-label="View Redend Point product" style="position: absolute; inset: 0; z-index: 0; display: block;">
+            <div data-pan-media="" style="position: absolute; inset: 0; transition: transform 1s cubic-bezier(.22,1,.36,1);"><img src="assets/dd2-panel-beach.webp" alt="Redend Point interior" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(41,40,37,.74) 0%, rgba(41,40,37,.1) 48%, rgba(41,40,37,0) 72%);"></div>
+          </a>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(20px, 2.4vw, 34px); color: #F5F2EA; pointer-events: none;">
+            <p style="margin: 0 0 6px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.7);">Palette 03</p>
+            <h3 style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.6vw, 42px); line-height: 1;"><a href="Dwelling Dream Product.dc.html?id=c3d66d558e3f2705" style="color: inherit; pointer-events: auto;">Redend Point</a></h3>
+            <p style="margin: 0 0 16px; max-width: 34ch; font-size: 13px; line-height: 1.65; color: rgba(245,242,234,.82);">Warm plaster and stone lifting into soft brick and clay.</p>
+            <ul aria-label="Redend Point palette colors" style="display: flex; gap: 3px; list-style: none; margin: 0 0 18px; padding: 0; height: 26px; pointer-events: auto;">
+              <li title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></li><li title="#E6DFD3" style="flex: 1; background: #E6DFD3;"></li><li title="#D1C7B8" style="flex: 1; background: #D1C7B8;"></li><li title="#95978A" style="flex: 1; background: #95978A;"></li><li title="#C0B2A2" style="flex: 1; background: #C0B2A2;"></li><li title="#AE8E7E" style="flex: 1; background: #AE8E7E;"></li><li title="#AC6B53" style="flex: 1; background: #AC6B53;"></li><li title="#7A8076" style="flex: 1; background: #7A8076;"></li><li title="#434341" style="flex: 1; background: #434341;"></li>
+            </ul>
+            <button data-goto="2" style="padding: 0; border: 0; background: none; color: #F5F2EA; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(245,242,234,.6); pointer-events: auto;">Explore palette →</button>
+          </div>
+        </article>
+
+        <article data-reveal="" data-span="7" style="grid-column: span 7; position: relative; height: clamp(360px, 58vh, 600px); margin-top: clamp(0px, 4vh, 48px); overflow: hidden; background: #EDEAE0;">
+          <a href="Dwelling Dream Product.dc.html?id=3e706b607bf05d46" aria-label="View Anew Gray product" style="position: absolute; inset: 0; z-index: 0; display: block;">
+            <div data-pan-media="" style="position: absolute; inset: 0; transition: transform 1s cubic-bezier(.22,1,.36,1);"><img src="assets/dd2-panel-cottage.webp" alt="Anew Gray interior" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(41,40,37,.72) 0%, rgba(41,40,37,.12) 46%, rgba(41,40,37,0) 70%);"></div>
+          </a>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(20px, 2.4vw, 34px); color: #F5F2EA; pointer-events: none;">
+            <p style="margin: 0 0 6px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.7);">Palette 04</p>
+            <h3 style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(28px, 3vw, 48px); line-height: 1;"><a href="Dwelling Dream Product.dc.html?id=3e706b607bf05d46" style="color: inherit; pointer-events: auto;">Anew Gray</a></h3>
+            <p style="margin: 0 0 16px; max-width: 40ch; font-size: 13px; line-height: 1.65; color: rgba(245,242,234,.82);">Greige, mist and muted sage — restrained and architectural.</p>
+            <ul aria-label="Anew Gray palette colors" style="display: flex; gap: 3px; list-style: none; margin: 0 0 18px; padding: 0; height: 26px; pointer-events: auto;">
+              <li title="#E2DED8" style="flex: 1; background: #E2DED8;"></li><li title="#D3CEC4" style="flex: 1; background: #D3CEC4;"></li><li title="#C8CBC4" style="flex: 1; background: #C8CBC4;"></li><li title="#A6B2B5" style="flex: 1; background: #A6B2B5;"></li><li title="#BFB6AA" style="flex: 1; background: #BFB6AA;"></li><li title="#95978A" style="flex: 1; background: #95978A;"></li><li title="#92948D" style="flex: 1; background: #92948D;"></li><li title="#908A83" style="flex: 1; background: #908A83;"></li><li title="#5D6F7F" style="flex: 1; background: #5D6F7F;"></li>
+            </ul>
+            <button data-goto="3" style="padding: 0; border: 0; background: none; color: #F5F2EA; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(245,242,234,.6); pointer-events: auto;">Explore palette →</button>
+          </div>
+        </article>
+
+        <article data-reveal="" data-span="6" style="grid-column: span 6; position: relative; height: clamp(360px, 56vh, 580px); overflow: hidden; background: #EDEAE0;">
+          <a href="Dwelling Dream Product.dc.html?id=5a8b5f9c2d395a18" aria-label="View Iron Ore product" style="position: absolute; inset: 0; z-index: 0; display: block;">
+            <div data-pan-media="" style="position: absolute; inset: 0; transition: transform 1s cubic-bezier(.22,1,.36,1);"><img src="assets/dd2-panel-neutral.webp" alt="Iron Ore interior" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(41,40,37,.72) 0%, rgba(41,40,37,.12) 48%, rgba(41,40,37,0) 72%);"></div>
+          </a>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(20px, 2.4vw, 34px); color: #F5F2EA; pointer-events: none;">
+            <p style="margin: 0 0 6px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.7);">Palette 05</p>
+            <h3 style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.8vw, 44px); line-height: 1;"><a href="Dwelling Dream Product.dc.html?id=5a8b5f9c2d395a18" style="color: inherit; pointer-events: auto;">Iron Ore</a></h3>
+            <p style="margin: 0 0 16px; max-width: 38ch; font-size: 13px; line-height: 1.65; color: rgba(245,242,234,.82);">Wheat and olive grounded by near-black iron.</p>
+            <ul aria-label="Iron Ore palette colors" style="display: flex; gap: 3px; list-style: none; margin: 0 0 18px; padding: 0; height: 26px; pointer-events: auto;">
+              <li title="#EDECE6" style="flex: 1; background: #EDECE6;"></li><li title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></li><li title="#D1CBC1" style="flex: 1; background: #D1CBC1;"></li><li title="#CDB592" style="flex: 1; background: #CDB592;"></li><li title="#95978A" style="flex: 1; background: #95978A;"></li><li title="#AA866E" style="flex: 1; background: #AA866E;"></li><li title="#7C8E87" style="flex: 1; background: #7C8E87;"></li><li title="#434341" style="flex: 1; background: #434341;"></li><li title="#2F3D4C" style="flex: 1; background: #2F3D4C;"></li>
+            </ul>
+            <button data-goto="4" style="padding: 0; border: 0; background: none; color: #F5F2EA; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(245,242,234,.6); pointer-events: auto;">Explore palette →</button>
+          </div>
+        </article>
+
+        <article data-reveal="" data-span="6" style="grid-column: span 6; position: relative; height: clamp(360px, 56vh, 580px); margin-top: clamp(0px, 4vh, 40px); overflow: hidden; background: #EDEAE0;">
+          <a href="Dwelling Dream Product.dc.html?id=8bc922376e8ec60a" aria-label="View Naval product" style="position: absolute; inset: 0; z-index: 0; display: block;">
+            <div data-pan-media="" style="position: absolute; inset: 0; transition: transform 1s cubic-bezier(.22,1,.36,1);"><img src="assets/dd2-panel-boho.webp" alt="Naval interior" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(41,40,37,.72) 0%, rgba(41,40,37,.12) 48%, rgba(41,40,37,0) 72%);"></div>
+          </a>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(20px, 2.4vw, 34px); color: #F5F2EA; pointer-events: none;">
+            <p style="margin: 0 0 6px; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: rgba(245,242,234,.7);">Palette 06</p>
+            <h3 style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.8vw, 44px); line-height: 1;"><a href="Dwelling Dream Product.dc.html?id=8bc922376e8ec60a" style="color: inherit; pointer-events: auto;">Naval</a></h3>
+            <p style="margin: 0 0 16px; max-width: 38ch; font-size: 13px; line-height: 1.65; color: rgba(245,242,234,.82);">Chalky whites and coastal greys resolving into deep navy.</p>
+            <ul aria-label="Naval palette colors" style="display: flex; gap: 3px; list-style: none; margin: 0 0 18px; padding: 0; height: 26px; pointer-events: auto;">
+              <li title="#EDECE6" style="flex: 1; background: #EDECE6;"></li><li title="#F0ECE2" style="flex: 1; background: #F0ECE2;"></li><li title="#E5DFD2" style="flex: 1; background: #E5DFD2;"></li><li title="#CDD2CA" style="flex: 1; background: #CDD2CA;"></li><li title="#D1CBC1" style="flex: 1; background: #D1CBC1;"></li><li title="#ADBBB2" style="flex: 1; background: #ADBBB2;"></li><li title="#A6B2B5" style="flex: 1; background: #A6B2B5;"></li><li title="#98A9B7" style="flex: 1; background: #98A9B7;"></li><li title="#2F3D4C" style="flex: 1; background: #2F3D4C;"></li>
+            </ul>
+            <button data-goto="5" style="padding: 0; border: 0; background: none; color: #F5F2EA; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(245,242,234,.6); pointer-events: auto;">Explore palette →</button>
+          </div>
+        </article>
+      </div>
+
+      <div data-reveal="" style="display: flex; justify-content: center; margin-top: clamp(40px, 6vh, 72px);">
+        <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 18px 34px; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37; color: #F5F2EA;">Explore All Palettes</a>
+      </div>
+    </section>
+
+    <section id="styles" aria-labelledby="styles-h" style="position: relative; padding: clamp(76px, 12vh, 150px) clamp(18px, 3.4vw, 54px) clamp(72px, 10vh, 130px); background: #EDEAE0;">
+      <div data-reveal="" style="max-width: 640px; margin-bottom: clamp(40px, 6vh, 72px);">
+        <p style="margin: 0 0 18px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">03 — Styles</p>
+        <h2 id="styles-h" style="margin: 0 0 18px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(36px, 5.2vw, 86px); line-height: .96;">Which style feels <em style="font-style: italic;">like you?</em></h2>
+        <p style="margin: 0; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: #78736E;">Explore the moods behind our most-loved color palettes.</p>
+      </div>
+
+      <div data-styles-grid="" style="display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(24px, 4vw, 72px); align-items: start;">
+
+        <div data-style-list="" role="tablist" aria-label="Interior styles" style="display: flex; flex-direction: column; border-top: 1px solid #D8D2C8;">
+
+          <div data-style="0" role="tab" tabindex="0" aria-selected="true" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">01</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #292825; transition: color .4s ease, opacity .4s ease;">French Country</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=9e06d41a2a7390c0" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">Soft, timeless and quietly romantic.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></span><span title="#DFD3C3" style="flex: 1; background: #DFD3C3;"></span><span title="#ACAD97" style="flex: 1; background: #ACAD97;"></span><span title="#C2DAE0" style="flex: 1; background: #C2DAE0;"></span><span title="#D1C6D2" style="flex: 1; background: #D1C6D2;"></span><span title="#EBD1CF" style="flex: 1; background: #EBD1CF;"></span><span title="#817A6E" style="flex: 1; background: #817A6E;"></span><span title="#9BBFC9" style="flex: 1; background: #9BBFC9;"></span><span title="#78736E" style="flex: 1; background: #78736E;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+
+          <div data-style="1" role="tab" tabindex="0" aria-selected="false" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">02</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #8E8880; transition: color .4s ease, opacity .4s ease;">Coastal Farmhouse</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=0b7b6efad2548b95" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">Bright, breezy and grounded in deep navy.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></span><span title="#E6DFD3" style="flex: 1; background: #E6DFD3;"></span><span title="#DCD8D0" style="flex: 1; background: #DCD8D0;"></span><span title="#DFD3C3" style="flex: 1; background: #DFD3C3;"></span><span title="#CDD2D2" style="flex: 1; background: #CDD2D2;"></span><span title="#BCCBCE" style="flex: 1; background: #BCCBCE;"></span><span title="#CDD2CA" style="flex: 1; background: #CDD2CA;"></span><span title="#98A9B7" style="flex: 1; background: #98A9B7;"></span><span title="#2F3D4C" style="flex: 1; background: #2F3D4C;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+
+          <div data-style="2" role="tab" tabindex="0" aria-selected="false" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">03</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #8E8880; transition: color .4s ease, opacity .4s ease;">Beach House</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=3666a7ae41fd36ec" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">Sandy neutrals holding late afternoon light.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#F2EFE8" style="flex: 1; background: #F2EFE8;"></span><span title="#EEE8DD" style="flex: 1; background: #EEE8DD;"></span><span title="#E4D7C4" style="flex: 1; background: #E4D7C4;"></span><span title="#F2E4DE" style="flex: 1; background: #F2E4DE;"></span><span title="#D6DBD4" style="flex: 1; background: #D6DBD4;"></span><span title="#ABBFB4" style="flex: 1; background: #ABBFB4;"></span><span title="#A6B2B5" style="flex: 1; background: #A6B2B5;"></span><span title="#98A9B7" style="flex: 1; background: #98A9B7;"></span><span title="#465667" style="flex: 1; background: #465667;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+
+          <div data-style="3" role="tab" tabindex="0" aria-selected="false" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">04</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #8E8880; transition: color .4s ease, opacity .4s ease;">Cottagecore</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=edd6aa239e9091ca" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">Pressed flowers, old books, mauve dusk.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></span><span title="#E6DFD3" style="flex: 1; background: #E6DFD3;"></span><span title="#D1C7B8" style="flex: 1; background: #D1C7B8;"></span><span title="#CBB8C0" style="flex: 1; background: #CBB8C0;"></span><span title="#BFC9D0" style="flex: 1; background: #BFC9D0;"></span><span title="#DECABD" style="flex: 1; background: #DECABD;"></span><span title="#CDD2CA" style="flex: 1; background: #CDD2CA;"></span><span title="#7B8070" style="flex: 1; background: #7B8070;"></span><span title="#708D9E" style="flex: 1; background: #708D9E;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+
+          <div data-style="4" role="tab" tabindex="0" aria-selected="false" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">05</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #8E8880; transition: color .4s ease, opacity .4s ease;">Cozy Neutral</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=3e66aacfc4d130fe" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">The quietest room in the house.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></span><span title="#F5F2E8" style="flex: 1; background: #F5F2E8;"></span><span title="#DFD3C3" style="flex: 1; background: #DFD3C3;"></span><span title="#BFC9D0" style="flex: 1; background: #BFC9D0;"></span><span title="#EADCD2" style="flex: 1; background: #EADCD2;"></span><span title="#ACAD97" style="flex: 1; background: #ACAD97;"></span><span title="#7B8070" style="flex: 1; background: #7B8070;"></span><span title="#9E8F7C" style="flex: 1; background: #9E8F7C;"></span><span title="#78736E" style="flex: 1; background: #78736E;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+
+          <div data-style="5" role="tab" tabindex="0" aria-selected="false" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">06</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #8E8880; transition: color .4s ease, opacity .4s ease;">Bohemian</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=6de67259bb0248ae" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">Layered, collected, warmly lived in.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#F0ECE2" style="flex: 1; background: #F0ECE2;"></span><span title="#DFD3C3" style="flex: 1; background: #DFD3C3;"></span><span title="#CDB592" style="flex: 1; background: #CDB592;"></span><span title="#BFC9D0" style="flex: 1; background: #BFC9D0;"></span><span title="#CDD2CA" style="flex: 1; background: #CDD2CA;"></span><span title="#DECABD" style="flex: 1; background: #DECABD;"></span><span title="#AC6B53" style="flex: 1; background: #AC6B53;"></span><span title="#7B8070" style="flex: 1; background: #7B8070;"></span><span title="#54504A" style="flex: 1; background: #54504A;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+
+          <div data-style="6" role="tab" tabindex="0" aria-selected="false" style="display: block; width: 100%; text-align: left; padding: clamp(16px, 2vh, 26px) 0; border-bottom: 1px solid #D8D2C8; cursor: pointer;">
+            <span style="display: flex; align-items: baseline; gap: 16px;">
+              <span data-num="" style="font-size: 12px; letter-spacing: .2em; color: #A9A29A; transition: color .4s ease;">07</span>
+              <span data-title="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.4vw, 56px); line-height: 1; color: #8E8880; transition: color .4s ease, opacity .4s ease;">Mid-Century</span>
+              <span data-line="" style="display: block; height: 1px; flex: 1; background: #292825; transform: scaleX(0); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.22,1,.36,1);"></span>
+            </span>
+            <span data-body="" style="display: block; overflow: hidden; max-height: 0; opacity: 0; transition: max-height .6s cubic-bezier(.22,1,.36,1), opacity .5s ease;">
+              <a href="Dwelling Dream Product.dc.html?id=e75ff308492d6ec2" style="display: block; padding: 12px 0 0 40px; text-decoration: none; color: inherit;">
+                <span style="display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(16px, 1.3vw, 21px); color: #6E675E;">Warm woods, ochre and confident lines.</span>
+                <span style="display: flex; gap: 3px; height: 22px; margin-top: 12px; max-width: 340px;">
+                  <span title="#EDEAE0" style="flex: 1; background: #EDEAE0;"></span><span title="#D6CEC3" style="flex: 1; background: #D6CEC3;"></span><span title="#CBA576" style="flex: 1; background: #CBA576;"></span><span title="#A0AEAF" style="flex: 1; background: #A0AEAF;"></span><span title="#AE8E7E" style="flex: 1; background: #AE8E7E;"></span><span title="#AC6B53" style="flex: 1; background: #AC6B53;"></span><span title="#596E79" style="flex: 1; background: #596E79;"></span><span title="#7B8070" style="flex: 1; background: #7B8070;"></span><span title="#54504A" style="flex: 1; background: #54504A;"></span>
+                </span>
+                <span style="display: inline-block; margin-top: 14px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #292825; border-bottom: 1px solid #D8D2C8;">View this palette →</span>
+              </a>
+            </span>
+          </div>
+        </div>
+
+        <div data-style-media="" style="position: relative; height: clamp(420px, 78vh, 780px); overflow: hidden; background: #DFD3C3;">
+          <div data-simg="0" style="position: absolute; inset: 0; opacity: 1; transform: scale(1); filter: blur(0px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-french.webp" alt="French country room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div data-simg="1" style="position: absolute; inset: 0; opacity: 0; transform: scale(.98); filter: blur(6px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-coastal.webp" alt="Coastal farmhouse room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div data-simg="2" style="position: absolute; inset: 0; opacity: 0; transform: scale(.98); filter: blur(6px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-beach.webp" alt="Beach house room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div data-simg="3" style="position: absolute; inset: 0; opacity: 0; transform: scale(.98); filter: blur(6px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-cottage.webp" alt="Cottage room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div data-simg="4" style="position: absolute; inset: 0; opacity: 0; transform: scale(.98); filter: blur(6px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-neutral.webp" alt="Neutral room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div data-simg="5" style="position: absolute; inset: 0; opacity: 0; transform: scale(.98); filter: blur(6px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-boho.webp" alt="Bohemian room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div data-simg="6" style="position: absolute; inset: 0; opacity: 0; transform: scale(.98); filter: blur(6px); transition: opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1), filter .6s ease;"><img src="assets/dd2-style-midcentury.webp" alt="Mid-century room" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <p data-sname="" aria-hidden="true" style="position: absolute; left: 20px; bottom: 18px; margin: 0; padding: 8px 14px; background: rgba(41,40,37,.5); backdrop-filter: blur(10px); color: #F5F2EA; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; pointer-events: none;">French Country</p>
+        </div>
+      </div>
+
+      <div data-reveal="" style="display: flex; justify-content: center; margin-top: clamp(40px, 6vh, 72px);">
+        <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 18px 34px; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37; color: #F5F2EA;">Explore All Styles</a>
+      </div>
+    </section>
+
+    <section id="about" aria-labelledby="about-h" style="position: relative; padding: clamp(76px, 12vh, 150px) clamp(18px, 3.4vw, 54px); background: #F5F2EA;">
+      <div data-about-grid="" style="display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(28px, 5vw, 84px); align-items: center;">
+
+        <div data-reveal="" style="position: relative;">
+          <div data-about-media="" style="position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #E3DED3; transition: transform .8s cubic-bezier(.22,1,.36,1);">
+            <img src="assets/dd2-owner.webp" alt="Founder portrait" style="width: 100%; height: 100%; display: block; object-fit: cover;">
+          </div>
+          <p style="margin: 14px 0 0; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: #A9A29A;">Founder · Dwelling Dream</p>
+        </div>
+
+        <div data-reveal="" style="display: flex; flex-direction: column; gap: clamp(18px, 2.6vh, 28px);">
+          <p style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">About the owner</p>
+          <h2 id="about-h" style="margin: 0; max-width: 20ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 4.4vw, 74px); line-height: .99;">Color should feel <em style="font-style: italic;">effortless.</em></h2>
+          <p style="margin: 0; max-width: 56ch; font-size: clamp(14px, 1.05vw, 16.5px); line-height: 1.75; color: #5F5A54;">Dwelling Dream began in my own half-painted living room, surrounded by forty paint chips and no idea which one was right. I spent years learning how light, undertone and sheen change a color once it is on the wall — and realized most people do not need more options. They need fewer, better ones.</p>
+          <p style="margin: 0; max-width: 56ch; font-size: clamp(14px, 1.05vw, 16.5px); line-height: 1.75; color: #5F5A54;">Every palette here is built the way I build one for a client: nine colors tested together, in daylight and lamplight, in rooms that face every direction. Choose a mood, and the rest is already decided for you.</p>
+          <p style="margin: 6px 0 0; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: clamp(22px, 2.2vw, 34px); color: #292825;">Shahroz— Founder, Dwelling Dream</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: clamp(16px, 2vw, 34px); margin-top: clamp(10px, 2vh, 20px); padding-top: clamp(20px, 3vh, 30px); border-top: 1px solid #D8D2C8;">
+            <div>
+              <p style="margin: 0 0 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(26px, 2.4vw, 40px); line-height: 1;">10 yrs</p>
+              <p style="margin: 0; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #78736E;">Working with color</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(26px, 2.4vw, 40px); line-height: 1;">100+</p>
+              <p style="margin: 0; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #78736E;">Palettes curated</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(26px, 2.4vw, 40px); line-height: 1;">1,000+</p>
+              <p style="margin: 0; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #78736E;">Homes helped</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="loved" aria-labelledby="loved-h" style="position: relative; padding: clamp(76px, 12vh, 150px) clamp(18px, 3.4vw, 54px); background: #F5F2EA; overflow: hidden;">
+      <div data-reveal="" style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; padding-bottom: clamp(30px, 4vh, 48px); border-bottom: 1px solid #D8D2C8;">
+        <div style="max-width: 660px;">
+          <p style="margin: 0 0 18px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">04 — What you will receive</p>
+          <h2 style="margin: 0 0 18px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(34px, 4.6vw, 76px); line-height: .98;">Three guides. <em style="font-style: italic;">One confident decision.</em></h2>
+          <p style="margin: 0; max-width: 54ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: #78736E;">A digital bundle of three downloadable PDF guides — 100+ pages in total — designed to simplify paint selection and planning.</p>
+        </div>
+        <p style="margin: 0; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #A9A29A;">Instant download · No physical product</p>
+      </div>
+
+      <div data-bundle="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: clamp(20px, 2.6vw, 44px); margin: clamp(34px, 5vh, 60px) 0 clamp(52px, 8vh, 96px);">
+
+        <article data-reveal="" data-bcard="" style="position: relative; display: flex; flex-direction: column; gap: 20px; padding: clamp(24px, 2.4vw, 38px); background: #EDEAE0; border-top: 2px solid #292825; transition: transform .6s cubic-bezier(.22,1,.36,1), background .5s ease, box-shadow .6s ease;">
+          <div style="position: relative; aspect-ratio: 3 / 2; width: auto; margin: calc(clamp(24px, 2.4vw, 38px) * -1) calc(clamp(24px, 2.4vw, 38px) * -1) 4px; overflow: hidden; background: #E3DED3;"><img src="assets/dd2-bundle-palette.webp" alt="Palette guide preview" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #78736E;">01</span>
+            <span style="font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #78736E;">50+ pages</span>
+          </div>
+          <h3 style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.3vw, 38px); line-height: 1.05;">Color Palette Guide</h3>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.7; color: #6E675E;">Each palette gives you nine curated colors designed to create a calm, harmonious interior that flows room to room.</p>
+          <ul style="display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none;">
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Curated neutral paint colors</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">LRV values and HEX codes for each color</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Detailed color descriptions</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Where to use each shade</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Interior inspiration imagery</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Designer guidance for combining colors</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Two curated combinations per color</li>
+          </ul>
+        </article>
+
+        <article data-reveal="" data-bcard="" style="position: relative; display: flex; flex-direction: column; gap: 20px; padding: clamp(24px, 2.4vw, 38px); background: #EDEAE0; border-top: 2px solid #292825; transition: transform .6s cubic-bezier(.22,1,.36,1), background .5s ease, box-shadow .6s ease;">
+          <div style="position: relative; aspect-ratio: 3 / 2; width: auto; margin: calc(clamp(24px, 2.4vw, 38px) * -1) calc(clamp(24px, 2.4vw, 38px) * -1) 4px; overflow: hidden; background: #E3DED3;"><img src="assets/dd2-bundle-paint.webp" alt="Paint guide preview" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #78736E;">02</span>
+            <span style="font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #78736E;">30+ pages</span>
+          </div>
+          <h3 style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.3vw, 38px); line-height: 1.05;">Complete Paint Guide</h3>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.7; color: #6E675E;">The essential principles behind paint selection, so you decide with intention rather than guesswork.</p>
+          <ul style="display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none;">
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Paint fundamentals and how paint works</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Types of interior paint</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Sheen levels and durability</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">How lighting and room direction change color</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Understanding LRV</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Color balance and accent wall tips</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Step-by-step process and paint quantities</li>
+          </ul>
+        </article>
+
+        <article data-reveal="" data-bcard="" style="position: relative; display: flex; flex-direction: column; gap: 20px; padding: clamp(24px, 2.4vw, 38px); background: #EDEAE0; border-top: 2px solid #292825; transition: transform .6s cubic-bezier(.22,1,.36,1), background .5s ease, box-shadow .6s ease;">
+          <div style="position: relative; aspect-ratio: 3 / 2; width: auto; margin: calc(clamp(24px, 2.4vw, 38px) * -1) calc(clamp(24px, 2.4vw, 38px) * -1) 4px; overflow: hidden; background: #E3DED3;"><img src="assets/dd2-bundle-planner.webp" alt="Planner preview" style="width: 100%; height: 100%; display: block; object-fit: cover;"></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+            <span style="font-size: 11px; letter-spacing: .24em; color: #78736E;">03</span>
+            <span style="font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #78736E;">Workbook</span>
+          </div>
+          <h3 style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(26px, 2.3vw, 38px); line-height: 1.05;">Paint Project Planner</h3>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.7; color: #6E675E;">A practical workbook to track samples, compare colors and stay organized from first test to final coat.</p>
+          <ul style="display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none;">
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Paint sampling planner</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Room paint tracking sheets</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Color comparison pages</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Wall test tracker — morning, afternoon, night</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Paint quantity calculator</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Wall measurement planner</li>
+            <li style="padding: 10px 0; border-top: 1px solid #DDD7CC; font-size: 13px; line-height: 1.5; color: #4E4A44;">Final color decision page and notes</li>
+          </ul>
+        </article>
+      </div>
+
+      <div data-reveal="" style="display: flex; justify-content: center; margin: clamp(-24px, -3vh, -16px) 0 clamp(52px, 8vh, 96px);">
+        <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 18px 34px; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37; color: #F5F2EA;">Explore Palettes</a>
+      </div>
+
+      <h2 id="loved-h" data-reveal="" style="margin: 0 0 clamp(44px, 7vh, 84px); max-width: 18ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(36px, 5.2vw, 84px); line-height: .98;">Beautiful colors. <em style="font-style: italic;">Loved by thousands.</em></h2>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: clamp(24px, 3vw, 48px); padding-bottom: clamp(48px, 7vh, 88px); border-bottom: 1px solid #D8D2C8;">
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(46px, 5.2vw, 86px); line-height: 1; font-weight: 500;"><span data-count="1000" data-format="plus">0</span></p>
+          <p style="margin: 0; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #78736E;">Customers</p>
+        </div>
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(46px, 5.2vw, 86px); line-height: 1; font-weight: 500;"><span data-count="100" data-format="plus">0</span></p>
+          <p style="margin: 0; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #78736E;">Palettes</p>
+        </div>
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(46px, 5.2vw, 86px); line-height: 1; font-weight: 500;"><span data-count="9" data-format="int">0</span></p>
+          <p style="margin: 0; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #78736E;">Colors per Palette</p>
+        </div>
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(46px, 5.2vw, 86px); line-height: 1; font-weight: 500;"><span data-count="4.9" data-from="4" data-format="rating">4.0</span></p>
+          <p style="margin: 0; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #78736E;">Customer Rating</p>
+        </div>
+      </div>
+
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 28px; padding-top: clamp(56px, 9vh, 110px);">
+        <h3 style="margin: 0; font-size: 11px; font-weight: 500; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">What people say about us</h3>
+        <span aria-hidden="true" style="display: block; margin: -4px 0 -18px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(100px, 11vw, 180px); line-height: .7; color: #DFD3C3; pointer-events: none;">“</span>
+        <blockquote data-quote="" style="position: relative; margin: 0; width: 100%; max-width: 1100px; transition: opacity .5s ease, transform .6s cubic-bezier(.22,1,.36,1);">
+          <p data-qtext="" style="margin: 0 auto 34px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(26px, 3.4vw, 58px); line-height: 1.18; font-weight: 400; max-width: 30ch;">The palette made choosing colors for our entire living room so much easier. Everything finally feels cohesive.</p>
+          <footer style="display: flex; align-items: center; justify-content: center; gap: clamp(20px, 4vw, 48px); flex-wrap: wrap;">
+            <cite data-qwho="" style="font-style: normal; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #78736E;">Verified Customer</cite>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <span data-qidx="" style="font-size: 11px; letter-spacing: .2em; color: #78736E;">01 / 04</span>
+              <button data-qprev="" aria-label="Previous testimonial" style="width: 46px; height: 46px; border: 1px solid #D8D2C8; border-radius: 50%; background: none; cursor: pointer; transition: background .3s ease;" style-hover="background: #EDEAE0;">←</button>
+              <button data-qnext="" aria-label="Next testimonial" style="width: 46px; height: 46px; border: 1px solid #D8D2C8; border-radius: 50%; background: none; cursor: pointer; transition: background .3s ease;" style-hover="background: #EDEAE0;">→</button>
+            </div>
+          </footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <section id="clarity" aria-labelledby="clarity-h" style="position: relative; padding: clamp(76px, 12vh, 150px) clamp(18px, 3.4vw, 54px); background: #EDEAE0; overflow: hidden;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; margin-bottom: clamp(32px, 5vh, 56px);">
+        <div data-reveal="" style="max-width: 660px;">
+          <p style="margin: 0 0 16px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Before &amp; after</p>
+          <h2 id="clarity-h" style="margin: 0 0 18px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(34px, 5vw, 82px); line-height: .97;">Say goodbye to <em style="font-style: italic;">color confusion.</em></h2>
+          <p style="margin: 0; max-width: 52ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: #78736E;">Drag the handle to see the same room before and after a single curated palette.</p>
+        </div>
+        <p data-reveal="" style="margin: 0; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #A9A29A;">Drag · or use arrow keys</p>
+      </div>
+
+      <div data-compare="" style="position: relative; height: clamp(380px, 66vh, 660px); overflow: hidden; background: #E3DED3; touch-action: pan-y;">
+        <div style="position: absolute; inset: 0;">
+          <img src="assets/dd2-clarity-after.webp" alt="After paint palette room" style="width: 100%; height: 100%; display: block; object-fit: cover;">
+        </div>
+        <div data-cmp-strip="" aria-hidden="true" style="pointer-events: none; position: absolute; right: 0; bottom: 0; display: flex; height: 30px; width: 46%; max-width: 520px; z-index: 3;">
+          <span style="flex: 1; background: #EDEAE0;"></span><span style="flex: 1; background: #F5F2E8;"></span><span style="flex: 1; background: #DFD3C3;"></span><span style="flex: 1; background: #BFC9D0;"></span><span style="flex: 1; background: #EADCD2;"></span><span style="flex: 1; background: #ACAD97;"></span><span style="flex: 1; background: #7B8070;"></span><span style="flex: 1; background: #9E8F7C;"></span><span style="flex: 1; background: #78736E;"></span>
+        </div>
+
+        <div data-cmp-before="" style="position: absolute; inset: 0; width: 50%; overflow: hidden; z-index: 2;">
+          <div data-cmp-beforeinner="" style="position: absolute; inset: 0; width: 100%; max-width: none;">
+            <img src="assets/dd2-clarity-before.webp" alt="Before undecided room" style="width: 100%; height: 100%; display: block; object-fit: cover;">
+          </div>
+          <p style="position: absolute; left: 20px; top: 20px; margin: 0; padding: 8px 14px; background: rgba(41,40,37,.62); backdrop-filter: blur(8px); color: #F5F2EA; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; z-index: 2; pointer-events: none;">Before</p>
+        </div>
+
+        <p style="position: absolute; right: 20px; top: 20px; margin: 0; padding: 8px 14px; background: rgba(245,242,234,.86); color: #292825; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; z-index: 3; pointer-events: none;">After — one curated palette</p>
+
+        <div data-cmp-handle="" style="position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #F5F2EA; box-shadow: 0 0 0 1px rgba(41,40,37,.18); z-index: 4;">
+          <span data-cmp-grab="" style="position: absolute; top: 0; bottom: 0; left: -22px; width: 46px; cursor: ew-resize; touch-action: none;"></span>
+          <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; border-radius: 50%; background: #F5F2EA; box-shadow: 0 12px 28px rgba(41,40,37,.28); display: flex; align-items: center; justify-content: center; font-size: 12px; letter-spacing: .1em; color: #292825;">↔</span>
+        </div>
+
+        <input data-cmp-input="" type="range" min="4" max="96" value="50" step="0.5" aria-label="Compare the before and after room" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 30px; margin: 0; opacity: 0; cursor: ew-resize; z-index: 5;">
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: clamp(18px, 2.4vw, 40px); margin-top: clamp(34px, 5vh, 56px);">
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(22px, 2vw, 30px);">No more sample walls</p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.7; color: #78736E;">Every palette is tested to hold together in daylight, lamplight and shade.</p>
+        </div>
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(22px, 2vw, 30px);">Colors that flow</p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.7; color: #78736E;">Nine shades made to move room to room without a jarring transition.</p>
+        </div>
+        <div data-reveal="">
+          <p style="margin: 0 0 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(22px, 2vw, 30px);">Decide in an evening</p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.7; color: #78736E;">LRV values, pairings and placement guidance included for every color.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="cta-h" style="position: relative; height: clamp(560px, 96vh, 900px); overflow: hidden; background: #292825;">
+      <div style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 24px; padding: clamp(60px, 10vh, 120px) clamp(18px, 3.4vw, 54px); color: #F5F2EA;">
+        <p data-reveal="" style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: rgba(245,242,234,.72);">05 — Begin</p>
+        <h2 id="cta-h" data-reveal="" style="margin: 0; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(38px, 6.2vw, 104px); line-height: .96; text-shadow: 0 2px 40px rgba(41,40,37,.4);">Your perfect palette is <em style="font-style: italic; font-weight: 400;">waiting.</em></h2>
+        <p data-reveal="" style="margin: 0; max-width: 52ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: rgba(245,242,234,.85);">Explore curated color combinations designed to make choosing paint feel simple, inspiring, and exciting.</p>
+        <a data-magnetic="" data-reveal="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; margin-top: 10px; padding: 19px 34px; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 22px 44px rgba(0,0,0,.34); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Explore All Palettes</a>
+      </div>
+    </section>
+
+    <footer style="background: #292825; color: #A9A29A; padding: clamp(48px, 8vh, 88px) clamp(18px, 3.4vw, 54px) 30px;">
+      <div data-foot-grid="" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: clamp(28px, 4vw, 64px); padding-bottom: clamp(36px, 5vh, 56px); border-bottom: 1px solid rgba(245,242,234,.14);">
+
+        <div style="display: flex; flex-direction: column; gap: 18px; max-width: 34ch;">
+          <img src="assets/logo-mark-light.png" alt="Dwelling Dream" style="display: block; align-self: center; height: 62px; width: auto; flex: 0 0 auto;" />
+          <p style="margin: 0; font-size: 13px; line-height: 1.7; letter-spacing: 0; text-transform: none; color: #BEB7AD;">Beautifully curated colors for beautiful spaces. Nine-color palettes, guides and planners — instant digital downloads.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="#" aria-label="Dwelling Dream on Pinterest" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Pinterest</a>
+            <a href="#" aria-label="Dwelling Dream on Instagram" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Instagram</a>
+            <a href="#" aria-label="Dwelling Dream on Etsy" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Etsy</a>
+            <a href="#" aria-label="Dwelling Dream on TikTok" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">TikTok</a>
+          </div>
+        </div>
+
+        <nav aria-label="Shop" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Shop</h2>
+          <a href="Dwelling Dream Palettes.dc.html" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">All Palettes</a>
+          <a href="#featured" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Best Sellers</a>
+          <a href="#styles" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Shop by Style</a>
+          <a href="#loved" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Paint Guides</a>
+          <a href="#loved" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Project Planner</a>
+        </nav>
+
+        <nav aria-label="Studio" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Studio</h2>
+          <a href="#about" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">About</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Blog</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Color Consultations</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Contact</a>
+          <a href="#" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Newsletter</a>
+        </nav>
+
+        <nav aria-label="Help and legal" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: .26em; text-transform: uppercase; color: #F5F2EA;">Help &amp; Legal</h2>
+          <a href="Dwelling Dream Help.dc.html#faq" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">FAQ</a>
+          <a href="Dwelling Dream Help.dc.html#downloads" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">How Downloads Work</a>
+          <a href="Dwelling Dream Help.dc.html#terms" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Terms of Service</a>
+          <a href="Dwelling Dream Help.dc.html#privacy" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Privacy Policy</a>
+          <a href="Dwelling Dream Help.dc.html#refunds" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Refund Policy</a>
+          <a href="Dwelling Dream Help.dc.html#licensing" style="color: #A9A29A; font-size: 13px; letter-spacing: 0;" style-hover="color: #F5F2EA;">Licensing &amp; Usage</a>
+        </nav>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-top: 26px; font-size: 10px; letter-spacing: .2em; text-transform: uppercase;">
+        <span>© 2026 Dwelling Dream</span>
+        <span>Digital downloads · No physical product shipped</span>
+        <a href="#top" style="color: #A9A29A;" style-hover="color: #F5F2EA;">Back to top ↑</a>
+      </div>
+    </footer>
+  </main>
+</div>
+
+</x-dc>
+<script type="module">
+  import { initDwellingDream } from './interactions.js';
+  import { syncCartBadge } from './cart.js';
+
+  initDwellingDream(document);
+  syncCartBadge(document);
+</script>
+</body>
+</html>

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dwelling Dream Product Manager</title>
+    <style>
+      :root {
+        --bg: #f5f2ea;
+        --panel: #fffdf9;
+        --card: #f3efe8;
+        --ink: #292825;
+        --muted: #78736e;
+        --line: #d8d2c8;
+        --accent: #817a6e;
+        --success: #1b5b3a;
+        --shadow: 0 22px 48px rgba(41, 40, 37, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .shell {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 30px 24px 60px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+        margin-bottom: 28px;
+      }
+
+      .brand {
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .button {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+        padding: 12px 18px;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .button.primary {
+        background: var(--ink);
+        color: #f5f2ea;
+        border-color: var(--ink);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+        gap: 28px;
+      }
+
+      .panel {
+        background: rgba(255,255,255,0.4);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .form-panel {
+        padding: 24px;
+      }
+
+      .form-panel h2,
+      .list-panel h2 {
+        margin: 0 0 18px;
+        font-size: clamp(1.8rem, 2vw, 2.6rem);
+        letter-spacing: -0.06em;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      input, textarea, select {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.55);
+        color: var(--ink);
+        padding: 12px 14px;
+        font-size: 15px;
+      }
+
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(129, 122, 110, 0.12);
+      }
+
+      .images-wrap {
+        border: 1px dashed var(--line);
+        background: var(--card);
+        padding: 16px;
+      }
+
+      .field-hint {
+        margin: 8px 0 0;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .file-chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .status {
+        min-height: 24px;
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .status.success {
+        color: var(--success);
+      }
+
+      .status.error {
+        color: #8f2f2f;
+      }
+
+      .list-panel {
+        padding: 24px;
+      }
+
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 18px;
+      }
+
+      .product-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+
+      .product-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        display: block;
+        background: #e7e0d7;
+      }
+
+      .product-info {
+        padding: 16px;
+      }
+
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .chip {
+        display: inline-block;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.4);
+        padding: 4px 8px;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .product-info h3 {
+        margin: 0 0 8px;
+        font-size: 1.5rem;
+        letter-spacing: -0.05em;
+      }
+
+      .product-info p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .price {
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+
+      .empty-state {
+        border: 1px dashed var(--line);
+        padding: 26px 18px;
+        color: var(--muted);
+        text-align: center;
+        background: rgba(255,255,255,0.2);
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .card-actions .button {
+        flex: 1;
+        padding: 10px 12px;
+        font-size: 11px;
+      }
+
+      .delete-button {
+        flex: 1;
+        border: 1px solid #8f2f2f;
+        background: transparent;
+        color: #8f2f2f;
+        padding: 10px 12px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .removable-chip {
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+
+      .removable-chip:hover {
+        background: rgba(143, 47, 47, 0.12);
+        border-color: #8f2f2f;
+        color: #8f2f2f;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">Dwelling Dream Admin</div>
+        <div class="actions">
+          <button id="logoutButton" class="button" type="button">Log out</button>
+          <button class="button primary" type="button" onclick="document.getElementById('product-form').scrollIntoView({ behavior: 'smooth' })">Add product</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel form-panel">
+          <h2 id="form-heading">Add product</h2>
+          <form id="product-form">
+            <div class="field">
+              <label for="title">Title</label>
+              <input id="title" name="title" type="text" placeholder="e.g. Sea Salt Collection" required />
+            </div>
+
+            <div class="field">
+              <label for="description">Description</label>
+              <textarea id="description" name="description" placeholder="Describe the product benefits and mood..." required></textarea>
+            </div>
+
+            <div class="field">
+              <label for="price">Price</label>
+              <input id="price" name="price" type="number" min="0" step="0.01" placeholder="24.00" required />
+            </div>
+
+            <div class="field">
+              <label for="category">Category</label>
+              <select id="category" name="category" required>
+                <option value="">Select category</option>
+                <option value="Behr">Behr</option>
+                <option value="Sherwin Williams">Sherwin Williams</option>
+                <option value="Benjamin Moore">Benjamin Moore</option>
+              </select>
+            </div>
+
+            <div id="existing-files" class="field" hidden></div>
+
+            <div class="field">
+              <label for="images" id="images-label">Product images</label>
+              <div class="images-wrap">
+                <input id="images" name="images" type="file" accept="image/*" multiple required />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="digitalFiles" id="digital-files-label">Digital files (delivered after purchase, optional for now)</label>
+              <div class="images-wrap">
+                <input id="digitalFiles" name="digitalFiles" type="file" accept=".pdf,.zip,.epub,.docx" multiple />
+              </div>
+              <p class="field-hint">PDF, ZIP, EPUB or DOCX. Customers get a secure download link for these once they complete checkout — never a public URL.</p>
+            </div>
+
+            <div class="form-actions">
+              <button id="submit-button" class="button primary" type="submit">Save product</button>
+              <button id="cancel-edit" class="button" type="button" hidden>Cancel edit</button>
+            </div>
+            <div id="form-status" class="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="panel list-panel">
+          <h2>Catalog</h2>
+          <div id="product-list" class="product-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const productForm = document.getElementById('product-form');
+      const productList = document.getElementById('product-list');
+      const formStatus = document.getElementById('form-status');
+      const formHeading = document.getElementById('form-heading');
+      const submitButton = document.getElementById('submit-button');
+      const cancelEditButton = document.getElementById('cancel-edit');
+      const existingFilesWrap = document.getElementById('existing-files');
+      const imagesInput = document.getElementById('images');
+      const digitalFilesInput = document.getElementById('digitalFiles');
+
+      let currentProducts = [];
+      let editingProductId = null;
+      let editKeepImages = [];
+      let editKeepDigitalFiles = [];
+
+      function setStatus(message, isError = false) {
+        formStatus.textContent = message || '';
+        formStatus.classList.toggle('error', isError);
+        formStatus.classList.toggle('success', !isError && Boolean(message));
+      }
+
+      function getServerOrigin() {
+        return location.protocol === 'file:' ? 'http://127.0.0.1:3000' : '';
+      }
+
+      function apiUrl(path) {
+        return `${getServerOrigin()}${path}`;
+      }
+
+      function getSessionToken() {
+        return localStorage.getItem('dwellingDreamSessionToken') || '';
+      }
+
+      function withAuth(headers = {}) {
+        const token = getSessionToken();
+        return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
+      }
+
+      function formatPrice(value) {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD'
+        }).format(Number(value) || 0);
+      }
+
+      function toDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function formatFileSize(bytes) {
+        const value = Number(bytes) || 0;
+        if (value < 1024) return `${value} B`;
+        if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+        return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
+      function renderExistingFiles() {
+        if (!editingProductId) {
+          existingFilesWrap.hidden = true;
+          existingFilesWrap.innerHTML = '';
+          return;
+        }
+
+        existingFilesWrap.hidden = false;
+        existingFilesWrap.innerHTML = `
+          <label>Existing images (click to remove)</label>
+          <div class="file-chip-list">
+            ${editKeepImages.map(image => `<span class="chip removable-chip" data-kind="image" data-value="${image}">${image.split('/').pop()} ×</span>`).join('') || '<span class="chip">None kept</span>'}
+          </div>
+          <label style="margin-top: 12px; display: block;">Existing digital files (click to remove)</label>
+          <div class="file-chip-list">
+            ${editKeepDigitalFiles.map(file => `<span class="chip removable-chip" data-kind="digital" data-value="${file.id}">${file.name} ×</span>`).join('') || '<span class="chip">None kept</span>'}
+          </div>
+        `;
+      }
+
+      function startEdit(product) {
+        editingProductId = product.id;
+        editKeepImages = [...(product.images || [])];
+        editKeepDigitalFiles = [...(product.digitalFiles || [])];
+
+        document.getElementById('title').value = product.title || '';
+        document.getElementById('description').value = product.description || '';
+        document.getElementById('price').value = product.price || '';
+        document.getElementById('category').value = product.category || '';
+        imagesInput.value = '';
+        digitalFilesInput.value = '';
+        imagesInput.required = false;
+        document.getElementById('images-label').textContent = 'Add more images (optional)';
+        document.getElementById('digital-files-label').textContent = 'Add more digital files (optional)';
+
+        formHeading.textContent = 'Edit product';
+        submitButton.textContent = 'Update product';
+        cancelEditButton.hidden = false;
+
+        renderExistingFiles();
+        setStatus('');
+        productForm.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      function cancelEdit() {
+        editingProductId = null;
+        editKeepImages = [];
+        editKeepDigitalFiles = [];
+        productForm.reset();
+        imagesInput.required = true;
+        document.getElementById('images-label').textContent = 'Product images';
+        document.getElementById('digital-files-label').textContent = 'Digital files (delivered after purchase, optional for now)';
+        formHeading.textContent = 'Add product';
+        submitButton.textContent = 'Save product';
+        cancelEditButton.hidden = true;
+        renderExistingFiles();
+      }
+
+      async function loadProducts() {
+        try {
+          const response = await fetch(apiUrl('/api/products'), {
+            credentials: 'same-origin',
+            headers: withAuth()
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              window.location.href = apiUrl('/login.html');
+              return;
+            }
+            throw new Error('Unable to load products');
+          }
+
+          const data = await response.json();
+          const products = data.products || [];
+          currentProducts = products;
+
+          if (!products.length) {
+            productList.innerHTML = '<div class="empty-state">No products saved yet. Add your first catalog item above.</div>';
+            return;
+          }
+
+          productList.innerHTML = products.map(product => {
+            const image = product.images && product.images[0] ? product.images[0] : 'https://placehold.co/800x600/f5f2ea/292825?text=No+Image';
+            const category = product.category || 'Brand not set';
+            const sku = product.sku || 'SKU pending';
+            return `
+              <article class="product-card">
+                <img src="${image}" alt="${product.title}" />
+                <div class="product-info">
+                  <div class="meta">
+                    <span class="chip">${category}</span>
+                    <span class="chip">SKU: ${sku}</span>
+                  </div>
+                  <h3>${product.title}</h3>
+                  <p>${product.description}</p>
+                  <div class="price-row">
+                    <span class="price">${formatPrice(product.price)}</span>
+                  </div>
+                  <div class="file-chip-list">
+                    ${(product.digitalFiles || []).map(file => `<span class="chip" title="${file.name} · ${formatFileSize(file.size)}">${file.name}</span>`).join('') || '<span class="chip">No digital files</span>'}
+                  </div>
+                  <div class="card-actions">
+                    <button class="button edit-button" data-id="${product.id}" type="button">Edit</button>
+                    <button class="delete-button" data-id="${product.id}" type="button">Delete</button>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('');
+        } catch (error) {
+          productList.innerHTML = '<div class="empty-state">Products could not be loaded right now.</div>';
+        }
+      }
+
+      productForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setStatus('');
+
+        const files = Array.from(imagesInput.files || []);
+        const digitalFiles = Array.from(digitalFilesInput.files || []);
+
+        try {
+          const newImages = await Promise.all(files.map(file => toDataUrl(file)));
+          const newDigitalFiles = await Promise.all(digitalFiles.map(async file => ({
+            name: file.name,
+            data: await toDataUrl(file)
+          })));
+
+          const basePayload = {
+            title: document.getElementById('title').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            price: Number(document.getElementById('price').value),
+            category: document.getElementById('category').value
+          };
+
+          let response;
+
+          if (editingProductId) {
+            if (editKeepImages.length + newImages.length === 0) {
+              setStatus('At least one product image is required.', true);
+              return;
+            }
+
+            response = await fetch(apiUrl('/api/products'), {
+              method: 'PUT',
+              headers: withAuth({ 'Content-Type': 'application/json' }),
+              credentials: 'same-origin',
+              body: JSON.stringify({
+                id: editingProductId,
+                ...basePayload,
+                keepImages: editKeepImages,
+                newImages,
+                keepDigitalFiles: editKeepDigitalFiles.map(file => file.id),
+                newDigitalFiles
+              })
+            });
+          } else {
+            response = await fetch(apiUrl('/api/products'), {
+              method: 'POST',
+              headers: withAuth({ 'Content-Type': 'application/json' }),
+              credentials: 'same-origin',
+              body: JSON.stringify({ ...basePayload, images: newImages, digitalFiles: newDigitalFiles })
+            });
+          }
+
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            setStatus(data.message || 'Unable to save product.', true);
+            return;
+          }
+
+          setStatus(editingProductId ? 'Product updated successfully.' : 'Product saved successfully.');
+          cancelEdit();
+          await loadProducts();
+        } catch (error) {
+          setStatus('There was a problem saving the product.', true);
+        }
+      });
+
+      productList.addEventListener('click', async (event) => {
+        const editButton = event.target.closest('.edit-button');
+        if (editButton) {
+          const product = currentProducts.find(item => String(item.id) === editButton.dataset.id);
+          if (product) startEdit(product);
+          return;
+        }
+
+        const deleteButton = event.target.closest('.delete-button');
+        if (!deleteButton) return;
+
+        const productId = deleteButton.dataset.id;
+        if (!productId) return;
+
+        const confirmed = window.confirm('Delete this product from the catalog?');
+        if (!confirmed) return;
+
+        try {
+          const response = await fetch(apiUrl('/api/products'), {
+            method: 'DELETE',
+            headers: withAuth({ 'Content-Type': 'application/json' }),
+            credentials: 'same-origin',
+            body: JSON.stringify({ id: productId })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            setStatus(data.message || 'Unable to delete product.', true);
+            return;
+          }
+
+          setStatus('Product deleted successfully.');
+          await loadProducts();
+        } catch (error) {
+          setStatus('There was a problem deleting the product.', true);
+        }
+      });
+
+      cancelEditButton.addEventListener('click', () => {
+        cancelEdit();
+        setStatus('');
+      });
+
+      existingFilesWrap.addEventListener('click', (event) => {
+        const chip = event.target.closest('.removable-chip');
+        if (!chip) return;
+
+        const kind = chip.dataset.kind;
+        const value = chip.dataset.value;
+
+        if (kind === 'image') {
+          editKeepImages = editKeepImages.filter(image => image !== value);
+        } else if (kind === 'digital') {
+          editKeepDigitalFiles = editKeepDigitalFiles.filter(file => file.id !== value);
+        }
+
+        renderExistingFiles();
+      });
+
+      document.getElementById('logoutButton').addEventListener('click', async () => {
+        await fetch(apiUrl('/api/logout'), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: withAuth()
+        });
+        localStorage.removeItem('dwellingDreamSessionToken');
+        window.location.href = apiUrl('/login.html');
+      });
+
+      loadProducts();
+    </script>
+  </body>
+</html>

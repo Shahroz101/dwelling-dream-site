@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="description" content="Your Dwelling Dream order — download your purchased palettes instantly." />
+<title>Your Order — Dwelling Dream</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  a { color: #292825; text-decoration: none; }
+  a:hover { color: #817A6E; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+  ::selection { background: #DFD3C3; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+</style>
+</helmet>
+
+<div style="position: relative; width: 100%; overflow-x: hidden; background: #F5F2EA;">
+
+  <div data-progress="" style="position: fixed; top: 0; left: 0; height: 2px; width: 100%; background: #817A6E; transform: scaleX(0); transform-origin: 0 50%; z-index: 90; opacity: .5;"></div>
+
+  <header data-nav="" style="position: fixed; top: 0; left: 0; right: 0; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 18px clamp(18px, 3.4vw, 54px); pointer-events: none; background: rgba(245,242,234,.9); border-bottom: 1px solid #D8D2C8; backdrop-filter: blur(14px);">
+    <a href="Dwelling Dream Homepage v2.dc.html" aria-label="Dwelling Dream home" style="pointer-events: auto; display: inline-flex; align-items: center;">
+      <img src="assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
+    </a>
+    <nav aria-label="Primary" style="pointer-events: auto; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 36px);">
+      <a href="Dwelling Dream Homepage v2.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Home</a>
+      <a href="Dwelling Dream About.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">About</a>
+      <a href="Dwelling Dream Help.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Help</a>
+      <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 11px 22px; border: 1px solid #D8D2C8; border-radius: 999px; background: rgba(255,255,255,.5); font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; transition: background .35s ease, transform .45s cubic-bezier(.22,1,.36,1);" style-hover="background: #292825; color: #F5F2EA;">Explore Palettes</a>
+      <a data-cart="" href="Dwelling Dream Cart.dc.html" aria-label="Cart, 0 items" style="display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, border-color .35s ease;">
+        <span aria-hidden="true" style="display: inline-block; width: 13px; height: 11px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; position: relative; top: 2px;">
+          <span style="position: absolute; left: 1.5px; right: 1.5px; top: -6px; height: 6px; border: 1.5px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0;"></span>
+        </span>
+        <span data-cart-count="">0</span>
+      </a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <section aria-labelledby="order-h" style="position: relative; padding: clamp(104px, 14vh, 160px) clamp(18px, 3.4vw, 54px) clamp(60px, 9vh, 110px);">
+
+      <div data-order-loading="" style="max-width: 560px;">
+        <p style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Order</p>
+        <h1 style="margin: 10px 0 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 4vw, 56px); line-height: 1.02;">Loading your order…</h1>
+      </div>
+
+      <div data-order-invalid="" hidden="hidden" style="display: none; max-width: 560px;">
+        <p style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Order</p>
+        <h1 style="margin: 10px 0 16px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 4vw, 56px); line-height: 1.05;">This order link is invalid <em style="font-style: italic; font-weight: 400;">or has expired.</em></h1>
+        <p style="margin: 0 0 26px; font-size: 14.5px; line-height: 1.75; color: #5F5A54;">Double-check the link from your confirmation, or head back to the catalog to start again.</p>
+        <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; padding: 17px 30px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37;">Explore Palettes</a>
+      </div>
+
+      <div data-order-content="" hidden="hidden" style="display: none;">
+        <div style="max-width: 620px; margin-bottom: clamp(36px, 5vh, 56px);">
+          <p style="margin: 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Order confirmed</p>
+          <h1 id="order-h" style="margin: 10px 0 14px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(34px, 4.6vw, 68px); line-height: 1.02;">Thank you — it's <em style="font-style: italic; font-weight: 400;">all yours.</em></h1>
+          <p style="margin: 0; font-size: 14.5px; line-height: 1.75; color: #5F5A54;">Your files are ready below — no waiting, nothing to ship. Save this page or keep the link from your confirmation to come back for your downloads anytime.</p>
+          <p data-order-meta="" style="margin: 14px 0 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #A9A29A;"></p>
+        </div>
+
+        <div data-order-items="" style="display: flex; flex-direction: column; gap: 0; max-width: 760px; border-top: 1px solid #292825;"></div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 760px; padding: 22px 0; margin-top: 4px; border-top: 1px solid #D8D2C8;">
+          <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;">Total paid</span>
+          <span data-order-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(24px, 2.4vw, 32px);"></span>
+        </div>
+
+        <a data-magnetic="" href="Dwelling Dream Palettes.dc.html" style="display: inline-flex; align-items: center; margin-top: clamp(28px, 4vh, 44px); padding: 17px 30px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; transition: background .35s ease, transform .45s cubic-bezier(.22,1,.36,1);" style-hover="background: #EDEAE0;">Keep exploring palettes</a>
+      </div>
+    </section>
+
+    <footer style="background: #292825; color: #A9A29A; padding: clamp(48px, 8vh, 88px) clamp(18px, 3.4vw, 54px) 30px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-size: 10px; letter-spacing: .2em; text-transform: uppercase;">
+        <span>© 2026 Dwelling Dream</span>
+        <span>Digital downloads · No physical product shipped</span>
+        <a href="#top" style="color: #A9A29A;" style-hover="color: #F5F2EA;">Back to top ↑</a>
+      </div>
+    </footer>
+  </main>
+</div>
+
+</x-dc>
+<script type="module">
+  import { initDwellingDream } from './interactions.js';
+  import { syncCartBadge } from './cart.js';
+
+  initDwellingDream(document, { navThreshold: -1 });
+  syncCartBadge(document);
+
+  const formatPrice = amount => `$${Number(amount || 0).toFixed(2)}`;
+  const formatSize = bytes => {
+    const value = Number(bytes) || 0;
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  function renderOrder(order, orderId, token) {
+    const meta = document.querySelector('[data-order-meta]');
+    if (meta) {
+      const date = order.createdAt ? new Date(order.createdAt) : null;
+      const dateText = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+      meta.textContent = [`Order #${orderId.slice(0, 8)}`, dateText].filter(Boolean).join(' · ');
+    }
+
+    const itemsEl = document.querySelector('[data-order-items]');
+    if (itemsEl) {
+      itemsEl.innerHTML = order.items.map(item => `
+        <div style="display: flex; flex-direction: column; gap: 14px; padding: 24px 0; border-bottom: 1px solid #D8D2C8;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px;">
+            <h2 style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(20px, 1.8vw, 27px); line-height: 1;">${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}</h2>
+            <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 18px; white-space: nowrap;">${formatPrice(item.price * item.qty)}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${(item.digitalFiles || []).map(file => `
+              <a href="/api/download?order=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}&file=${encodeURIComponent(file.id)}" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; background: #EDEAE0; text-decoration: none; color: inherit; transition: background .3s ease;" style-hover="background: #E3DED3;">
+                <span style="font-size: 13px;">${file.name}</span>
+                <span style="display: flex; align-items: center; gap: 10px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #78736E;">
+                  <span>${formatSize(file.size)}</span>
+                  <span style="color: #292825;">Download ↓</span>
+                </span>
+              </a>
+            `).join('') || '<p style="margin:0; font-size: 12.5px; color: #A9A29A;">No files attached to this item.</p>'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const totalEl = document.querySelector('[data-order-total]');
+    if (totalEl) totalEl.textContent = formatPrice(order.total);
+  }
+
+  async function loadOrder() {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('order') || '';
+    const token = params.get('token') || '';
+    const loadingEl = document.querySelector('[data-order-loading]');
+    const invalidEl = document.querySelector('[data-order-invalid]');
+    const contentEl = document.querySelector('[data-order-content]');
+
+    const showInvalid = () => {
+      if (loadingEl) { loadingEl.hidden = true; loadingEl.style.display = 'none'; }
+      if (invalidEl) { invalidEl.hidden = false; invalidEl.style.display = 'block'; }
+      if (contentEl) { contentEl.hidden = true; contentEl.style.display = 'none'; }
+    };
+
+    if (!orderId || !token) {
+      showInvalid();
+      return;
+    }
+
+    try {
+      const base = location.protocol === 'file:' ? 'http://127.0.0.1:3000' : '';
+      const response = await fetch(`${base}/api/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(token)}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        showInvalid();
+        return;
+      }
+
+      renderOrder(data.order, orderId, token);
+      if (loadingEl) { loadingEl.hidden = true; loadingEl.style.display = 'none'; }
+      if (contentEl) { contentEl.hidden = false; contentEl.style.display = 'block'; }
+    } catch (error) {
+      console.error('Failed to load order:', error);
+      showInvalid();
+    }
+  }
+
+  loadOrder();
+</script>
+</body>
+</html>
