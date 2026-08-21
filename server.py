@@ -299,7 +299,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        if path in {"/", "/login.html"}:
+        if path == "/":
+            serve_file(self, ROOT / "Dwelling Dream Homepage v2.dc.html")
+            return
+
+        if path == "/login.html":
             serve_file(self, ROOT / "login.html")
             return
 

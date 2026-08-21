@@ -615,29 +615,32 @@ function handleLogout(req, res) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  // Decode %20 etc. so routes/filenames with spaces (all the "Dwelling Dream
+  // *.dc.html" pages) match, mirroring server.py's unquote(url.path).
+  const reqPath = decodeURIComponent(url.pathname);
 
-  if (url.pathname === '/api/login' && req.method === 'POST') {
+  if (reqPath === '/api/login' && req.method === 'POST') {
     handleApiLogin(req, res);
     return;
   }
 
-  if (url.pathname === '/api/logout' && req.method === 'POST') {
+  if (reqPath === '/api/logout' && req.method === 'POST') {
     handleLogout(req, res);
     return;
   }
 
-  if (url.pathname === '/api/products') {
+  if (reqPath === '/api/products') {
     handleApiProducts(req, res);
     return;
   }
 
-  if (url.pathname === '/api/orders') {
+  if (reqPath === '/api/orders') {
     handleApiOrders(req, res);
     return;
   }
 
-  if (url.pathname.startsWith('/api/orders/') && req.method === 'GET') {
-    const orderId = url.pathname.slice('/api/orders/'.length);
+  if (reqPath.startsWith('/api/orders/') && req.method === 'GET') {
+    const orderId = reqPath.slice('/api/orders/'.length);
     const token = url.searchParams.get('token') || '';
     const order = findOrder(orderId, token);
     if (!order) {
@@ -648,7 +651,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === '/api/download' && req.method === 'GET') {
+  if (reqPath === '/api/download' && req.method === 'GET') {
     const orderId = url.searchParams.get('order') || '';
     const token = url.searchParams.get('token') || '';
     const fileId = url.searchParams.get('file') || '';
@@ -686,27 +689,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname.startsWith('/uploads/')) {
-    const filePath = path.join(ROOT, url.pathname.replace(/^\//, ''));
+  if (reqPath.startsWith('/uploads/')) {
+    const filePath = path.join(ROOT, reqPath.replace(/^\//, ''));
     if (filePath.startsWith(UPLOADS_DIR)) {
       serveFile(res, filePath);
       return;
     }
   }
 
-  if (url.pathname === '/' || url.pathname === '/login.html') {
+  if (reqPath === '/') {
     if (req.method !== 'GET') {
       res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Method not allowed');
       return;
     }
 
-    const requestedFile = url.pathname === '/' ? path.join(ROOT, 'login.html') : path.join(ROOT, 'login.html');
-    serveFile(res, requestedFile);
+    serveFile(res, path.join(ROOT, 'Dwelling Dream Homepage v2.dc.html'));
     return;
   }
 
-  if (url.pathname === '/admin' || url.pathname === '/admin.html') {
+  if (reqPath === '/login.html') {
+    if (req.method !== 'GET') {
+      res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Method not allowed');
+      return;
+    }
+
+    serveFile(res, path.join(ROOT, 'login.html'));
+    return;
+  }
+
+  if (reqPath === '/admin' || reqPath === '/admin.html') {
     if (!isAuthorized(req)) {
       res.writeHead(302, { Location: '/login.html' });
       res.end();
@@ -717,13 +730,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === '/palettes' || url.pathname === '/Dwelling Dream Palettes.dc.html' || url.pathname === '/Dwelling%20Dream%20Palettes.dc.html') {
+  if (reqPath === '/palettes' || reqPath === '/Dwelling Dream Palettes.dc.html') {
     serveFile(res, path.join(ROOT, 'Dwelling Dream Palettes.dc.html'));
     return;
   }
 
-  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.css') || url.pathname.endsWith('.js') || url.pathname.endsWith('.svg') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.jpeg') || url.pathname.endsWith('.webp') || url.pathname.endsWith('.gif')) {
-    const filePath = path.join(ROOT, url.pathname.replace(/^\//, ''));
+  if (reqPath.endsWith('.html') || reqPath.endsWith('.css') || reqPath.endsWith('.js') || reqPath.endsWith('.svg') || reqPath.endsWith('.png') || reqPath.endsWith('.jpg') || reqPath.endsWith('.jpeg') || reqPath.endsWith('.webp') || reqPath.endsWith('.gif')) {
+    const filePath = path.join(ROOT, reqPath.replace(/^\//, ''));
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       serveFile(res, filePath);
       return;
