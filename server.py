@@ -15,8 +15,7 @@ from urllib.parse import urlparse, unquote, parse_qs
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
-UPLOADS_DIR = DATA_DIR / "uploads"
-DIGITAL_DIR = DATA_DIR / "digital-files"
+UPLOADS_DIR = DATA_DIR / "uploads"  # legacy local-disk fallback for the /uploads/ route only
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
@@ -26,9 +25,10 @@ if not ADMIN_PASSWORD:
 PORT = int(os.environ.get("PORT", "3000"))
 SESSIONS = {}
 
-# Products and orders are stored in Supabase (Postgres via PostgREST), not
-# local files - product images and digital files still live on local disk
-# under UPLOADS_DIR/DIGITAL_DIR, only the catalog/order records moved.
+# Products, orders, product images, and digital files all live in Supabase
+# (Postgres via PostgREST for the records, Storage for the actual image/file
+# bytes) - nothing persists on local disk, so a redeploy can never wipe
+# anything a store owner has added through the admin panel.
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
@@ -36,6 +36,8 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         "SUPABASE_URL and SUPABASE_SERVICE_KEY env vars are required "
         "(Project Settings -> API in the Supabase dashboard)."
     )
+IMAGES_BUCKET = "product-images"
+DIGITAL_BUCKET = "digital-files"
 
 DOWNLOAD_MIME_TYPES = {
     ".pdf": "application/pdf",
@@ -50,9 +52,55 @@ def now_iso():
 
 
 def ensure_storage():
-    DATA_DIR.mkdir(exist_ok=True)
-    UPLOADS_DIR.mkdir(exist_ok=True)
-    DIGITAL_DIR.mkdir(exist_ok=True)
+    pass
+
+
+def supabase_storage_upload(bucket, object_path, content, content_type):
+    url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{object_path}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": content_type or "application/octet-stream",
+    }
+    req = urllib.request.Request(url, data=content, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Supabase Storage upload to {bucket}/{object_path} failed: {exc.code} {detail}")
+
+
+def supabase_storage_download(bucket, object_path):
+    url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{object_path}"
+    headers = {"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return resp.read()
+
+
+def supabase_storage_delete(bucket, object_path):
+    if not object_path:
+        return
+    url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{object_path}"
+    headers = {"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+    req = urllib.request.Request(url, headers=headers, method="DELETE")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
+    except Exception:
+        pass  # best-effort cleanup - a missing/already-gone object is not an error
+
+
+def supabase_public_url(bucket, object_path):
+    return f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{object_path}"
+
+
+def storage_object_key(url, bucket):
+    prefix = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/"
+    if isinstance(url, str) and url.startswith(prefix):
+        return url[len(prefix):]
+    return None
 
 
 def supabase_request(path_and_query, method="GET", body=None):
@@ -157,28 +205,14 @@ def delete_product_by_id(product_id):
     delete_product_row(product_id)
 
     for image_path in product.get("images", []):
-        try:
-            if not str(image_path).startswith("/uploads/"):
-                continue
-            relative = str(image_path)[len("/uploads/"):]
-            safe_path = (UPLOADS_DIR / relative).resolve()
-            uploads_root = UPLOADS_DIR.resolve()
-            if str(safe_path).startswith(str(uploads_root)) and safe_path.exists():
-                safe_path.unlink()
-        except Exception:
-            pass
+        key = storage_object_key(image_path, IMAGES_BUCKET)
+        if key:
+            supabase_storage_delete(IMAGES_BUCKET, key)
 
     for digital_file in product.get("digitalFiles", []):
-        try:
-            stored_name = digital_file.get("storedName") if isinstance(digital_file, dict) else None
-            if not stored_name:
-                continue
-            safe_path = (DIGITAL_DIR / stored_name).resolve()
-            digital_root = DIGITAL_DIR.resolve()
-            if str(safe_path).startswith(str(digital_root)) and safe_path.exists():
-                safe_path.unlink()
-        except Exception:
-            pass
+        stored_name = digital_file.get("storedName") if isinstance(digital_file, dict) else None
+        if stored_name:
+            supabase_storage_delete(DIGITAL_BUCKET, stored_name)
 
     return True
 
@@ -229,12 +263,12 @@ def save_base64_image(value, sku):
         ext = ".gif"
     file_id = os.urandom(8).hex()
     file_name = f"{sku}-{file_id}{ext}"
-    output_path = UPLOADS_DIR / file_name
-    output_path.write_bytes(base64.b64decode(encoded))
-    return f"/uploads/{file_name}"
+    content = base64.b64decode(encoded)
+    supabase_storage_upload(IMAGES_BUCKET, file_name, content, mime_type)
+    return supabase_public_url(IMAGES_BUCKET, file_name)
 
 
-def save_base64_file(value, original_name, sku, index):
+def save_base64_file(value, original_name, sku):
     if not isinstance(value, str):
         return None
     match = re.match(r"^data:([^;]+);base64,(.+)$", value)
@@ -259,8 +293,7 @@ def save_base64_file(value, original_name, sku, index):
 
     file_id = os.urandom(8).hex()
     stored_name = f"{sku}-{file_id}{ext}"
-    output_path = DIGITAL_DIR / stored_name
-    output_path.write_bytes(raw)
+    supabase_storage_upload(DIGITAL_BUCKET, stored_name, raw, mime_type)
     return {
         "id": file_id,
         "name": (original_name or stored_name).strip() or stored_name,
@@ -313,24 +346,18 @@ def serve_file(handler, file_path):
         handler.wfile.write(b"Not found")
 
 
-def serve_download(handler, file_path, download_name):
-    try:
-        content = file_path.read_bytes()
-        mime_type = DOWNLOAD_MIME_TYPES.get(file_path.suffix.lower(), "application/octet-stream")
-        safe_name = re.sub(r'[\r\n"]', "", download_name or file_path.name)
+def serve_download_bytes(handler, content, stored_name, download_name):
+    suffix = ("." + stored_name.rsplit(".", 1)[-1].lower()) if "." in stored_name else ""
+    mime_type = DOWNLOAD_MIME_TYPES.get(suffix, "application/octet-stream")
+    safe_name = re.sub(r'[\r\n"]', "", download_name or stored_name)
 
-        handler.send_response(200)
-        handler.send_header("Content-Type", mime_type)
-        handler.send_header("Cache-Control", "no-store")
-        handler.send_header("Content-Disposition", f'attachment; filename="{safe_name}"')
-        handler.send_header("Content-Length", str(len(content)))
-        handler.end_headers()
-        handler.wfile.write(content)
-    except FileNotFoundError:
-        handler.send_response(404)
-        handler.send_header("Content-Type", "text/plain; charset=utf-8")
-        handler.end_headers()
-        handler.wfile.write(b"Not found")
+    handler.send_response(200)
+    handler.send_header("Content-Type", mime_type)
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Content-Disposition", f'attachment; filename="{safe_name}"')
+    handler.send_header("Content-Length", str(len(content)))
+    handler.end_headers()
+    handler.wfile.write(content)
 
 
 def find_order(order_id, token):
@@ -453,14 +480,25 @@ class AdminHandler(BaseHTTPRequestHandler):
             except RuntimeError as exc:
                 send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
                 return
+            stored_name = None
+            display_name = None
             for product in products:
                 for digital_file in product.get("digitalFiles", []):
                     if digital_file.get("id") == file_id:
-                        target = (DIGITAL_DIR / digital_file.get("storedName", "")).resolve()
-                        digital_root = DIGITAL_DIR.resolve()
-                        if str(target).startswith(str(digital_root)) and target.exists():
-                            serve_download(self, target, digital_file.get("name"))
-                            return
+                        stored_name = digital_file.get("storedName")
+                        display_name = digital_file.get("name")
+                        break
+                if stored_name:
+                    break
+
+            if stored_name:
+                try:
+                    content = supabase_storage_download(DIGITAL_BUCKET, stored_name)
+                except urllib.error.HTTPError:
+                    content = None
+                if content is not None:
+                    serve_download_bytes(self, content, stored_name, display_name)
+                    return
 
             send_json(self, 404, {"success": False, "message": "This file is no longer available."})
             return
@@ -582,7 +620,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         for entry in new_digital_raw:
             if not isinstance(entry, dict):
                 continue
-            saved = save_base64_file(entry.get("data"), entry.get("name"), sku, len(saved_new_digital))
+            saved = save_base64_file(entry.get("data"), entry.get("name"), sku)
             if saved:
                 saved_new_digital.append(saved)
 
@@ -595,20 +633,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             # Reject the edit without touching the product's existing files - only
             # clean up whatever we just wrote for this rejected attempt.
             for image_path in saved_new_images:
-                try:
-                    relative = image_path[len("/uploads/"):]
-                    safe_path = (UPLOADS_DIR / relative).resolve()
-                    if str(safe_path).startswith(str(UPLOADS_DIR.resolve())) and safe_path.exists():
-                        safe_path.unlink()
-                except Exception:
-                    pass
+                key = storage_object_key(image_path, IMAGES_BUCKET)
+                if key:
+                    supabase_storage_delete(IMAGES_BUCKET, key)
             for digital_file in saved_new_digital:
-                try:
-                    safe_path = (DIGITAL_DIR / digital_file["storedName"]).resolve()
-                    if str(safe_path).startswith(str(DIGITAL_DIR.resolve())) and safe_path.exists():
-                        safe_path.unlink()
-                except Exception:
-                    pass
+                supabase_storage_delete(DIGITAL_BUCKET, digital_file["storedName"])
             send_json(self, 400, {"success": False, "message": "At least one product image is required."})
             return
 
@@ -633,26 +662,16 @@ class AdminHandler(BaseHTTPRequestHandler):
         for image_path in existing.get("images", []):
             if image_path in keep_images:
                 continue
-            try:
-                if str(image_path).startswith("/uploads/"):
-                    relative = str(image_path)[len("/uploads/"):]
-                    safe_path = (UPLOADS_DIR / relative).resolve()
-                    if str(safe_path).startswith(str(UPLOADS_DIR.resolve())) and safe_path.exists():
-                        safe_path.unlink()
-            except Exception:
-                pass
+            key = storage_object_key(image_path, IMAGES_BUCKET)
+            if key:
+                supabase_storage_delete(IMAGES_BUCKET, key)
 
         for digital_file in existing.get("digitalFiles", []):
             if digital_file.get("id") in keep_digital_ids:
                 continue
-            try:
-                stored_name = digital_file.get("storedName")
-                if stored_name:
-                    safe_path = (DIGITAL_DIR / stored_name).resolve()
-                    if str(safe_path).startswith(str(DIGITAL_DIR.resolve())) and safe_path.exists():
-                        safe_path.unlink()
-            except Exception:
-                pass
+            stored_name = digital_file.get("storedName")
+            if stored_name:
+                supabase_storage_delete(DIGITAL_BUCKET, stored_name)
 
         updated_product = {**existing, "title": title, "description": description, "category": category,
                             "price": price, "images": final_images, "digitalFiles": final_digital, "updatedAt": updated_at}
@@ -781,7 +800,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             for entry in digital_files_raw:
                 if not isinstance(entry, dict):
                     continue
-                saved = save_base64_file(entry.get("data"), entry.get("name"), sku, len(saved_digital_files))
+                saved = save_base64_file(entry.get("data"), entry.get("name"), sku)
                 if saved:
                     saved_digital_files.append(saved)
 

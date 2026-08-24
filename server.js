@@ -31,8 +31,7 @@ loadDotEnv();
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = path.join(ROOT, 'data');
-const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
-const DIGITAL_DIR = path.join(DATA_DIR, 'digital-files');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads'); // legacy local-disk fallback for the /uploads/ route only
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 if (!ADMIN_PASSWORD) {
@@ -42,15 +41,18 @@ if (!ADMIN_PASSWORD) {
 }
 const sessions = new Map();
 
-// Products and orders are stored in Supabase (Postgres via PostgREST), not
-// local files - product images and digital files still live on local disk
-// under UPLOADS_DIR/DIGITAL_DIR, only the catalog/order records moved.
+// Products, orders, product images, and digital files all live in Supabase
+// (Postgres via PostgREST for the records, Storage for the actual image/file
+// bytes) - nothing persists on local disk, so a redeploy can never wipe
+// anything a store owner has added through the admin panel.
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('SUPABASE_URL and SUPABASE_SERVICE_KEY env vars are required (Project Settings -> API in the Supabase dashboard).');
   process.exit(1);
 }
+const IMAGES_BUCKET = 'product-images';
+const DIGITAL_BUCKET = 'digital-files';
 
 const DOWNLOAD_MIME_TYPES = {
   '.pdf': 'application/pdf',
@@ -62,7 +64,6 @@ const DOWNLOAD_MIME_TYPES = {
 function ensureDataFolders() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-  fs.mkdirSync(DIGITAL_DIR, { recursive: true });
 }
 
 async function supabaseRequest(pathAndQuery, { method = 'GET', body } = {}) {
@@ -84,6 +85,54 @@ async function supabaseRequest(pathAndQuery, { method = 'GET', body } = {}) {
 
   const text = await res.text();
   return text ? JSON.parse(text) : null;
+}
+
+async function supabaseStorageUpload(bucket, objectPath, content, contentType) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${objectPath}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': contentType || 'application/octet-stream'
+    },
+    body: content
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Supabase Storage upload to ${bucket}/${objectPath} failed: ${res.status} ${detail}`);
+  }
+}
+
+async function supabaseStorageDownload(bucket, objectPath) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${objectPath}`, {
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }
+  });
+  if (!res.ok) return null;
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function supabaseStorageDelete(bucket, objectPath) {
+  if (!objectPath) return;
+  try {
+    await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${objectPath}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }
+    });
+  } catch (error) {
+    // best-effort cleanup - a missing/already-gone object is not an error
+  }
+}
+
+function supabasePublicUrl(bucket, objectPath) {
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${objectPath}`;
+}
+
+function storageObjectKey(url, bucket) {
+  const prefix = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/`;
+  if (typeof url === 'string' && url.startsWith(prefix)) {
+    return url.slice(prefix.length);
+  }
+  return null;
 }
 
 function rowToProduct(row) {
@@ -174,25 +223,14 @@ async function deleteProductById(productId) {
 
   await deleteProductRow(productId);
 
-  const uploadRoot = path.resolve(UPLOADS_DIR);
   for (const image of product.images || []) {
-    if (typeof image !== 'string' || !image.startsWith('/uploads/')) continue;
-
-    const fileName = image.replace(/^\/uploads\//, '');
-    const filePath = path.join(uploadRoot, fileName);
-    const resolvedFilePath = path.resolve(filePath);
-
-    if (resolvedFilePath.startsWith(uploadRoot) && fs.existsSync(resolvedFilePath)) {
-      fs.unlinkSync(resolvedFilePath);
-    }
+    const key = storageObjectKey(image, IMAGES_BUCKET);
+    if (key) await supabaseStorageDelete(IMAGES_BUCKET, key);
   }
 
-  const digitalRoot = path.resolve(DIGITAL_DIR);
   for (const digitalFile of product.digitalFiles || []) {
-    if (!digitalFile || !digitalFile.storedName) continue;
-    const resolvedFilePath = path.resolve(path.join(digitalRoot, digitalFile.storedName));
-    if (resolvedFilePath.startsWith(digitalRoot) && fs.existsSync(resolvedFilePath)) {
-      fs.unlinkSync(resolvedFilePath);
+    if (digitalFile && digitalFile.storedName) {
+      await supabaseStorageDelete(DIGITAL_BUCKET, digitalFile.storedName);
     }
   }
 
@@ -260,7 +298,7 @@ function generateSku(title, category) {
   return `${cleanCategory}-${cleanTitle}-${unique}`;
 }
 
-function saveBase64Image(base64String, sku) {
+async function saveBase64Image(base64String, sku) {
   if (!base64String || typeof base64String !== 'string') return null;
 
   const match = base64String.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
@@ -270,13 +308,12 @@ function saveBase64Image(base64String, sku) {
   const extension = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : mimeType.includes('gif') ? 'gif' : 'jpg';
   const fileId = crypto.randomBytes(8).toString('hex');
   const fileName = `${sku}-${fileId}.${extension}`;
-  const filePath = path.join(UPLOADS_DIR, fileName);
   const buffer = Buffer.from(match[2], 'base64');
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/${fileName}`;
+  await supabaseStorageUpload(IMAGES_BUCKET, fileName, buffer, mimeType);
+  return supabasePublicUrl(IMAGES_BUCKET, fileName);
 }
 
-function saveBase64File(base64String, originalName, sku) {
+async function saveBase64File(base64String, originalName, sku) {
   if (!base64String || typeof base64String !== 'string') return null;
 
   const match = base64String.match(/^data:([^;]+);base64,(.+)$/);
@@ -294,7 +331,7 @@ function saveBase64File(base64String, originalName, sku) {
   const buffer = Buffer.from(match[2], 'base64');
   const fileId = crypto.randomBytes(8).toString('hex');
   const storedName = `${sku}-${fileId}${ext}`;
-  fs.writeFileSync(path.join(DIGITAL_DIR, storedName), buffer);
+  await supabaseStorageUpload(DIGITAL_BUCKET, storedName, buffer, mimeType);
 
   return {
     id: fileId,
@@ -328,25 +365,17 @@ function serveFile(res, filePath) {
   });
 }
 
-function serveDownload(res, filePath, downloadName) {
-  fs.readFile(filePath, (error, data) => {
-    if (error) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Not found');
-      return;
-    }
+function serveDownloadBytes(res, content, storedName, downloadName) {
+  const ext = path.extname(storedName).toLowerCase();
+  const mimeType = DOWNLOAD_MIME_TYPES[ext] || 'application/octet-stream';
+  const safeName = (downloadName || storedName).replace(/[\r\n"]/g, '');
 
-    const ext = path.extname(filePath).toLowerCase();
-    const mimeType = DOWNLOAD_MIME_TYPES[ext] || 'application/octet-stream';
-    const safeName = (downloadName || path.basename(filePath)).replace(/[\r\n"]/g, '');
-
-    res.writeHead(200, {
-      'Content-Type': mimeType,
-      'Cache-Control': 'no-store',
-      'Content-Disposition': `attachment; filename="${safeName}"`
-    });
-    res.end(data);
+  res.writeHead(200, {
+    'Content-Type': mimeType,
+    'Cache-Control': 'no-store',
+    'Content-Disposition': `attachment; filename="${safeName}"`
   });
+  res.end(content);
 }
 
 function handleApiLogin(req, res) {
@@ -485,23 +514,21 @@ async function handleApiProducts(req, res) {
         const newDigitalRaw = Array.isArray(payload.newDigitalFiles) ? payload.newDigitalFiles : [];
 
         const sku = existing.sku || generateSku(title, category);
-        const uploadRoot = path.resolve(UPLOADS_DIR);
-        const digitalRoot = path.resolve(DIGITAL_DIR);
 
         // Save any newly-uploaded files first, so we know the true final counts
-        // before touching anything that's already on disk.
+        // before touching anything already stored.
         const savedNewImages = [];
-        newImagesRaw.forEach(image => {
-          const saved = saveBase64Image(image, sku);
+        for (const image of newImagesRaw) {
+          const saved = await saveBase64Image(image, sku);
           if (saved) savedNewImages.push(saved);
-        });
+        }
 
         const savedNewDigital = [];
-        newDigitalRaw.forEach(entry => {
-          if (!entry || typeof entry !== 'object') return;
-          const saved = saveBase64File(entry.data, entry.name, sku);
+        for (const entry of newDigitalRaw) {
+          if (!entry || typeof entry !== 'object') continue;
+          const saved = await saveBase64File(entry.data, entry.name, sku);
           if (saved) savedNewDigital.push(saved);
-        });
+        }
 
         const finalImages = (existing.images || []).filter(img => keepImages.includes(img)).concat(savedNewImages);
         const finalDigital = (existing.digitalFiles || [])
@@ -511,18 +538,13 @@ async function handleApiProducts(req, res) {
         if (!finalImages.length) {
           // Reject the edit without touching the product's existing files - only
           // clean up whatever we just wrote for this rejected attempt.
-          savedNewImages.forEach(imagePath => {
-            const resolvedFilePath = path.resolve(path.join(uploadRoot, imagePath.replace(/^\/uploads\//, '')));
-            if (resolvedFilePath.startsWith(uploadRoot) && fs.existsSync(resolvedFilePath)) {
-              fs.unlinkSync(resolvedFilePath);
-            }
-          });
-          savedNewDigital.forEach(digitalFile => {
-            const resolvedFilePath = path.resolve(path.join(digitalRoot, digitalFile.storedName));
-            if (resolvedFilePath.startsWith(digitalRoot) && fs.existsSync(resolvedFilePath)) {
-              fs.unlinkSync(resolvedFilePath);
-            }
-          });
+          for (const imagePath of savedNewImages) {
+            const key = storageObjectKey(imagePath, IMAGES_BUCKET);
+            if (key) await supabaseStorageDelete(IMAGES_BUCKET, key);
+          }
+          for (const digitalFile of savedNewDigital) {
+            await supabaseStorageDelete(DIGITAL_BUCKET, digitalFile.storedName);
+          }
           sendJson(res, 400, { success: false, message: 'At least one product image is required.' });
           return;
         }
@@ -545,23 +567,16 @@ async function handleApiProducts(req, res) {
 
         // Only remove whatever was dropped from the "keep" lists after the
         // database write succeeds, so a failed update never orphans files.
-        (existing.images || []).forEach(imagePath => {
-          if (keepImages.includes(imagePath)) return;
-          if (typeof imagePath !== 'string' || !imagePath.startsWith('/uploads/')) return;
-          const resolvedFilePath = path.resolve(path.join(uploadRoot, imagePath.replace(/^\/uploads\//, '')));
-          if (resolvedFilePath.startsWith(uploadRoot) && fs.existsSync(resolvedFilePath)) {
-            fs.unlinkSync(resolvedFilePath);
-          }
-        });
+        for (const imagePath of existing.images || []) {
+          if (keepImages.includes(imagePath)) continue;
+          const key = storageObjectKey(imagePath, IMAGES_BUCKET);
+          if (key) await supabaseStorageDelete(IMAGES_BUCKET, key);
+        }
 
-        (existing.digitalFiles || []).forEach(digitalFile => {
-          if (!digitalFile || keepDigitalIds.has(digitalFile.id)) return;
-          if (!digitalFile.storedName) return;
-          const resolvedFilePath = path.resolve(path.join(digitalRoot, digitalFile.storedName));
-          if (resolvedFilePath.startsWith(digitalRoot) && fs.existsSync(resolvedFilePath)) {
-            fs.unlinkSync(resolvedFilePath);
-          }
-        });
+        for (const digitalFile of existing.digitalFiles || []) {
+          if (!digitalFile || keepDigitalIds.has(digitalFile.id)) continue;
+          if (digitalFile.storedName) await supabaseStorageDelete(DIGITAL_BUCKET, digitalFile.storedName);
+        }
 
         const updatedProduct = {
           ...existing,
@@ -611,17 +626,17 @@ async function handleApiProducts(req, res) {
 
         const sku = generateSku(title, category);
         const savedImages = [];
-        images.forEach((image) => {
-          const savedLink = saveBase64Image(image, sku);
+        for (const image of images) {
+          const savedLink = await saveBase64Image(image, sku);
           if (savedLink) savedImages.push(savedLink);
-        });
+        }
 
         const savedDigitalFiles = [];
-        digitalFilesRaw.forEach(entry => {
-          if (!entry || typeof entry !== 'object') return;
-          const saved = saveBase64File(entry.data, entry.name, sku);
+        for (const entry of digitalFilesRaw) {
+          if (!entry || typeof entry !== 'object') continue;
+          const saved = await saveBase64File(entry.data, entry.name, sku);
           if (saved) savedDigitalFiles.push(saved);
-        });
+        }
 
         const product = {
           id: crypto.randomUUID(),
@@ -810,7 +825,6 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const digitalRoot = path.resolve(DIGITAL_DIR);
     let products;
     try {
       products = await readProducts();
@@ -825,9 +839,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (found) {
-      const target = path.resolve(path.join(digitalRoot, found.storedName));
-      if (target.startsWith(digitalRoot) && fs.existsSync(target)) {
-        serveDownload(res, target, found.name);
+      const content = await supabaseStorageDownload(DIGITAL_BUCKET, found.storedName);
+      if (content) {
+        serveDownloadBytes(res, content, found.storedName, found.name);
         return;
       }
     }
