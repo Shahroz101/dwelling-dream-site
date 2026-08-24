@@ -26,7 +26,9 @@
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
   @media (max-width: 860px) {
     nav[aria-label="Primary"] { gap: 10px !important; }
-    nav[aria-label="Primary"] > a:not([data-cart]):not([data-magnetic]) { display: none !important; }
+    nav[aria-label="Primary"] > a:not([data-cart]) { display: none !important; }
+    nav[aria-label="Primary"] [data-mobile-menu] { display: inline-block !important; }
+    [data-mobile-menu] summary::-webkit-details-marker { display: none; }
     [data-top-grid] { grid-template-columns: 1fr !important; }
     [data-inc-grid] { grid-template-columns: 1fr !important; }
     [data-foot-grid] { grid-template-columns: 1fr !important; gap: 32px !important; }
@@ -47,6 +49,21 @@
       <a href="Dwelling Dream Homepage v2.dc.html#styles" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Styles</a>
       <a href="Dwelling Dream Palettes.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Palettes</a>
       <a href="Dwelling Dream About.dc.html" style="color: inherit; font-size: 13px; letter-spacing: .1em;">About</a>
+      <details data-mobile-menu="" style="display: none; position: relative;">
+        <summary aria-label="Open menu" style="list-style: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid currentColor; border-radius: 50%; cursor: pointer;">
+          <span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: block; width: 16px; height: 1.5px; background: currentColor;"></span>
+            <span style="display: block; width: 16px; height: 1.5px; background: currentColor;"></span>
+            <span style="display: block; width: 16px; height: 1.5px; background: currentColor;"></span>
+          </span>
+        </summary>
+        <div style="position: absolute; top: calc(100% + 12px); right: 0; min-width: 190px; display: flex; flex-direction: column; padding: 10px; background: #F5F2EA; border: 1px solid #D8D2C8; box-shadow: 0 24px 48px rgba(41,40,37,.18); z-index: 100;">
+          <a href="Dwelling Dream Homepage v2.dc.html" style="padding: 10px 12px; color: #292825; font-size: 13px; letter-spacing: .05em; border-radius: 4px; transition: background .2s ease;" style-hover="background: #EDEAE0;">Home</a>
+          <a href="Dwelling Dream Homepage v2.dc.html#styles" style="padding: 10px 12px; color: #292825; font-size: 13px; letter-spacing: .05em; border-radius: 4px; transition: background .2s ease;" style-hover="background: #EDEAE0;">Styles</a>
+          <a href="Dwelling Dream Palettes.dc.html" style="padding: 10px 12px; color: #292825; font-size: 13px; letter-spacing: .05em; border-radius: 4px; transition: background .2s ease;" style-hover="background: #EDEAE0;">Palettes</a>
+          <a href="Dwelling Dream About.dc.html" style="padding: 10px 12px; color: #292825; font-size: 13px; letter-spacing: .05em; border-radius: 4px; transition: background .2s ease;" style-hover="background: #EDEAE0;">About</a>
+        </div>
+      </details>
       <a data-cart="" href="Dwelling Dream Cart.dc.html" aria-label="Cart, 0 items" style="display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, border-color .35s ease;">
         <span aria-hidden="true" style="display: inline-block; width: 13px; height: 11px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; position: relative; top: 2px;">
           <span style="position: absolute; left: 1.5px; right: 1.5px; top: -6px; height: 6px; border: 1.5px solid currentColor; border-bottom: 0; border-radius: 6px 6px 0 0;"></span>
