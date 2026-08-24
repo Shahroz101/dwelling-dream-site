@@ -378,6 +378,21 @@ class Component extends DCLogic {
       return params.get('id') || params.get('sku') || '';
     };
 
+    const getProductSlug = () => new URLSearchParams(window.location.search).get('slug') || '';
+
+    const slugify = value => String(value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const productSlug = product => {
+      const title = product.title || '';
+      const category = product.category || '';
+      const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
+      return slugify(base);
+    };
+
     const camel = value => (value || '').trim();
 
     const setText = (selector, value) => {
@@ -472,7 +487,7 @@ class Component extends DCLogic {
         `;
 
         const link = document.createElement('a');
-        link.href = `Dwelling Dream Product.dc.html?id=${product.id || product.sku || ''}`;
+        link.href = `Dwelling Dream Product.dc.html?slug=${productSlug(product)}`;
         link.style.display = 'block';
         link.appendChild(article);
         grid.appendChild(link);
@@ -520,15 +535,18 @@ class Component extends DCLogic {
     }
 
     async function loadSelectedProduct() {
+      const slug = getProductSlug();
       const id = getProductId();
       try {
         const response = await fetch(getCatalogApiUrl());
         if (!response.ok) return;
         const data = await response.json();
         const products = Array.isArray(data.products) ? data.products : [];
-        const product = products.find(item => String(item.id) === String(id)) || products[0];
+        const product = (slug && products.find(item => productSlug(item) === slug))
+          || (id && products.find(item => String(item.id) === String(id) || String(item.sku) === String(id)))
+          || products[0];
         renderProduct(product);
-        renderRecommended(products, product && (product.id || product.sku || ''));
+        renderRecommended(products, product && product.id);
       } catch (error) {
         console.error('Failed to load product details:', error);
       }

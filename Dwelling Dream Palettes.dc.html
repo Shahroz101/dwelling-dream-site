@@ -193,6 +193,21 @@
     return `${base}/api/products`;
   }
 
+  function slugify(value) {
+    return String(value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function productSlug(product) {
+    const title = product.title || '';
+    const category = product.category || '';
+    const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
+    return slugify(base);
+  }
+
   function normalizeImageUrl(image) {
     if (!image) return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"%3E%3Crect fill="%23E3DED3" width="4" height="3"/%3E%3C/svg%3E';
     if (/^https?:\/\//i.test(image)) return image;
@@ -284,7 +299,7 @@
       if (buyBtn) {
         buyBtn.onclick = () => {
           const target = new URL('Dwelling Dream Product.dc.html', window.location.href);
-          target.searchParams.set('id', product.id || product.sku || product.title || '');
+          target.searchParams.set('slug', productSlug(product));
           window.location.href = target.toString();
         };
       }
@@ -317,7 +332,7 @@
     card.style.transition = 'transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease, opacity .4s ease';
 
     const viewLink = document.createElement('a');
-    viewLink.href = `Dwelling Dream Product.dc.html?id=${product.id || product.sku || ''}`;
+    viewLink.href = `Dwelling Dream Product.dc.html?slug=${productSlug(product)}`;
     viewLink.style.display = 'flex';
     viewLink.style.flexDirection = 'column';
     viewLink.style.textDecoration = 'none';

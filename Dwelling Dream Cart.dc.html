@@ -317,6 +317,21 @@
     return `${base}/api/products`;
   }
 
+  function slugify(value) {
+    return String(value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function productSlug(product) {
+    const title = product.title || '';
+    const category = product.category || '';
+    const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
+    return slugify(base);
+  }
+
   function normalizeImageUrl(image) {
     if (!image) return 'assets/dd2-feat-seasalt.webp';
     if (/^https?:\/\//i.test(image)) return image;
@@ -502,7 +517,7 @@
     if (!wrap) return;
     const products = await loadCatalog();
     wrap.innerHTML = products.slice(0, 3).map(product => `
-      <a href="Dwelling Dream Product.dc.html?id=${product.id || product.sku || ''}" style="display: flex; flex-direction: column; gap: 6px; width: 76px; text-decoration: none; color: inherit;">
+      <a href="Dwelling Dream Product.dc.html?slug=${productSlug(product)}" style="display: flex; flex-direction: column; gap: 6px; width: 76px; text-decoration: none; color: inherit;">
         <span style="display: block; aspect-ratio: 1; overflow: hidden; background: #E3DED3;"><img src="${normalizeImageUrl(Array.isArray(product.images) ? product.images[0] : null)}" alt="${product.title || 'Palette'}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; display: block;" /></span>
         <span style="font-size: 10.5px; letter-spacing: .04em; color: #5F5A54;">${product.title || 'Palette'}</span>
       </a>
@@ -632,16 +647,17 @@
 
     grid.innerHTML = recommended.map(product => {
       const id = product.id || product.sku || '';
+      const slug = productSlug(product);
       const price = Number(product.price || 0);
       return `
       <article data-rcard="" data-product-id="${id}" style="display: flex; flex-direction: column; background: #F5F2EA; transition: transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease;">
-        <a href="Dwelling Dream Product.dc.html?id=${id}" style="display: block; text-decoration: none; color: inherit;">
+        <a href="Dwelling Dream Product.dc.html?slug=${slug}" style="display: block; text-decoration: none; color: inherit;">
           <div data-rmedia style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;">
             <img src="${normalizeImageUrl(Array.isArray(product.images) ? product.images[0] : null)}" alt="${product.title || 'Product'}" loading="lazy" style="width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .8s cubic-bezier(.22,1,.36,1);" />
           </div>
         </a>
         <div style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 22px;">
-          <a href="Dwelling Dream Product.dc.html?id=${id}" style="text-decoration: none; color: inherit;">
+          <a href="Dwelling Dream Product.dc.html?slug=${slug}" style="text-decoration: none; color: inherit;">
             <p style="margin: 0 0 5px; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #A9A29A;">${product.category || 'Product'}</p>
             <h3 data-rtitle style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(19px, 1.7vw, 26px); line-height: 1; transition: transform .4s cubic-bezier(.22,1,.36,1);">${product.title || 'Product'}</h3>
           </a>
