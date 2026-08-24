@@ -23,6 +23,9 @@
   :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
   ::selection { background: #DFD3C3; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+  @media (max-width: 860px) {
+    [data-nav] nav[aria-label="Primary"] { flex-wrap: wrap !important; row-gap: 10px !important; justify-content: flex-end !important; }
+  }
 </style>
 </helmet>
 

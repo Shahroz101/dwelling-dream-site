@@ -26,6 +26,14 @@
   @keyframes dd-float { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-12px) rotate(var(--r,0deg)); } }
   @keyframes dd-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+  @media (max-width: 860px) {
+    [data-nav] nav[aria-label="Primary"] { flex-wrap: wrap !important; row-gap: 10px !important; justify-content: flex-end !important; }
+    [data-panels] { grid-template-columns: 1fr !important; }
+    [data-panels] > article { grid-column: 1 / -1 !important; margin-top: 0 !important; }
+    [data-styles-grid] { grid-template-columns: 1fr !important; }
+    [data-about-grid] { grid-template-columns: 1fr !important; }
+    [data-foot-grid] { grid-template-columns: 1fr !important; gap: 32px !important; }
+  }
 </style>
 </helmet>
 

@@ -27,6 +27,14 @@
   @keyframes dd-drip { 0% { transform: scaleY(.34); } 100% { transform: scaleY(1); } }
   @keyframes dd-bead { 0%, 68% { transform: translateY(0) scale(.6); opacity: 0; } 82% { transform: translateY(6px) scale(1); opacity: 1; } 100% { transform: translateY(26px) scale(.55); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+  @media (max-width: 860px) {
+    [data-nav] nav[aria-label="Primary"] { flex-wrap: wrap !important; row-gap: 10px !important; justify-content: flex-end !important; }
+    [data-hero-grid] { grid-template-columns: 1fr !important; }
+    [data-story-grid] { grid-template-columns: 1fr !important; }
+    [data-story-grid] [data-reveal] { position: static !important; }
+    [data-beliefs] { grid-template-columns: 1fr !important; }
+    [data-foot-grid] { grid-template-columns: 1fr !important; gap: 32px !important; }
+  }
 </style>
 </helmet>
 
