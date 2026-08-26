@@ -11,3 +11,4 @@ data/digital-files/*
 
 .env
 .env.*
+!.env.example

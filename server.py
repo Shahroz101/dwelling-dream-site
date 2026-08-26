@@ -6,6 +6,7 @@ import os
 import random
 import re
 import socketserver
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -38,6 +39,20 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     )
 IMAGES_BUCKET = "product-images"
 DIGITAL_BUCKET = "digital-files"
+
+# PayPal is intentionally allowed to be unconfigured - the rest of the site
+# (catalog, admin, existing orders) must keep working even if these are
+# missing. Routes that need PayPal check paypal_configured() themselves and
+# fail with a clear 500 instead of crashing the whole server at startup.
+PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID", "")
+PAYPAL_CLIENT_SECRET = os.environ.get("PAYPAL_CLIENT_SECRET", "")
+PAYPAL_ENVIRONMENT = os.environ.get("PAYPAL_ENVIRONMENT", "sandbox").strip().lower()
+PAYPAL_API_BASE = (
+    "https://api-m.paypal.com" if PAYPAL_ENVIRONMENT == "production"
+    else "https://api-m.sandbox.paypal.com"
+)
+ORDER_CURRENCY = "EUR"
+_paypal_token_cache = {"token": None, "expires_at": 0.0}
 
 DOWNLOAD_MIME_TYPES = {
     ".pdf": "application/pdf",
@@ -103,6 +118,69 @@ def storage_object_key(url, bucket):
     return None
 
 
+def paypal_configured():
+    return bool(PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET)
+
+
+def get_paypal_access_token():
+    now = time.time()
+    if _paypal_token_cache["token"] and _paypal_token_cache["expires_at"] > now + 30:
+        return _paypal_token_cache["token"]
+
+    credentials = base64.b64encode(f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()).decode()
+    req = urllib.request.Request(
+        f"{PAYPAL_API_BASE}/v1/oauth2/token",
+        data=b"grant_type=client_credentials",
+        headers={
+            "Authorization": f"Basic {credentials}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"PayPal auth failed: {exc.code} {detail}")
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Could not reach PayPal: {exc.reason}")
+
+    _paypal_token_cache["token"] = data["access_token"]
+    _paypal_token_cache["expires_at"] = now + int(data.get("expires_in", 300))
+    return _paypal_token_cache["token"]
+
+
+def paypal_request(path, method="GET", body=None):
+    """Returns (http_status, parsed_json_body). Never raises on a PayPal-side
+    error response - callers check the status themselves, since a failed
+    capture is an expected, handled case, not a server bug."""
+    token = get_paypal_access_token()
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    req = urllib.request.Request(
+        f"{PAYPAL_API_BASE}{path}",
+        data=data,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read()
+            return resp.status, (json.loads(raw) if raw else {})
+    except urllib.error.HTTPError as exc:
+        raw = exc.read()
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            parsed = {"raw": raw.decode("utf-8", errors="replace")}
+        return exc.code, parsed
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Could not reach PayPal: {exc.reason}")
+
+
 def supabase_request(path_and_query, method="GET", body=None):
     url = f"{SUPABASE_URL}/rest/v1/{path_and_query}"
     headers = {
@@ -130,6 +208,8 @@ def row_to_product(row):
         "description": row["description"],
         "category": row["category"],
         "price": float(row["price"]),
+        "currency": row.get("currency") or ORDER_CURRENCY,
+        "active": row.get("active", True),
         "images": row.get("images") or [],
         "digitalFiles": row.get("digital_files") or [],
         "createdAt": row.get("created_at"),
@@ -180,7 +260,12 @@ def row_to_order(row):
         "items": row.get("items") or [],
         "total": float(row["total"]),
         "paid": bool(row["paid"]),
+        "status": row.get("status") or ("COMPLETED" if row.get("paid") else "PENDING"),
+        "currency": row.get("currency") or ORDER_CURRENCY,
+        "paypalOrderId": row.get("paypal_order_id"),
+        "customerEmail": row.get("customer_email"),
         "createdAt": row.get("created_at"),
+        "updatedAt": row.get("updated_at"),
     }
 
 
@@ -190,11 +275,38 @@ def insert_order(order):
         "token": order["token"],
         "items": order["items"],
         "total": order["total"],
-        "paid": order["paid"],
+        "currency": order.get("currency", ORDER_CURRENCY),
+        "paid": order.get("paid", False),
+        "status": order.get("status", "PENDING"),
+        "paypal_order_id": order.get("paypalOrderId"),
+        "customer_email": order.get("customerEmail"),
         "created_at": order["createdAt"],
+        "updated_at": order.get("updatedAt", order["createdAt"]),
     }
     rows = supabase_request("orders", "POST", body=row)
     return row_to_order(rows[0])
+
+
+def find_order_by_paypal_id(paypal_order_id):
+    rows = supabase_request(f"orders?paypal_order_id=eq.{paypal_order_id}&select=*") or []
+    return row_to_order(rows[0]) if rows else None
+
+
+def update_order_status(order_id, status):
+    supabase_request(f"orders?id=eq.{order_id}", "PATCH", body={
+        "status": status,
+        "updated_at": now_iso(),
+    })
+
+
+def mark_order_paid(order_id, customer_email):
+    rows = supabase_request(f"orders?id=eq.{order_id}", "PATCH", body={
+        "status": "COMPLETED",
+        "paid": True,
+        "customer_email": customer_email,
+        "updated_at": now_iso(),
+    })
+    return row_to_order(rows[0]) if rows else None
 
 
 def delete_product_by_id(product_id):
@@ -412,6 +524,18 @@ class AdminHandler(BaseHTTPRequestHandler):
         # Serve the main pages
         if path == "/palettes" or path == "/Dwelling Dream Palettes.dc.html":
             serve_file(self, ROOT / "Dwelling Dream Palettes.dc.html")
+            return
+
+        if path == "/api/config":
+            # Public, non-secret runtime config the frontend needs - the PayPal
+            # Client ID is designed to be public (PayPal's own SDK requires it
+            # in the browser). PAYPAL_CLIENT_SECRET never appears here or
+            # anywhere else reachable from a GET/POST response.
+            send_json(self, 200, {
+                "paypalClientId": PAYPAL_CLIENT_ID,
+                "paypalEnvironment": PAYPAL_ENVIRONMENT,
+                "currency": ORDER_CURRENCY,
+            })
             return
 
         if path == "/api/products":
@@ -824,8 +948,14 @@ class AdminHandler(BaseHTTPRequestHandler):
             send_json(self, 201, {"success": True, "message": "Product saved successfully.", "product": product})
             return
 
-        if path == "/api/orders":
-            # Public checkout endpoint - no admin auth required.
+        if path == "/api/paypal/create-order":
+            # Public checkout endpoint - no admin auth required. The browser
+            # only ever tells us WHICH products/quantities are wanted; every
+            # price used below comes from Supabase, never from the request.
+            if not paypal_configured():
+                send_json(self, 500, {"success": False, "message": "PayPal is not configured on the server."})
+                return
+
             content_length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(content_length).decode("utf-8")
             try:
@@ -835,6 +965,10 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
 
             requested_items = payload.get("items") if isinstance(payload.get("items"), list) else []
+            if not requested_items:
+                send_json(self, 400, {"success": False, "message": "No items to check out."})
+                return
+
             try:
                 products_by_id = {str(product.get("id")): product for product in read_products()}
             except RuntimeError as exc:
@@ -842,16 +976,25 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
 
             order_items = []
-            total = 0.0
+            total_cents = 0
             for entry in requested_items:
                 if not isinstance(entry, dict):
                     continue
                 product = products_by_id.get(str(entry.get("id")))
                 if not product:
-                    continue
-                qty = max(1, int(entry.get("qty") or 1))
+                    send_json(self, 400, {"success": False, "message": "One or more items are no longer available."})
+                    return
+                if not product.get("active", True):
+                    send_json(self, 400, {"success": False, "message": f"{product.get('title', 'This item')} is not currently available."})
+                    return
+                if (product.get("currency") or ORDER_CURRENCY) != ORDER_CURRENCY:
+                    send_json(self, 400, {"success": False, "message": "Unsupported product currency."})
+                    return
+
+                qty = max(1, min(20, int(entry.get("qty") or 1)))
                 price = float(product.get("price") or 0)
-                total += price * qty
+                price_cents = round(price * 100)
+                total_cents += price_cents * qty
                 order_items.append({
                     "productId": product.get("id"),
                     "sku": product.get("sku", ""),
@@ -865,19 +1008,39 @@ class AdminHandler(BaseHTTPRequestHandler):
                     ],
                 })
 
-            if not order_items:
+            if not order_items or total_cents <= 0:
                 send_json(self, 400, {"success": False, "message": "No valid items to check out."})
+                return
+
+            total = total_cents / 100
+
+            try:
+                paypal_status, paypal_order = paypal_request("/v2/checkout/orders", "POST", {
+                    "intent": "CAPTURE",
+                    "purchase_units": [{
+                        "amount": {
+                            "currency_code": ORDER_CURRENCY,
+                            "value": f"{total:.2f}",
+                        },
+                    }],
+                })
+            except RuntimeError as exc:
+                send_json(self, 502, {"success": False, "message": "Failed to reach PayPal.", "error": str(exc)})
+                return
+
+            if paypal_status not in (200, 201) or not paypal_order.get("id"):
+                send_json(self, 502, {"success": False, "message": "Failed to create PayPal order.", "error": paypal_order})
                 return
 
             order = {
                 "id": os.urandom(8).hex(),
                 "token": os.urandom(24).hex(),
+                "paypalOrderId": paypal_order["id"],
                 "items": order_items,
-                "total": round(total, 2),
-                # STUB: no payment processor is wired in yet, so every order is marked
-                # paid immediately. Swap this for a real Stripe/Lemon Squeezy webhook
-                # that flips `paid` to True only once the charge actually succeeds.
-                "paid": True,
+                "total": total,
+                "currency": ORDER_CURRENCY,
+                "status": "PENDING",
+                "paid": False,
                 "createdAt": now_iso(),
             }
 
@@ -886,7 +1049,106 @@ class AdminHandler(BaseHTTPRequestHandler):
             except RuntimeError as exc:
                 send_json(self, 500, {"success": False, "message": "Failed to save order.", "error": str(exc)})
                 return
-            send_json(self, 201, {"success": True, "order": order})
+
+            send_json(self, 201, {
+                "success": True,
+                "paypalOrderId": paypal_order["id"],
+                "orderId": order["id"],
+                "token": order["token"],
+            })
+            return
+
+        if path == "/api/paypal/capture-order":
+            if not paypal_configured():
+                send_json(self, 500, {"success": False, "message": "PayPal is not configured on the server."})
+                return
+
+            content_length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(content_length).decode("utf-8")
+            try:
+                payload = json.loads(body or "{}")
+            except Exception:
+                send_json(self, 400, {"success": False, "message": "Invalid request body."})
+                return
+
+            paypal_order_id = str(payload.get("paypalOrderId", "")).strip()
+            if not paypal_order_id:
+                send_json(self, 400, {"success": False, "message": "paypalOrderId is required."})
+                return
+
+            try:
+                existing_order = find_order_by_paypal_id(paypal_order_id)
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Failed to reach the order database.", "error": str(exc)})
+                return
+
+            if not existing_order:
+                send_json(self, 404, {"success": False, "message": "Order not found."})
+                return
+
+            # Idempotency: a repeated capture request for an order that's
+            # already COMPLETED must not process the payment twice or return
+            # an error - just hand back the same success result.
+            if existing_order.get("status") == "COMPLETED":
+                send_json(self, 200, {
+                    "success": True,
+                    "orderId": existing_order["id"],
+                    "token": existing_order["token"],
+                    "alreadyCaptured": True,
+                })
+                return
+
+            try:
+                capture_status, capture = paypal_request(f"/v2/checkout/orders/{paypal_order_id}/capture", "POST", {})
+            except RuntimeError as exc:
+                send_json(self, 502, {"success": False, "message": "Failed to reach PayPal.", "error": str(exc)})
+                return
+
+            if capture_status not in (200, 201) or capture.get("status") != "COMPLETED":
+                try:
+                    update_order_status(existing_order["id"], "FAILED")
+                except Exception:
+                    pass
+                send_json(self, 402, {"success": False, "message": "Payment was not completed.", "error": capture})
+                return
+
+            try:
+                purchase_unit = capture["purchase_units"][0]
+                captured = purchase_unit["payments"]["captures"][0]
+                captured_amount = float(captured["amount"]["value"])
+                captured_currency = captured["amount"]["currency_code"]
+            except (KeyError, IndexError, ValueError, TypeError):
+                send_json(self, 502, {"success": False, "message": "Unexpected response from PayPal."})
+                return
+
+            expected_cents = round(existing_order["total"] * 100)
+            captured_cents = round(captured_amount * 100)
+
+            if captured_cents != expected_cents or captured_currency != existing_order.get("currency", ORDER_CURRENCY):
+                try:
+                    update_order_status(existing_order["id"], "FAILED")
+                except Exception:
+                    pass
+                send_json(self, 402, {"success": False, "message": "Payment amount did not match the order."})
+                return
+
+            payer_email = None
+            try:
+                payer_email = capture.get("payer", {}).get("email_address")
+            except Exception:
+                pass
+
+            try:
+                mark_order_paid(existing_order["id"], payer_email)
+            except RuntimeError as exc:
+                send_json(self, 500, {"success": False, "message": "Payment succeeded but saving the order failed.", "error": str(exc)})
+                return
+
+            send_json(self, 200, {
+                "success": True,
+                "orderId": existing_order["id"],
+                "token": existing_order["token"],
+            })
             return
 
         self.send_response(404)

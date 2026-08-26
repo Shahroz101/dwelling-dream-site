@@ -148,7 +148,7 @@
 
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; border-top: 1px solid #D8D2C8;">
             <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px;">Total</span>
-            <span data-cart-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(25px, 2.5vw, 34px);">$0.00</span>
+            <span data-cart-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(25px, 2.5vw, 34px);">€0.00</span>
           </div>
 
           <button type="button" data-checkout style="position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 19px 30px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .4s cubic-bezier(.22,1,.36,1), background .35s ease;">
@@ -156,6 +156,7 @@
             <span data-checkout-arrow="" aria-hidden="true" style="display: inline-block; transition: transform .4s cubic-bezier(.22,1,.36,1);">→</span>
             <span data-checkout-shine="" aria-hidden="true" style="position: absolute; top: 0; left: -30%; width: 30%; height: 100%; background: linear-gradient(115deg, transparent, rgba(245,242,234,.22), transparent); transform: skewX(-18deg) translateX(-140%); pointer-events: none;"></span>
           </button>
+          <div data-paypal-container="" style="display: none; min-height: 45px;"></div>
           <p data-checkout-msg="" role="status" aria-live="polite" style="margin: 0; min-height: 14px; font-size: 11px; letter-spacing: .08em; color: #78736E;"></p>
 
           <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding-top: 20px; border-top: 1px solid #D8D2C8;">
@@ -339,7 +340,7 @@
     return image;
   }
 
-  const formatPrice = amount => `$${Number(amount || 0).toFixed(2)}`;
+  const formatPrice = amount => `€${Number(amount || 0).toFixed(2)}`;
 
   let catalogCache = null;
   async function loadCatalog() {
@@ -598,44 +599,150 @@
         if (checkoutArrow) checkoutArrow.style.transform = 'none';
       });
     }
-    checkoutBtn.addEventListener('click', async () => {
+    checkoutBtn.addEventListener('click', () => {
       const items = getCart();
       if (items.length === 0 || checkoutBtn.disabled) return;
-
       checkoutBtn.disabled = true;
-      checkoutBtn.style.opacity = '.7';
-      checkoutBtn.style.cursor = 'wait';
-      if (checkoutMsg) checkoutMsg.textContent = 'Processing your order…';
-
-      try {
-        const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/orders'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: items.map(item => ({ id: item.id, qty: item.qty })) })
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          if (checkoutMsg) checkoutMsg.textContent = data.message || 'Something went wrong placing your order.';
-          checkoutBtn.disabled = false;
-          checkoutBtn.style.opacity = '1';
-          checkoutBtn.style.cursor = 'pointer';
-          return;
-        }
-
-        clearCart();
-        const target = new URL('Dwelling Dream Order.dc.html', window.location.href);
-        target.searchParams.set('order', data.order.id);
-        target.searchParams.set('token', data.order.token);
-        window.location.href = target.toString();
-      } catch (error) {
-        console.error('Checkout failed:', error);
-        if (checkoutMsg) checkoutMsg.textContent = 'Something went wrong placing your order. Please try again.';
-        checkoutBtn.disabled = false;
-        checkoutBtn.style.opacity = '1';
-        checkoutBtn.style.cursor = 'pointer';
-      }
+      checkoutBtn.style.display = 'none';
+      renderPaypalButtons();
     });
+  }
+
+  // --- PayPal checkout -----------------------------------------------
+  // Loaded lazily, only once the shopper actually clicks "Continue to
+  // Checkout" - not on every page load, so the SDK never costs anything
+  // for someone just browsing the cart. Client ID comes from /api/config
+  // (public by design); the secret never leaves the server.
+  let paypalSdkPromise = null;
+  let paypalRendered = false;
+
+  function loadPaypalSdk(clientId, currency) {
+    if (paypalSdkPromise) return paypalSdkPromise;
+    paypalSdkPromise = new Promise((resolve, reject) => {
+      if (window.paypal) { resolve(window.paypal); return; }
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${encodeURIComponent(currency)}&intent=capture`;
+      script.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error('PayPal SDK did not load correctly.')));
+      script.onerror = () => reject(new Error('Failed to load the PayPal SDK.'));
+      document.head.appendChild(script);
+    });
+    return paypalSdkPromise;
+  }
+
+  async function renderPaypalButtons() {
+    if (paypalRendered) return;
+    const container = document.querySelector('[data-paypal-container]');
+    if (!container) return;
+
+    if (checkoutMsg) checkoutMsg.textContent = 'Loading PayPal…';
+
+    let config;
+    try {
+      const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/config'));
+      config = await response.json();
+    } catch (error) {
+      if (checkoutMsg) checkoutMsg.textContent = 'Unable to reach the checkout service. Please try again.';
+      resetCheckoutButton();
+      return;
+    }
+
+    if (!config || !config.paypalClientId) {
+      if (checkoutMsg) checkoutMsg.textContent = 'PayPal checkout is not available right now. Please try again later.';
+      resetCheckoutButton();
+      return;
+    }
+
+    let paypal;
+    try {
+      paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'EUR');
+    } catch (error) {
+      console.error('PayPal SDK failed to load:', error);
+      if (checkoutMsg) checkoutMsg.textContent = 'Unable to load PayPal. Please check your connection and try again.';
+      resetCheckoutButton();
+      return;
+    }
+
+    paypalRendered = true;
+    container.style.display = 'block';
+    container.innerHTML = '';
+    if (checkoutMsg) checkoutMsg.textContent = '';
+
+    let capturing = false;
+
+    paypal.Buttons({
+      style: { layout: 'vertical', shape: 'pill', color: 'black', label: 'pay' },
+
+      createOrder: async () => {
+        const currentItems = getCart();
+        if (!currentItems.length) {
+          if (checkoutMsg) checkoutMsg.textContent = 'Your cart is empty.';
+          throw new Error('Cart is empty.');
+        }
+        let response;
+        try {
+          response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/create-order'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: currentItems.map(item => ({ id: item.id, qty: item.qty })) })
+          });
+        } catch (error) {
+          if (checkoutMsg) checkoutMsg.textContent = 'Network error - please check your connection and try again.';
+          throw error;
+        }
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          if (checkoutMsg) checkoutMsg.textContent = data.message || 'Could not start checkout. Please try again.';
+          throw new Error(data.message || 'create-order failed');
+        }
+        return data.paypalOrderId;
+      },
+
+      onApprove: async (data) => {
+        if (capturing) return;
+        capturing = true;
+        if (checkoutMsg) checkoutMsg.textContent = 'Confirming your payment…';
+
+        try {
+          const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/capture-order'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paypalOrderId: data.orderID })
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            if (checkoutMsg) checkoutMsg.textContent = result.message || 'Payment could not be confirmed. Please contact support if you were charged.';
+            capturing = false;
+            return;
+          }
+
+          clearCart();
+          const target = new URL('Dwelling Dream Order.dc.html', window.location.href);
+          target.searchParams.set('order', result.orderId);
+          target.searchParams.set('token', result.token);
+          window.location.href = target.toString();
+        } catch (error) {
+          console.error('Capture failed:', error);
+          if (checkoutMsg) checkoutMsg.textContent = 'Something went wrong confirming your payment. Please try again.';
+          capturing = false;
+        }
+      },
+
+      onCancel: () => {
+        if (checkoutMsg) checkoutMsg.textContent = 'Payment cancelled - your cart is still saved.';
+      },
+
+      onError: (err) => {
+        console.error('PayPal error:', err);
+        if (checkoutMsg) checkoutMsg.textContent = 'Something went wrong with PayPal. Please try again.';
+      }
+    }).render(container);
+  }
+
+  function resetCheckoutButton() {
+    if (!checkoutBtn) return;
+    checkoutBtn.disabled = false;
+    checkoutBtn.style.display = 'inline-flex';
   }
 
   async function loadRecommended() {

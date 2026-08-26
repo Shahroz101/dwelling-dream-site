@@ -121,7 +121,7 @@
   initDwellingDream(document, { navThreshold: -1 });
   syncCartBadge(document);
 
-  const formatPrice = amount => `$${Number(amount || 0).toFixed(2)}`;
+  const formatPrice = amount => `€${Number(amount || 0).toFixed(2)}`;
   const formatSize = bytes => {
     const value = Number(bytes) || 0;
     if (value < 1024) return `${value} B`;
@@ -188,7 +188,11 @@
       const response = await fetch(`${base}/api/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(token)}`);
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data.success || !data.order || !data.order.paid) {
+        // Covers a not-yet-captured or failed payment too - the actual
+        // download links are independently re-verified server-side by
+        // /api/download regardless of what this page shows, but there's no
+        // reason to render "your order is ready" for an order that isn't.
         showInvalid();
         return;
       }

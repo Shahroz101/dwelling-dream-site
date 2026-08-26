@@ -482,7 +482,7 @@ class Component extends DCLogic {
               <h3 style="margin: 0 0 6px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(20px, 1.8vw, 28px); line-height: 1;">${product.title || 'Product'}</h3>
               <p style="margin: 0; max-width: 30ch; font-size: 12.5px; line-height: 1.65; color: #6E675E;">${product.description || 'Catalog product.'}</p>
             </div>
-            <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;">$${Number(product.price || 0).toFixed(2)}</p>
+            <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;">€${Number(product.price || 0).toFixed(2)}</p>
           </div>
         `;
 
@@ -511,7 +511,7 @@ class Component extends DCLogic {
       setText('#p-h', `${title}`);
       setText('[data-product-brand]', category);
       setText('[data-product-description]', description);
-      setText('[data-product-price]', `$${price.toFixed(2)}`);
+      setText('[data-product-price]', `€${price.toFixed(2)}`);
       setText('[data-product-summary]', description);
       setText('[data-product-breadcrumb]', title);
 
@@ -523,7 +523,7 @@ class Component extends DCLogic {
 
       const addButtons = Array.from(document.querySelectorAll('[data-add]'));
       addButtons.forEach(button => {
-        button.textContent = `Add to cart — $${price.toFixed(2)}`;
+        button.textContent = `Add to cart — €${price.toFixed(2)}`;
       });
 
       updateGallery(safeImages);

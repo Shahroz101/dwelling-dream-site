@@ -54,6 +54,19 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 const IMAGES_BUCKET = 'product-images';
 const DIGITAL_BUCKET = 'digital-files';
 
+// PayPal is intentionally allowed to be unconfigured - the rest of the site
+// (catalog, admin, existing orders) must keep working even if these are
+// missing. Routes that need PayPal check paypalConfigured() themselves and
+// fail with a clear 500 instead of crashing the whole server at startup.
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
+const PAYPAL_ENVIRONMENT = (process.env.PAYPAL_ENVIRONMENT || 'sandbox').trim().toLowerCase();
+const PAYPAL_API_BASE = PAYPAL_ENVIRONMENT === 'production'
+  ? 'https://api-m.paypal.com'
+  : 'https://api-m.sandbox.paypal.com';
+const ORDER_CURRENCY = 'EUR';
+let paypalTokenCache = { token: null, expiresAt: 0 };
+
 const DOWNLOAD_MIME_TYPES = {
   '.pdf': 'application/pdf',
   '.zip': 'application/zip',
@@ -64,6 +77,62 @@ const DOWNLOAD_MIME_TYPES = {
 function ensureDataFolders() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+function paypalConfigured() {
+  return Boolean(PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET);
+}
+
+async function getPaypalAccessToken() {
+  const now = Date.now();
+  if (paypalTokenCache.token && paypalTokenCache.expiresAt > now + 30000) {
+    return paypalTokenCache.token;
+  }
+
+  const credentials = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
+  const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: 'grant_type=client_credentials'
+  });
+  const data = await res.json();
+  if (!res.ok || !data.access_token) {
+    throw new Error(`PayPal OAuth failed: ${res.status} ${JSON.stringify(data)}`);
+  }
+
+  paypalTokenCache = {
+    token: data.access_token,
+    expiresAt: now + (Number(data.expires_in) || 300) * 1000
+  };
+  return paypalTokenCache.token;
+}
+
+// Returns [httpStatus, parsedJsonBody]. Never throws on a PayPal-side error
+// response - callers check the status themselves, since a failed capture is
+// an expected, handled case, not a server bug.
+async function paypalRequest(path, { method = 'GET', body } = {}) {
+  const token = await getPaypalAccessToken();
+  const res = await fetch(`${PAYPAL_API_BASE}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined
+  });
+  const text = await res.text();
+  let parsed = {};
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      parsed = { raw: text };
+    }
+  }
+  return [res.status, parsed];
 }
 
 async function supabaseRequest(pathAndQuery, { method = 'GET', body } = {}) {
@@ -143,6 +212,8 @@ function rowToProduct(row) {
     description: row.description,
     category: row.category,
     price: Number(row.price),
+    currency: row.currency || ORDER_CURRENCY,
+    active: row.active !== undefined ? Boolean(row.active) : true,
     images: row.images || [],
     digitalFiles: row.digital_files || [],
     createdAt: row.created_at,
@@ -193,7 +264,12 @@ function rowToOrder(row) {
     items: row.items || [],
     total: Number(row.total),
     paid: Boolean(row.paid),
-    createdAt: row.created_at
+    status: row.status || (row.paid ? 'COMPLETED' : 'PENDING'),
+    currency: row.currency || ORDER_CURRENCY,
+    paypalOrderId: row.paypal_order_id || null,
+    customerEmail: row.customer_email || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 
@@ -203,11 +279,41 @@ async function insertOrder(order) {
     token: order.token,
     items: order.items,
     total: order.total,
-    paid: order.paid,
-    created_at: order.createdAt
+    currency: order.currency || ORDER_CURRENCY,
+    paid: order.paid || false,
+    status: order.status || 'PENDING',
+    paypal_order_id: order.paypalOrderId || null,
+    customer_email: order.customerEmail || null,
+    created_at: order.createdAt,
+    updated_at: order.updatedAt || order.createdAt
   };
   const rows = await supabaseRequest('orders', { method: 'POST', body: row });
   return rowToOrder(rows[0]);
+}
+
+async function findOrderByPaypalId(paypalOrderId) {
+  const rows = (await supabaseRequest(`orders?paypal_order_id=eq.${encodeURIComponent(paypalOrderId)}&select=*`)) || [];
+  return rows[0] ? rowToOrder(rows[0]) : null;
+}
+
+async function updateOrderStatus(orderId, status) {
+  await supabaseRequest(`orders?id=eq.${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: { status, updated_at: new Date().toISOString() }
+  });
+}
+
+async function markOrderPaid(orderId, customerEmail) {
+  const rows = await supabaseRequest(`orders?id=eq.${encodeURIComponent(orderId)}`, {
+    method: 'PATCH',
+    body: {
+      status: 'COMPLETED',
+      paid: true,
+      customer_email: customerEmail || null,
+      updated_at: new Date().toISOString()
+    }
+  });
+  return rows[0] ? rowToOrder(rows[0]) : null;
 }
 
 async function findOrder(orderId, token) {
@@ -668,10 +774,16 @@ async function handleApiProducts(req, res) {
   sendJson(res, 405, { success: false, message: 'Method not allowed.' });
 }
 
-function handleApiOrders(req, res) {
-  // Public checkout endpoint - no admin auth required.
+function handleCreatePaypalOrder(req, res) {
+  // Public checkout endpoint - no admin auth required. The browser only
+  // ever tells us WHICH products/quantities are wanted; every price used
+  // below comes from Supabase, never from the request.
   if (req.method !== 'POST') {
     sendJson(res, 405, { success: false, message: 'Method not allowed.' });
+    return;
+  }
+  if (!paypalConfigured()) {
+    sendJson(res, 500, { success: false, message: 'PayPal is not configured on the server.' });
     return;
   }
 
@@ -681,6 +793,10 @@ function handleApiOrders(req, res) {
     try {
       const payload = JSON.parse(body || '{}');
       const requestedItems = Array.isArray(payload.items) ? payload.items : [];
+      if (!requestedItems.length) {
+        sendJson(res, 400, { success: false, message: 'No items to check out.' });
+        return;
+      }
 
       let products;
       try {
@@ -692,14 +808,27 @@ function handleApiOrders(req, res) {
       const productsById = new Map(products.map(product => [String(product.id), product]));
 
       const orderItems = [];
-      let total = 0;
-      requestedItems.forEach(entry => {
-        if (!entry || typeof entry !== 'object') return;
+      let totalCents = 0;
+      for (const entry of requestedItems) {
+        if (!entry || typeof entry !== 'object') continue;
         const product = productsById.get(String(entry.id));
-        if (!product) return;
-        const qty = Math.max(1, parseInt(entry.qty, 10) || 1);
+        if (!product) {
+          sendJson(res, 400, { success: false, message: 'One or more items are no longer available.' });
+          return;
+        }
+        if (product.active === false) {
+          sendJson(res, 400, { success: false, message: `${product.title || 'This item'} is not currently available.` });
+          return;
+        }
+        if ((product.currency || ORDER_CURRENCY) !== ORDER_CURRENCY) {
+          sendJson(res, 400, { success: false, message: 'Unsupported product currency.' });
+          return;
+        }
+
+        const qty = Math.max(1, Math.min(20, parseInt(entry.qty, 10) || 1));
         const price = Number(product.price || 0);
-        total += price * qty;
+        const priceCents = Math.round(price * 100);
+        totalCents += priceCents * qty;
         orderItems.push({
           productId: product.id,
           sku: product.sku || '',
@@ -710,22 +839,46 @@ function handleApiOrders(req, res) {
             .filter(f => f && typeof f === 'object')
             .map(f => ({ id: f.id, name: f.name, size: f.size || 0 }))
         });
-      });
+      }
 
-      if (!orderItems.length) {
+      if (!orderItems.length || totalCents <= 0) {
         sendJson(res, 400, { success: false, message: 'No valid items to check out.' });
+        return;
+      }
+
+      const total = totalCents / 100;
+
+      let paypalStatus;
+      let paypalOrder;
+      try {
+        [paypalStatus, paypalOrder] = await paypalRequest('/v2/checkout/orders', {
+          method: 'POST',
+          body: {
+            intent: 'CAPTURE',
+            purchase_units: [{
+              amount: { currency_code: ORDER_CURRENCY, value: total.toFixed(2) }
+            }]
+          }
+        });
+      } catch (error) {
+        sendJson(res, 502, { success: false, message: 'Failed to reach PayPal.', error: error.message });
+        return;
+      }
+
+      if (![200, 201].includes(paypalStatus) || !paypalOrder.id) {
+        sendJson(res, 502, { success: false, message: 'Failed to create PayPal order.', error: paypalOrder });
         return;
       }
 
       const order = {
         id: crypto.randomBytes(8).toString('hex'),
         token: crypto.randomBytes(24).toString('hex'),
+        paypalOrderId: paypalOrder.id,
         items: orderItems,
-        total: Math.round(total * 100) / 100,
-        // STUB: no payment processor is wired in yet, so every order is marked
-        // paid immediately. Swap this for a real Stripe/Lemon Squeezy webhook
-        // that flips `paid` to true only once the charge actually succeeds.
-        paid: true,
+        total,
+        currency: ORDER_CURRENCY,
+        status: 'PENDING',
+        paid: false,
         createdAt: new Date().toISOString()
       };
 
@@ -736,7 +889,114 @@ function handleApiOrders(req, res) {
         return;
       }
 
-      sendJson(res, 201, { success: true, order });
+      sendJson(res, 201, {
+        success: true,
+        paypalOrderId: paypalOrder.id,
+        orderId: order.id,
+        token: order.token
+      });
+    } catch (error) {
+      sendJson(res, 400, { success: false, message: 'Invalid request body.' });
+    }
+  });
+}
+
+function handleCapturePaypalOrder(req, res) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { success: false, message: 'Method not allowed.' });
+    return;
+  }
+  if (!paypalConfigured()) {
+    sendJson(res, 500, { success: false, message: 'PayPal is not configured on the server.' });
+    return;
+  }
+
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', async () => {
+    try {
+      const payload = JSON.parse(body || '{}');
+      const paypalOrderId = String(payload.paypalOrderId || '').trim();
+      if (!paypalOrderId) {
+        sendJson(res, 400, { success: false, message: 'paypalOrderId is required.' });
+        return;
+      }
+
+      let existingOrder;
+      try {
+        existingOrder = await findOrderByPaypalId(paypalOrderId);
+      } catch (error) {
+        sendJson(res, 500, { success: false, message: 'Failed to reach the order database.', error: error.message });
+        return;
+      }
+
+      if (!existingOrder) {
+        sendJson(res, 404, { success: false, message: 'Order not found.' });
+        return;
+      }
+
+      // Idempotency: a repeated capture request for an order that's already
+      // COMPLETED must not process the payment twice or return an error -
+      // just hand back the same success result.
+      if (existingOrder.status === 'COMPLETED') {
+        sendJson(res, 200, {
+          success: true,
+          orderId: existingOrder.id,
+          token: existingOrder.token,
+          alreadyCaptured: true
+        });
+        return;
+      }
+
+      let captureStatus;
+      let capture;
+      try {
+        [captureStatus, capture] = await paypalRequest(`/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}/capture`, { method: 'POST', body: {} });
+      } catch (error) {
+        sendJson(res, 502, { success: false, message: 'Failed to reach PayPal.', error: error.message });
+        return;
+      }
+
+      if (![200, 201].includes(captureStatus) || capture.status !== 'COMPLETED') {
+        try { await updateOrderStatus(existingOrder.id, 'FAILED'); } catch (error) { /* best effort */ }
+        sendJson(res, 402, { success: false, message: 'Payment was not completed.', error: capture });
+        return;
+      }
+
+      let capturedAmount;
+      let capturedCurrency;
+      try {
+        const captured = capture.purchase_units[0].payments.captures[0];
+        capturedAmount = Number(captured.amount.value);
+        capturedCurrency = captured.amount.currency_code;
+      } catch (error) {
+        sendJson(res, 502, { success: false, message: 'Unexpected response from PayPal.' });
+        return;
+      }
+
+      const expectedCents = Math.round(existingOrder.total * 100);
+      const capturedCents = Math.round(capturedAmount * 100);
+
+      if (capturedCents !== expectedCents || capturedCurrency !== (existingOrder.currency || ORDER_CURRENCY)) {
+        try { await updateOrderStatus(existingOrder.id, 'FAILED'); } catch (error) { /* best effort */ }
+        sendJson(res, 402, { success: false, message: 'Payment amount did not match the order.' });
+        return;
+      }
+
+      const payerEmail = capture.payer && capture.payer.email_address ? capture.payer.email_address : null;
+
+      try {
+        await markOrderPaid(existingOrder.id, payerEmail);
+      } catch (error) {
+        sendJson(res, 500, { success: false, message: 'Payment succeeded but saving the order failed.', error: error.message });
+        return;
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        orderId: existingOrder.id,
+        token: existingOrder.token
+      });
     } catch (error) {
       sendJson(res, 400, { success: false, message: 'Invalid request body.' });
     }
@@ -772,13 +1032,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (reqPath === '/api/config' && req.method === 'GET') {
+    // Public, non-secret runtime config the frontend needs - the PayPal
+    // Client ID is designed to be public (PayPal's own SDK requires it in
+    // the browser). PAYPAL_CLIENT_SECRET never appears here or anywhere
+    // else reachable from a GET/POST response.
+    sendJson(res, 200, {
+      paypalClientId: PAYPAL_CLIENT_ID,
+      paypalEnvironment: PAYPAL_ENVIRONMENT,
+      currency: ORDER_CURRENCY
+    });
+    return;
+  }
+
   if (reqPath === '/api/products') {
     await handleApiProducts(req, res);
     return;
   }
 
-  if (reqPath === '/api/orders') {
-    await handleApiOrders(req, res);
+  if (reqPath === '/api/paypal/create-order') {
+    await handleCreatePaypalOrder(req, res);
+    return;
+  }
+
+  if (reqPath === '/api/paypal/capture-order') {
+    await handleCapturePaypalOrder(req, res);
     return;
   }
 
