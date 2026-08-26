@@ -230,6 +230,88 @@ def read_products():
     return [row_to_product(row) for row in rows]
 
 
+SITE_ORIGIN = "https://dwellingdream.shop"
+
+
+def slugify(value):
+    value = re.sub(r"[^a-z0-9]+", "-", (value or "").lower().strip())
+    return value.strip("-")
+
+
+def product_slug(product):
+    title = product.get("title") or ""
+    category = product.get("category") or ""
+    base = title if category.lower() in title.lower() else f"{category} {title}"
+    return slugify(base)
+
+
+def resolve_product_for_query(query, products):
+    """Mirrors the client-side matching in Dwelling Dream Product.dc.html's
+    loadSelectedProduct(): a slug/id present but unmatched must NOT silently
+    fall back to a different product - that's the bug this whole function
+    exists to avoid repeating server-side. Returns (product_or_none,
+    "found" | "not_found" | "none_specified")."""
+    slug = (query.get("slug") or [""])[0]
+    product_id = (query.get("id") or query.get("sku") or [""])[0]
+
+    if slug:
+        for product in products:
+            if product_slug(product) == slug:
+                return product, "found"
+        return None, "not_found"
+
+    if product_id:
+        for product in products:
+            if str(product.get("id")) == product_id or str(product.get("sku")) == product_id:
+                return product, "found"
+        return None, "not_found"
+
+    return (products[0] if products else None), "none_specified"
+
+
+def inject_product_meta(html_text, product):
+    """Server-side <title>/meta/OG injection for the product page, keyed off
+    the resolved product - fixes the bug where crawlers, ad-quality bots and
+    social previews (none of which reliably wait for the client-side fetch)
+    saw one hardcoded product's data regardless of the URL's slug."""
+    title = product.get("title") or "Paint Color Palette"
+    category = product.get("category") or ""
+    description = product.get("description") or "A nine-color coordinated paint palette. Instant digital download."
+    page_title = f"{title} | Dwelling Dream" if category and category.lower() not in title.lower() else f"{title} — Dwelling Dream"
+    images = product.get("images") or []
+    image_url = images[0] if images else f"{SITE_ORIGIN}/assets/dd2-bundle-palette.webp"
+    canonical_url = f"{SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug={product_slug(product)}"
+
+    def esc(value):
+        return (value or "").replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+    html_text = re.sub(r"<title>.*?</title>", f"<title>{esc(page_title)}</title>", html_text, count=1, flags=re.S)
+    html_text = re.sub(
+        r'<meta name="description" content=".*?" />',
+        f'<meta name="description" content="{esc(description)}" />',
+        html_text, count=1, flags=re.S,
+    )
+
+    og_tags = (
+        f'<link rel="canonical" href="{esc(canonical_url)}" />\n'
+        f'<meta property="og:title" content="{esc(page_title)}" />\n'
+        f'<meta property="og:description" content="{esc(description)}" />\n'
+        f'<meta property="og:image" content="{esc(image_url)}" />\n'
+        f'<meta property="og:url" content="{esc(canonical_url)}" />\n'
+        f'<meta property="og:type" content="product" />\n'
+    )
+    html_text = html_text.replace("</helmet>", og_tags + "</helmet>", 1)
+
+    if images:
+        html_text = html_text.replace(
+            '<img src="assets/dd2-bundle-palette.webp" alt="Palette preview"',
+            f'<img src="{esc(images[0])}" alt="{esc(title)}"',
+            1,
+        )
+
+    return html_text
+
+
 def get_product_by_id(product_id):
     rows = supabase_request(f"products?id=eq.{product_id}&select=*") or []
     return row_to_product(rows[0]) if rows else None
@@ -432,6 +514,16 @@ def send_json(handler, status, payload):
     handler.wfile.write(data)
 
 
+def serve_html_text(handler, html_text):
+    content = html_text.encode("utf-8")
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/html; charset=utf-8")
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Content-Length", str(len(content)))
+    handler.end_headers()
+    handler.wfile.write(content)
+
+
 def serve_file(handler, file_path):
     try:
         content = file_path.read_bytes()
@@ -532,6 +624,24 @@ class AdminHandler(BaseHTTPRequestHandler):
         # Serve the main pages
         if path == "/palettes" or path == "/Dwelling Dream Palettes.dc.html":
             serve_file(self, ROOT / "Dwelling Dream Palettes.dc.html")
+            return
+
+        if path == "/product" or path == "/Dwelling Dream Product.dc.html":
+            try:
+                html_text = (ROOT / "Dwelling Dream Product.dc.html").read_text(encoding="utf-8")
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                products = read_products()
+                query = parse_qs(url.query)
+                product, _status = resolve_product_for_query(query, products)
+                if product:
+                    html_text = inject_product_meta(html_text, product)
+            except RuntimeError:
+                pass  # Product database unreachable - fall through to the generic template; the client-side fetch will surface the real error.
+            serve_html_text(self, html_text)
             return
 
         if path == "/api/config":

@@ -234,6 +234,78 @@ async function readProducts() {
   return rows.map(rowToProduct);
 }
 
+const SITE_ORIGIN = 'https://dwellingdream.shop';
+
+function slugify(value) {
+  return String(value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function productSlug(product) {
+  const title = product.title || '';
+  const category = product.category || '';
+  const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
+  return slugify(base);
+}
+
+// Mirrors the client-side matching in Dwelling Dream Product.dc.html's
+// loadSelectedProduct(): a slug/id present but unmatched must NOT silently
+// fall back to a different product - that's the bug this function exists
+// to avoid repeating server-side.
+function resolveProductForQuery(searchParams, products) {
+  const slug = searchParams.get('slug') || '';
+  const productId = searchParams.get('id') || searchParams.get('sku') || '';
+
+  if (slug) {
+    const match = products.find(p => productSlug(p) === slug);
+    return { product: match || null, status: match ? 'found' : 'not_found' };
+  }
+  if (productId) {
+    const match = products.find(p => String(p.id) === productId || String(p.sku) === productId);
+    return { product: match || null, status: match ? 'found' : 'not_found' };
+  }
+  return { product: products[0] || null, status: 'none_specified' };
+}
+
+// Server-side <title>/meta/OG injection for the product page, keyed off the
+// resolved product - fixes the bug where crawlers, ad-quality bots and
+// social previews (none of which reliably wait for the client-side fetch)
+// saw one hardcoded product's data regardless of the URL's slug.
+function injectProductMeta(htmlText, product) {
+  const esc = value => String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const title = product.title || 'Paint Color Palette';
+  const category = product.category || '';
+  const description = product.description || 'A nine-color coordinated paint palette. Instant digital download.';
+  const pageTitle = category && !title.toLowerCase().includes(category.toLowerCase())
+    ? `${title} | Dwelling Dream`
+    : `${title} — Dwelling Dream`;
+  const images = product.images || [];
+  const imageUrl = images[0] || `${SITE_ORIGIN}/assets/dd2-bundle-palette.webp`;
+  const canonicalUrl = `${SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug=${productSlug(product)}`;
+
+  htmlText = htmlText.replace(/<title>.*?<\/title>/s, `<title>${esc(pageTitle)}</title>`);
+  htmlText = htmlText.replace(/<meta name="description" content=".*?" \/>/s, `<meta name="description" content="${esc(description)}" />`);
+
+  const ogTags = [
+    `<link rel="canonical" href="${esc(canonicalUrl)}" />`,
+    `<meta property="og:title" content="${esc(pageTitle)}" />`,
+    `<meta property="og:description" content="${esc(description)}" />`,
+    `<meta property="og:image" content="${esc(imageUrl)}" />`,
+    `<meta property="og:url" content="${esc(canonicalUrl)}" />`,
+    `<meta property="og:type" content="product" />`
+  ].join('\n') + '\n';
+  htmlText = htmlText.replace('</helmet>', ogTags + '</helmet>');
+
+  if (images.length) {
+    htmlText = htmlText.replace(
+      '<img src="assets/dd2-bundle-palette.webp" alt="Palette preview"',
+      `<img src="${esc(images[0])}" alt="${esc(title)}"`
+    );
+  }
+
+  return htmlText;
+}
+
 async function getProductById(productId) {
   const rows = (await supabaseRequest(`products?id=eq.${encodeURIComponent(productId)}&select=*`)) || [];
   return rows[0] ? rowToProduct(rows[0]) : null;
@@ -461,6 +533,15 @@ function sendJson(res, statusCode, payload) {
     'Cache-Control': 'no-store'
   });
   res.end(JSON.stringify(payload));
+}
+
+function serveHtmlText(res, htmlText) {
+  const content = Buffer.from(htmlText, 'utf-8');
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
+  res.end(content);
 }
 
 function serveFile(res, filePath) {
@@ -1192,6 +1273,27 @@ const server = http.createServer(async (req, res) => {
 
   if (reqPath === '/palettes' || reqPath === '/Dwelling Dream Palettes.dc.html') {
     serveFile(res, path.join(ROOT, 'Dwelling Dream Palettes.dc.html'));
+    return;
+  }
+
+  if (reqPath === '/product' || reqPath === '/Dwelling Dream Product.dc.html') {
+    let htmlText;
+    try {
+      htmlText = fs.readFileSync(path.join(ROOT, 'Dwelling Dream Product.dc.html'), 'utf-8');
+    } catch (error) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+    try {
+      const products = await readProducts();
+      const { product } = resolveProductForQuery(url.searchParams, products);
+      if (product) htmlText = injectProductMeta(htmlText, product);
+    } catch (error) {
+      // Product database unreachable - fall through to the generic
+      // template; the client-side fetch will surface the real error.
+    }
+    serveHtmlText(res, htmlText);
     return;
   }
 
