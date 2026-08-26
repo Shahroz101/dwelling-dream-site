@@ -67,6 +67,14 @@ const PAYPAL_API_BASE = PAYPAL_ENVIRONMENT === 'production'
 const ORDER_CURRENCY = 'EUR';
 let paypalTokenCache = { token: null, expiresAt: 0 };
 
+// Bundled with every purchase, regardless of which product(s) were bought -
+// uploaded once to Storage, referenced here by fixed id/path. New products
+// never need these attached manually.
+const GLOBAL_DIGITAL_FILES = [
+  { id: 'global-paint-guide', name: 'Paint Guide.pdf', storedName: 'global/paint-guide.pdf', size: 11322276 },
+  { id: 'global-project-planner', name: 'Project Planner.pdf', storedName: 'global/project-planner.pdf', size: 2469852 }
+];
+
 const DOWNLOAD_MIME_TYPES = {
   '.pdf': 'application/pdf',
   '.zip': 'application/zip',
@@ -846,6 +854,17 @@ function handleCreatePaypalOrder(req, res) {
         return;
       }
 
+      // Bundled guides ride along on every order as their own line, once
+      // per order (not once per item), at no extra cost.
+      orderItems.push({
+        productId: null,
+        sku: 'GLOBAL-GUIDES',
+        title: 'Included Guides',
+        price: 0,
+        qty: 1,
+        digitalFiles: GLOBAL_DIGITAL_FILES
+      });
+
       const total = totalCents / 100;
 
       let paypalStatus;
@@ -1103,17 +1122,19 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    let products;
-    try {
-      products = await readProducts();
-    } catch (error) {
-      sendJson(res, 500, { success: false, message: 'Failed to reach the product database.', error: error.message });
-      return;
-    }
-    let found = null;
-    for (const product of products) {
-      const match = (product.digitalFiles || []).find(f => f && f.id === fileId);
-      if (match) { found = match; break; }
+    let found = GLOBAL_DIGITAL_FILES.find(f => f.id === fileId) || null;
+    if (!found) {
+      let products;
+      try {
+        products = await readProducts();
+      } catch (error) {
+        sendJson(res, 500, { success: false, message: 'Failed to reach the product database.', error: error.message });
+        return;
+      }
+      for (const product of products) {
+        const match = (product.digitalFiles || []).find(f => f && f.id === fileId);
+        if (match) { found = match; break; }
+      }
     }
 
     if (found) {

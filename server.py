@@ -54,6 +54,14 @@ PAYPAL_API_BASE = (
 ORDER_CURRENCY = "EUR"
 _paypal_token_cache = {"token": None, "expires_at": 0.0}
 
+# Bundled with every purchase, regardless of which product(s) were bought -
+# uploaded once to Storage, referenced here by fixed id/path. New products
+# never need these attached manually.
+GLOBAL_DIGITAL_FILES = [
+    {"id": "global-paint-guide", "name": "Paint Guide.pdf", "storedName": "global/paint-guide.pdf", "size": 11322276},
+    {"id": "global-project-planner", "name": "Project Planner.pdf", "storedName": "global/project-planner.pdf", "size": 2469852},
+]
+
 DOWNLOAD_MIME_TYPES = {
     ".pdf": "application/pdf",
     ".zip": "application/zip",
@@ -599,21 +607,28 @@ class AdminHandler(BaseHTTPRequestHandler):
                 send_json(self, 404, {"success": False, "message": "File not found in this order."})
                 return
 
-            try:
-                products = read_products()
-            except RuntimeError as exc:
-                send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
-                return
             stored_name = None
             display_name = None
-            for product in products:
-                for digital_file in product.get("digitalFiles", []):
-                    if digital_file.get("id") == file_id:
-                        stored_name = digital_file.get("storedName")
-                        display_name = digital_file.get("name")
-                        break
-                if stored_name:
+            for global_file in GLOBAL_DIGITAL_FILES:
+                if global_file["id"] == file_id:
+                    stored_name = global_file["storedName"]
+                    display_name = global_file["name"]
                     break
+
+            if not stored_name:
+                try:
+                    products = read_products()
+                except RuntimeError as exc:
+                    send_json(self, 500, {"success": False, "message": "Failed to reach the product database.", "error": str(exc)})
+                    return
+                for product in products:
+                    for digital_file in product.get("digitalFiles", []):
+                        if digital_file.get("id") == file_id:
+                            stored_name = digital_file.get("storedName")
+                            display_name = digital_file.get("name")
+                            break
+                    if stored_name:
+                        break
 
             if stored_name:
                 try:
@@ -1011,6 +1026,17 @@ class AdminHandler(BaseHTTPRequestHandler):
             if not order_items or total_cents <= 0:
                 send_json(self, 400, {"success": False, "message": "No valid items to check out."})
                 return
+
+            # Bundled guides ride along on every order as their own line,
+            # once per order (not once per item), at no extra cost.
+            order_items.append({
+                "productId": None,
+                "sku": "GLOBAL-GUIDES",
+                "title": "Included Guides",
+                "price": 0,
+                "qty": 1,
+                "digitalFiles": GLOBAL_DIGITAL_FILES,
+            })
 
             total = total_cents / 100
 
