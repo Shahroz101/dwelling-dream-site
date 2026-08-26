@@ -21,6 +21,7 @@
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
   ::selection { background: #DFD3C3; }
+  [role="tablist"][aria-label="Product images"]::-webkit-scrollbar { display: none; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
   @media (max-width: 860px) {
     nav[aria-label="Primary"] { gap: 10px !important; }
@@ -88,11 +89,8 @@
           <div data-main-media="" style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;">
             <div data-view="0" style="position: absolute; inset: 0; opacity: 1; transition: opacity .5s ease;"><img src="assets/dd2-bundle-palette.webp" alt="Palette preview" style="width: 100%; height: 100%; display: block; object-fit: cover;" /></div>
           </div>
-          <div role="tablist" aria-label="Product images" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-            <button data-thumb="0" role="tab" aria-selected="true" aria-label="Image 1" style="aspect-ratio: 1; padding: 0; border: 1px solid #292825; background: #DCDDD8; cursor: pointer; transition: border-color .35s ease, opacity .35s ease;"></button>
-            <button data-thumb="1" role="tab" aria-selected="false" aria-label="Image 2" style="aspect-ratio: 1; padding: 0; border: 1px solid #D8D2C8; background: #CDD2CA; cursor: pointer; opacity: .72; transition: border-color .35s ease, opacity .35s ease;"></button>
-            <button data-thumb="2" role="tab" aria-selected="false" aria-label="Image 3" style="aspect-ratio: 1; padding: 0; border: 1px solid #D8D2C8; background: #C8CBC4; cursor: pointer; opacity: .72; transition: border-color .35s ease, opacity .35s ease;"></button>
-            <button data-thumb="3" role="tab" aria-selected="false" aria-label="Image 4" style="aspect-ratio: 1; padding: 0; border: 1px solid #D8D2C8; background: #596E79; cursor: pointer; opacity: .72; transition: border-color .35s ease, opacity .35s ease;"></button>
+          <div role="tablist" aria-label="Product images" style="display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;">
+            <button data-thumb="0" role="tab" aria-selected="true" aria-label="Image 1" style="flex: 0 0 auto; scroll-snap-align: start; width: 56px; height: 56px; padding: 0; border: 1px solid #292825; background: #DCDDD8; cursor: pointer; transition: border-color .35s ease, opacity .35s ease;"></button>
           </div>
         </div>
 
@@ -108,7 +106,7 @@
 
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 6px;">
             <button data-add="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 18px 34px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37; color: #F5F2EA;">Add to cart — €16.00</button>
-            <button data-magnetic="" style="display: inline-flex; align-items: center; padding: 18px 30px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #EDEAE0;">Buy now</button>
+            <button data-buy-now="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 18px 30px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #EDEAE0;">Buy now</button>
           </div>
           <p data-added="" role="status" aria-live="polite" style="margin: 0; min-height: 16px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #78736E;"></p>
 
@@ -190,6 +188,18 @@
       <p style="margin: 0 auto 30px; max-width: 48ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: rgba(245,242,234,.84);">Add this palette to your cart and start with the wall you’ve been avoiding.</p>
       <button data-add="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 19px 34px; border: 0; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Add to cart — €16.00</button>
     </section>
+
+    <div data-buy-now-modal="" role="dialog" aria-modal="true" aria-label="Checkout" style="display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 20px;">
+      <div data-buy-now-backdrop="" style="position: absolute; inset: 0; background: rgba(41,40,37,.5);"></div>
+      <div style="position: relative; width: 100%; max-width: 420px; padding: 30px 26px; background: #F5F2EA; border-radius: 4px; box-shadow: 0 30px 70px rgba(41,40,37,.3);">
+        <button data-buy-now-close="" aria-label="Close checkout" style="position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; background: none; cursor: pointer; font-size: 18px; line-height: 1; color: #78736E;">✕</button>
+        <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #78736E;">Checkout</p>
+        <h2 data-buy-now-title style="margin: 0 0 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.1;"></h2>
+        <p data-buy-now-price style="margin: 0 0 22px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;"></p>
+        <div data-buy-now-paypal="" style="min-height: 45px;"></div>
+        <p data-buy-now-msg="" role="status" aria-live="polite" style="margin: 10px 0 0; min-height: 14px; font-size: 11px; letter-spacing: .08em; color: #78736E;"></p>
+      </div>
+    </div>
 
     <footer style="background: #292825; color: #A9A29A; padding: clamp(48px, 8vh, 88px) clamp(18px, 3.4vw, 54px) 30px;">
       <div data-foot-grid="" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: clamp(28px, 4vw, 64px); padding-bottom: clamp(36px, 5vh, 56px); border-bottom: 1px solid rgba(245,242,234,.14);">
@@ -396,53 +406,75 @@ class Component extends DCLogic {
     };
 
     const updateGallery = (images) => {
-      const main = document.querySelector('[data-main-media]');
+      const mediaWrap = document.querySelector('[data-main-media]');
       const thumbsWrap = document.querySelector('[role="tablist"][aria-label="Product images"]');
-      if (!main || !thumbsWrap) return;
+      if (!mediaWrap || !thumbsWrap) return;
 
-      const safeImages = Array.isArray(images) && images.length ? images : ['assets/dd2-feat-seasalt.webp'];
+      const safeImages = Array.isArray(images) && images.length ? images : ['assets/dd2-bundle-palette.webp'];
       const normalized = safeImages.map(image => {
-        if (!image) return 'assets/dd2-feat-seasalt.webp';
+        if (!image) return 'assets/dd2-bundle-palette.webp';
         if (/^https?:\/\//i.test(image)) return image;
         if (image.startsWith('/')) return `${location.protocol === 'file:' ? 'http://127.0.0.1:3000' : ''}${image}`;
         return image;
       });
 
-      main.innerHTML = normalized.map((image, index) => `
+      const arrows = normalized.length > 1 ? `
+        <button data-slide-prev="" aria-label="Previous image" style="position:absolute; top:50%; left:14px; transform:translateY(-50%); width:38px; height:38px; border:0; border-radius:50%; background:rgba(245,242,234,.9); color:#292825; font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(41,40,37,.15);">‹</button>
+        <button data-slide-next="" aria-label="Next image" style="position:absolute; top:50%; right:14px; transform:translateY(-50%); width:38px; height:38px; border:0; border-radius:50%; background:rgba(245,242,234,.9); color:#292825; font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(41,40,37,.15);">›</button>
+      ` : '';
+
+      mediaWrap.innerHTML = normalized.map((image, index) => `
         <div data-view="${index}" style="position:absolute; inset:0; opacity:${index === 0 ? 1 : 0}; transition:opacity .5s ease; ${index === 0 ? '' : 'pointer-events:none;'}">
-          <img src="${image}" alt="Product image ${index + 1}" style="width:100%; height:100%; display:block; object-fit:cover;" />
+          <img src="${image}" alt="Product image ${index + 1}" style="width:100%; height:100%; display:block; object-fit:cover;" draggable="false" />
         </div>
-      `).join('');
+      `).join('') + arrows;
 
       thumbsWrap.innerHTML = normalized.map((image, index) => `
-        <button data-thumb="${index}" role="tab" aria-selected="${index === 0 ? 'true' : 'false'}" aria-label="Image ${index + 1}" style="aspect-ratio:1; padding:0; border:1px solid ${index === 0 ? '#292825' : '#D8D2C8'}; background:${index % 2 ? '#CDD2CA' : '#DCDDD8'}; cursor:pointer; opacity:${index === 0 ? 1 : .72}; transition:border-color .35s ease, opacity .35s ease; background-image:url('${image}'); background-size:cover; background-position:center;"></button>
+        <button data-thumb="${index}" role="tab" aria-selected="${index === 0 ? 'true' : 'false'}" aria-label="Image ${index + 1}" style="flex:0 0 auto; scroll-snap-align:start; width:56px; height:56px; padding:0; border:1px solid ${index === 0 ? '#292825' : '#D8D2C8'}; background:${index % 2 ? '#CDD2CA' : '#DCDDD8'}; cursor:pointer; opacity:${index === 0 ? 1 : .72}; transition:border-color .35s ease, opacity .35s ease; background-image:url('${image}'); background-size:cover; background-position:center;"></button>
       `).join('');
 
-      const views = Array.from(document.querySelectorAll('[data-view]'));
-      const thumbs = Array.from(document.querySelectorAll('[data-thumb]'));
+      const views = Array.from(mediaWrap.querySelectorAll('[data-view]'));
+      const thumbs = Array.from(thumbsWrap.querySelectorAll('[data-thumb]'));
+      let current = 0;
+
       const show = i => {
+        current = ((i % views.length) + views.length) % views.length;
         views.forEach((view, j) => {
-          const active = j === i;
+          const active = j === current;
           view.style.opacity = active ? '1' : '0';
           view.style.pointerEvents = active ? 'auto' : 'none';
         });
         thumbs.forEach((thumb, j) => {
-          const active = j === i;
+          const active = j === current;
           thumb.setAttribute('aria-selected', active ? 'true' : 'false');
           thumb.style.borderColor = active ? '#292825' : '#D8D2C8';
           thumb.style.opacity = active ? '1' : '.72';
+          if (active) thumb.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
         });
       };
 
-      thumbs.forEach((thumb, i) => {
-        thumb.addEventListener('click', () => show(i));
-        thumb.addEventListener('focus', () => show(i));
-      });
+      thumbs.forEach((thumb, i) => thumb.addEventListener('click', () => show(i)));
+
+      const prevBtn = mediaWrap.querySelector('[data-slide-prev]');
+      const nextBtn = mediaWrap.querySelector('[data-slide-next]');
+      if (prevBtn) prevBtn.addEventListener('click', () => show(current - 1));
+      if (nextBtn) nextBtn.addEventListener('click', () => show(current + 1));
+
+      // Swipe navigation on touch devices.
+      let touchStartX = null;
+      mediaWrap.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+      mediaWrap.addEventListener('touchend', e => {
+        if (touchStartX === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+        touchStartX = null;
+      }, { passive: true });
+
       show(0);
     };
 
     function normalizeImageUrl(image) {
-      if (!image) return 'assets/dd2-feat-seasalt.webp';
+      if (!image) return 'assets/dd2-bundle-palette.webp';
       if (/^https?:\/\//i.test(image)) return image;
       if (image.startsWith('/')) return `${location.protocol === 'file:' ? 'http://127.0.0.1:3000' : ''}${image}`;
       return image;
@@ -580,6 +612,155 @@ class Component extends DCLogic {
         addItem(currentProduct);
         if (addMessage) addMessage.textContent = 'Added to cart';
       });
+    });
+
+    // --- Buy Now: skips the cart entirely, checks out just this product
+    // via PayPal directly from the product page. Loaded lazily, same as
+    // the Cart page - the SDK only ever loads once a buyer actually
+    // clicks Buy Now, not on every page view.
+    let paypalSdkPromise = null;
+    let buyNowRendered = false;
+
+    function loadPaypalSdk(clientId, currency) {
+      if (paypalSdkPromise) return paypalSdkPromise;
+      paypalSdkPromise = new Promise((resolve, reject) => {
+        if (window.paypal) { resolve(window.paypal); return; }
+        const script = document.createElement('script');
+        script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${encodeURIComponent(currency)}&intent=capture`;
+        script.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error('PayPal SDK did not load correctly.')));
+        script.onerror = () => reject(new Error('Failed to load the PayPal SDK.'));
+        document.head.appendChild(script);
+      });
+      return paypalSdkPromise;
+    }
+
+    const buyNowModal = document.querySelector('[data-buy-now-modal]');
+    const buyNowMsgEl = document.querySelector('[data-buy-now-msg]');
+
+    function showBuyNowMessage(text, { retry = false } = {}) {
+      if (!buyNowMsgEl) return;
+      if (!retry) { buyNowMsgEl.textContent = text; return; }
+      buyNowMsgEl.innerHTML = '';
+      buyNowMsgEl.append(text + ' ');
+      const retryBtn = document.createElement('button');
+      retryBtn.type = 'button';
+      retryBtn.textContent = 'Try again';
+      retryBtn.style.cssText = 'border:0; background:none; padding:0; font:inherit; color:#292825; text-decoration:underline; cursor:pointer;';
+      retryBtn.addEventListener('click', () => { buyNowRendered = false; showBuyNowMessage(''); renderBuyNowPaypal(); });
+      buyNowMsgEl.append(retryBtn);
+    }
+
+    function closeBuyNowModal() {
+      if (buyNowModal) buyNowModal.style.display = 'none';
+    }
+
+    function openBuyNowModal() {
+      if (!currentProduct || !buyNowModal) return;
+      setText('[data-buy-now-title]', currentProduct.title || 'Product');
+      setText('[data-buy-now-price]', `€${Number(currentProduct.price || 0).toFixed(2)}`);
+      buyNowModal.style.display = 'flex';
+      renderBuyNowPaypal();
+    }
+
+    async function renderBuyNowPaypal() {
+      if (buyNowRendered || !currentProduct) return;
+      const container = document.querySelector('[data-buy-now-paypal]');
+      if (!container) return;
+
+      showBuyNowMessage('Loading PayPal…');
+
+      let config;
+      try {
+        const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/config'));
+        config = await response.json();
+      } catch (error) {
+        showBuyNowMessage('Unable to reach the checkout service.', { retry: true });
+        return;
+      }
+      if (!config || !config.paypalClientId) {
+        showBuyNowMessage('PayPal checkout is not available right now.', { retry: true });
+        return;
+      }
+
+      let paypal;
+      try {
+        paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'EUR');
+      } catch (error) {
+        showBuyNowMessage('Unable to load PayPal. Please check your connection.', { retry: true });
+        return;
+      }
+
+      buyNowRendered = true;
+      container.innerHTML = '';
+      showBuyNowMessage('');
+
+      let capturing = false;
+      paypal.Buttons({
+        style: { layout: 'vertical', shape: 'pill', color: 'black', label: 'pay' },
+
+        createOrder: async () => {
+          const product = currentProduct;
+          if (!product) { showBuyNowMessage('No product selected.'); throw new Error('No product selected.'); }
+          let response;
+          try {
+            response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/create-order'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items: [{ id: product.id, qty: 1 }] })
+            });
+          } catch (error) {
+            showBuyNowMessage('Network error - please check your connection and try again.');
+            throw error;
+          }
+          const data = await response.json();
+          if (!response.ok || !data.success) {
+            showBuyNowMessage(data.message || 'Could not start checkout. Please try again.');
+            throw new Error(data.message || 'create-order failed');
+          }
+          return data.paypalOrderId;
+        },
+
+        onApprove: async (data) => {
+          if (capturing) return;
+          capturing = true;
+          showBuyNowMessage('Confirming your payment…');
+          try {
+            const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/capture-order'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paypalOrderId: data.orderID })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+              showBuyNowMessage(result.message || 'Payment could not be confirmed. Please contact support if you were charged.');
+              capturing = false;
+              return;
+            }
+            const target = new URL('Dwelling Dream Order.dc.html', window.location.href);
+            target.searchParams.set('order', result.orderId);
+            target.searchParams.set('token', result.token);
+            window.location.href = target.toString();
+          } catch (error) {
+            console.error('Capture failed:', error);
+            showBuyNowMessage('Something went wrong confirming your payment. Please try again.');
+            capturing = false;
+          }
+        },
+
+        onCancel: () => showBuyNowMessage('Payment cancelled.'),
+        onError: (err) => { console.error('PayPal error:', err); showBuyNowMessage('Something went wrong with PayPal. Please try again.'); }
+      }).render(container);
+    }
+
+    document.querySelectorAll('[data-buy-now]').forEach(button => {
+      button.addEventListener('click', openBuyNowModal);
+    });
+    const buyNowClose = document.querySelector('[data-buy-now-close]');
+    const buyNowBackdrop = document.querySelector('[data-buy-now-backdrop]');
+    if (buyNowClose) buyNowClose.addEventListener('click', closeBuyNowModal);
+    if (buyNowBackdrop) buyNowBackdrop.addEventListener('click', closeBuyNowModal);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && buyNowModal && buyNowModal.style.display !== 'none') closeBuyNowModal();
     });
 
     syncCartBadge(document);
