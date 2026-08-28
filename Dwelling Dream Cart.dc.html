@@ -148,7 +148,7 @@
 
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; border-top: 1px solid #D8D2C8;">
             <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px;">Total</span>
-            <span data-cart-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(25px, 2.5vw, 34px);">€0.00</span>
+            <span data-cart-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(25px, 2.5vw, 34px);">$0.00</span>
           </div>
 
           <div data-paypal-container="" style="display: none; min-height: 45px;"></div>
@@ -335,7 +335,7 @@
     return image;
   }
 
-  const formatPrice = amount => `€${Number(amount || 0).toFixed(2)}`;
+  const formatPrice = amount => `$${Number(amount || 0).toFixed(2)}`;
 
   let catalogCache = null;
   async function loadCatalog() {
@@ -645,7 +645,7 @@
 
     let paypal;
     try {
-      paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'EUR');
+      paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'USD');
     } catch (error) {
       console.error('PayPal SDK failed to load:', error);
       showCheckoutMessage('Unable to load PayPal. Please check your connection.', { retry: true });

@@ -12,3 +12,7 @@ data/digital-files/*
 .env
 .env.*
 !.env.example
+
+# Local rollback artifacts (pre-migration snapshots). Useful to keep on disk,
+# no reason to publish them.
+backups/

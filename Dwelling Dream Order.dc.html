@@ -121,7 +121,7 @@
   initDwellingDream(document, { navThreshold: -1 });
   syncCartBadge(document);
 
-  const formatPrice = amount => `€${Number(amount || 0).toFixed(2)}`;
+  const formatPrice = amount => `$${Number(amount || 0).toFixed(2)}`;
   const formatSize = bytes => {
     const value = Number(bytes) || 0;
     if (value < 1024) return `${value} B`;

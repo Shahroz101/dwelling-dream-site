@@ -105,7 +105,7 @@
           <p style="margin: 0; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #78736E;">4.9/5 · 1,000+ homes painted</p>
 
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 6px;">
-            <button data-add="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 18px 34px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37; color: #F5F2EA;">Add to cart — €16.00</button>
+            <button data-add="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 18px 34px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37; color: #F5F2EA;">Add to cart — $16.00</button>
             <button data-buy-now="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 18px 30px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #EDEAE0;">Buy now</button>
           </div>
           <p data-added="" role="status" aria-live="polite" style="margin: 0; min-height: 16px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #78736E;"></p>
@@ -186,7 +186,7 @@
     <section aria-labelledby="cta-h" style="padding: clamp(64px, 10vh, 130px) clamp(18px, 3.4vw, 54px); background: #292825; color: #F5F2EA; text-align: center;">
       <h2 id="cta-h" style="margin: 0 auto 18px; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(30px, 4.6vw, 76px); line-height: .98;">Nine colors. <em style="font-style: italic; font-weight: 400;">One afternoon.</em></h2>
       <p style="margin: 0 auto 30px; max-width: 48ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: rgba(245,242,234,.84);">Add this palette to your cart and start with the wall you’ve been avoiding.</p>
-      <button data-add="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 19px 34px; border: 0; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Add to cart — €16.00</button>
+      <button data-add="" data-magnetic="" style="display: inline-flex; align-items: center; padding: 19px 34px; border: 0; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Add to cart — $16.00</button>
     </section>
 
     <div data-buy-now-modal="" role="dialog" aria-modal="true" aria-label="Checkout" style="display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 20px;">
@@ -509,7 +509,7 @@ class Component extends DCLogic {
               <h3 style="margin: 0 0 6px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(20px, 1.8vw, 28px); line-height: 1;">${product.title || 'Product'}</h3>
               <p style="margin: 0; max-width: 30ch; font-size: 12.5px; line-height: 1.65; color: #6E675E;">${product.description || 'Catalog product.'}</p>
             </div>
-            <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;">€${Number(product.price || 0).toFixed(2)}</p>
+            <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;">$${Number(product.price || 0).toFixed(2)}</p>
           </div>
         `;
 
@@ -538,7 +538,7 @@ class Component extends DCLogic {
       setText('#p-h', `${title}`);
       setText('[data-product-brand]', category);
       setText('[data-product-description]', description);
-      setText('[data-product-price]', `€${price.toFixed(2)}`);
+      setText('[data-product-price]', `$${price.toFixed(2)}`);
       setText('[data-product-summary]', description);
       setText('[data-product-breadcrumb]', title);
 
@@ -550,7 +550,7 @@ class Component extends DCLogic {
 
       const addButtons = Array.from(document.querySelectorAll('[data-add]'));
       addButtons.forEach(button => {
-        button.textContent = `Add to cart — €${price.toFixed(2)}`;
+        button.textContent = `Add to cart — $${price.toFixed(2)}`;
       });
 
       updateGallery(safeImages);
@@ -657,7 +657,7 @@ class Component extends DCLogic {
     function openBuyNowModal() {
       if (!currentProduct || !buyNowModal) return;
       setText('[data-buy-now-title]', currentProduct.title || 'Product');
-      setText('[data-buy-now-price]', `€${Number(currentProduct.price || 0).toFixed(2)}`);
+      setText('[data-buy-now-price]', `$${Number(currentProduct.price || 0).toFixed(2)}`);
       buyNowModal.style.display = 'flex';
       renderBuyNowPaypal();
     }
@@ -684,7 +684,7 @@ class Component extends DCLogic {
 
       let paypal;
       try {
-        paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'EUR');
+        paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'USD');
       } catch (error) {
         showBuyNowMessage('Unable to load PayPal. Please check your connection.', { retry: true });
         return;

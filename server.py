@@ -6,6 +6,7 @@ import os
 import random
 import re
 import socketserver
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -51,7 +52,11 @@ PAYPAL_API_BASE = (
     "https://api-m.paypal.com" if PAYPAL_ENVIRONMENT == "production"
     else "https://api-m.sandbox.paypal.com"
 )
-ORDER_CURRENCY = "EUR"
+# The store prices, charges and feeds everything in USD. PayPal shows each
+# buyer their own local currency at checkout and handles the conversion, so no
+# exchange-rate handling belongs in this codebase. Orders already placed keep
+# whatever currency was stored on the row.
+ORDER_CURRENCY = "USD"
 _paypal_token_cache = {"token": None, "expires_at": 0.0}
 
 # Bundled with every purchase, regardless of which product(s) were bought -
@@ -274,19 +279,15 @@ def read_products():
     return [row_to_product(row) for row in rows]
 
 
-SITE_ORIGIN = "https://dwellingdream.shop"
+# Slug/URL/price/feed logic lives in one module so the product page, its
+# JSON-LD, the Google Merchant Center feed and the sitemap can never disagree
+# about a product - see lib/product_feed.py (mirror of lib/product-feed.js).
+sys.path.insert(0, str(ROOT / "lib"))
+import product_feed
 
-
-def slugify(value):
-    value = re.sub(r"[^a-z0-9]+", "-", (value or "").lower().strip())
-    return value.strip("-")
-
-
-def product_slug(product):
-    title = product.get("title") or ""
-    category = product.get("category") or ""
-    base = title if category.lower() in title.lower() else f"{category} {title}"
-    return slugify(base)
+SITE_ORIGIN = product_feed.SITE_ORIGIN
+slugify = product_feed.slugify
+product_slug = product_feed.product_slug
 
 
 def resolve_product_for_query(query, products):
@@ -344,7 +345,12 @@ def inject_product_meta(html_text, product):
         f'<meta property="og:url" content="{esc(canonical_url)}" />\n'
         f'<meta property="og:type" content="product" />\n'
     )
-    html_text = html_text.replace("</helmet>", og_tags + "</helmet>", 1)
+    # Product JSON-LD injected server-side from the same Supabase row that
+    # renders the page, so crawlers get it in the initial HTML response - the
+    # visible price is filled in later by client-side JS, which Google is not
+    # guaranteed to wait for.
+    structured_data = product_feed.product_json_ld_script(product)
+    html_text = html_text.replace("</helmet>", og_tags + structured_data + "</helmet>", 1)
 
     if images:
         html_text = html_text.replace(
@@ -757,6 +763,59 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
             self.send_response(403)
             self.end_headers()
+            return
+
+        # Google Merchant Center scheduled fetch target. Public and read-only:
+        # it exposes only what already appears on the product pages, and the
+        # Supabase service key never leaves this process.
+        if path == "/api/google-shopping-feed":
+            try:
+                products = read_products()
+            except Exception as exc:
+                # Plain-text 503 rather than a half-built feed: Google must not
+                # be handed an empty product list, which it would read as a
+                # request to delist everything.
+                body = f"Product feed unavailable: could not reach the product database.\n{exc}\n".encode("utf-8")
+                self.send_response(503)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+
+            body = product_feed.build_feed_xml(products).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/xml; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=1800")
+            self.send_header("X-Robots-Tag", "noindex")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        if path == "/sitemap.xml":
+            try:
+                products = read_products()
+            except Exception:
+                products = []
+            body = product_feed.build_sitemap_xml(products).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/xml; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        if path == "/robots.txt":
+            body = product_feed.ROBOTS_TXT.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         if path == "/":

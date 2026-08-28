@@ -403,9 +403,9 @@
       }
 
       function formatPrice(value) {
-        return new Intl.NumberFormat('en-IE', {
+        return new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: 'EUR'
+          currency: 'USD'
         }).format(Number(value) || 0);
       }
 

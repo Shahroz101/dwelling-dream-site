@@ -64,7 +64,11 @@ const PAYPAL_ENVIRONMENT = (process.env.PAYPAL_ENVIRONMENT || 'sandbox').trim().
 const PAYPAL_API_BASE = PAYPAL_ENVIRONMENT === 'production'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com';
-const ORDER_CURRENCY = 'EUR';
+// The store prices, charges and feeds everything in USD. PayPal shows each
+// buyer their own local currency at checkout and handles the conversion, so no
+// exchange-rate handling belongs in this codebase. Orders already placed keep
+// whatever currency was stored on the row.
+const ORDER_CURRENCY = 'USD';
 let paypalTokenCache = { token: null, expiresAt: 0 };
 
 // Bundled with every purchase, regardless of which product(s) were bought -
@@ -275,18 +279,11 @@ async function readProducts() {
   return rows.map(rowToProduct);
 }
 
-const SITE_ORIGIN = 'https://dwellingdream.shop';
-
-function slugify(value) {
-  return String(value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-}
-
-function productSlug(product) {
-  const title = product.title || '';
-  const category = product.category || '';
-  const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
-  return slugify(base);
-}
+// Slug/URL/price/feed logic lives in one module so the product page, its
+// JSON-LD, the Google Merchant Center feed and the sitemap can never disagree
+// about a product - see lib/product-feed.js.
+const productFeed = require('./lib/product-feed');
+const { SITE_ORIGIN, productSlug } = productFeed;
 
 // Mirrors the client-side matching in Dwelling Dream Product.dc.html's
 // loadSelectedProduct(): a slug/id present but unmatched must NOT silently
@@ -335,7 +332,16 @@ function injectProductMeta(htmlText, product) {
     `<meta property="og:url" content="${esc(canonicalUrl)}" />`,
     `<meta property="og:type" content="product" />`
   ].join('\n') + '\n';
-  htmlText = htmlText.replace('</helmet>', ogTags + '</helmet>');
+
+  // Product JSON-LD is injected server-side, from the same Supabase row that
+  // renders the page, so crawlers get it in the initial HTML response - the
+  // visible price is filled in later by client-side JS, which Google is not
+  // guaranteed to wait for. `</` is escaped so a description containing
+  // "</script>" cannot break out of the script element.
+  const jsonLd = JSON.stringify(productFeed.productJsonLd(product)).replace(/</g, '\\u003c');
+  const structuredData = `<script type="application/ld+json">${jsonLd}</script>\n`;
+
+  htmlText = htmlText.replace('</helmet>', ogTags + structuredData + '</helmet>');
 
   if (images.length) {
     htmlText = htmlText.replace(
@@ -1338,6 +1344,82 @@ const server = http.createServer(async (req, res) => {
 
   if (reqPath === '/api/products') {
     await handleApiProducts(req, res);
+    return;
+  }
+
+  // Google Merchant Center scheduled fetch target. Public and read-only: it
+  // exposes only what already appears on the product pages, and the Supabase
+  // service key never leaves this process.
+  if (reqPath === '/api/google-shopping-feed') {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      sendJson(res, 405, { success: false, message: 'Method not allowed.' });
+      return;
+    }
+    let products;
+    try {
+      products = await readProducts();
+    } catch (error) {
+      // Plain-text 503 rather than a half-built feed: Google must not be handed
+      // an empty product list, which it would read as "delist everything".
+      res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(`Product feed unavailable: could not reach the product database.\n${error.message}\n`);
+      return;
+    }
+
+    const xml = productFeed.buildFeedXml(products);
+    res.writeHead(200, {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=1800',
+      'X-Robots-Tag': 'noindex'
+    });
+    res.end(req.method === 'HEAD' ? undefined : xml);
+    return;
+  }
+
+  if (reqPath === '/sitemap.xml' && req.method === 'GET') {
+    let products = [];
+    try {
+      products = await readProducts();
+    } catch (error) {
+      products = [];
+    }
+    const esc = productFeed.escapeXml;
+    const staticPaths = [
+      '/',
+      '/Dwelling%20Dream%20Palettes.dc.html',
+      '/Dwelling%20Dream%20About.dc.html',
+      '/Dwelling%20Dream%20Help.dc.html'
+    ];
+    const urls = staticPaths.map(p => `  <url>\n    <loc>${esc(SITE_ORIGIN + p)}</loc>\n  </url>`);
+    for (const product of products) {
+      if (!productFeed.isListable(product)) continue;
+      const lastmod = product.updatedAt ? String(product.updatedAt).slice(0, 10) : null;
+      urls.push(
+        `  <url>\n    <loc>${esc(productFeed.productUrl(product))}</loc>` +
+        (lastmod ? `\n    <lastmod>${esc(lastmod)}</lastmod>` : '') +
+        `\n  </url>`
+      );
+    }
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
+    return;
+  }
+
+  if (reqPath === '/robots.txt' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    res.end([
+      'User-agent: *',
+      'Allow: /',
+      'Disallow: /admin.html',
+      'Disallow: /login.html',
+      'Disallow: /api/',
+      // Longest-match wins, so this re-permits the Merchant Center feed that
+      // the broader /api/ rule would otherwise cover.
+      'Allow: /api/google-shopping-feed',
+      '',
+      `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
+      ''
+    ].join('\n'));
     return;
   }
 
