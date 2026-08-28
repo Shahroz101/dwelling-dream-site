@@ -180,6 +180,47 @@ async function supabaseStorageUpload(bucket, objectPath, content, contentType) {
   }
 }
 
+// Hands the browser a short-lived, single-object upload URL so a digital file
+// goes straight from the admin's machine to Supabase Storage. Routing the
+// bytes through this app server instead (base64 inside the product JSON) cost
+// ~1.37x in size and made the admin sit through a second upload before the
+// save could even begin - the reason large PDFs failed to attach on an edit.
+// The signed URL is scoped to exactly this one object path and expires, so no
+// service key ever reaches the browser.
+async function supabaseSignedUploadUrl(bucket, objectPath) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/upload/sign/${bucket}/${objectPath}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: '{}'
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Supabase Storage sign for ${bucket}/${objectPath} failed: ${res.status} ${detail}`);
+  }
+  const data = await res.json();
+  if (!data || !data.url) throw new Error('Supabase Storage returned no signed upload URL.');
+  return `${SUPABASE_URL}/storage/v1${data.url}`;
+}
+
+// Returns the stored object's real metadata, or null when it isn't there.
+// Used to confirm a browser-uploaded file actually landed before we attach its
+// name to a product - the client's word alone is never enough.
+async function supabaseStorageInfo(bucket, objectPath) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/info/${bucket}/${objectPath}`, {
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }
+  });
+  if (!res.ok) return null;
+  try {
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+}
+
 async function supabaseStorageDownload(bucket, objectPath) {
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${objectPath}`, {
     headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }
@@ -484,6 +525,36 @@ function generateSku(title, category) {
   return `${cleanCategory}-${cleanTitle}-${unique}`;
 }
 
+function imageExtension(mimeType, originalName) {
+  const mt = String(mimeType || '').toLowerCase();
+  if (mt.includes('png')) return '.png';
+  if (mt.includes('webp')) return '.webp';
+  if (mt.includes('gif')) return '.gif';
+  if (mt.includes('jpeg') || mt.includes('jpg')) return '.jpg';
+
+  // The browser occasionally reports no type at all; fall back to the file's
+  // own extension before giving up and calling it a jpg.
+  const ext = originalName && originalName.includes('.')
+    ? '.' + originalName.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '')
+    : '';
+  if (ext === '.jpeg') return '.jpg';
+  return ['.png', '.webp', '.gif', '.jpg'].includes(ext) ? ext : '.jpg';
+}
+
+// Only ever a readable filename prefix - the random file id after it is what
+// actually keeps stored names unique. A product being created has no sku yet,
+// so its images fall back to a prefix built from the title and category.
+function storedNamePrefix({ sku, title, category } = {}) {
+  if (sku) return sku;
+  const clean = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 4);
+  return [clean(category), clean(title)].filter(Boolean).join('-') || 'FILE';
+}
+
+function buildImageStoredName(prefix, originalName, mimeType) {
+  const safePrefix = String(prefix || 'FILE').toUpperCase().replace(/[^A-Z0-9-]/g, '').replace(/^-+|-+$/g, '') || 'FILE';
+  return `${safePrefix}-${crypto.randomBytes(8).toString('hex')}${imageExtension(mimeType, originalName)}`;
+}
+
 async function saveBase64Image(base64String, sku) {
   if (!base64String || typeof base64String !== 'string') return null;
 
@@ -491,12 +562,58 @@ async function saveBase64Image(base64String, sku) {
   if (!match) return null;
 
   const mimeType = match[1];
-  const extension = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : mimeType.includes('gif') ? 'gif' : 'jpg';
-  const fileId = crypto.randomBytes(8).toString('hex');
-  const fileName = `${sku}-${fileId}.${extension}`;
+  const fileName = buildImageStoredName(sku, '', mimeType);
   const buffer = Buffer.from(match[2], 'base64');
   await supabaseStorageUpload(IMAGES_BUCKET, fileName, buffer, mimeType);
   return supabasePublicUrl(IMAGES_BUCKET, fileName);
+}
+
+// Product images are stored as plain URL strings, so this always resolves to a
+// URL (or null). Like digital files, an image either arrives already uploaded
+// straight to storage by the browser, or inline as a base64 data URL.
+async function resolveImageEntry(entry, sku) {
+  if (typeof entry === 'string') return saveBase64Image(entry, sku);
+  if (!entry || typeof entry !== 'object') return null;
+  if (typeof entry.data === 'string' && entry.data) return saveBase64Image(entry.data, sku);
+
+  const storedName = String(entry.storedName || '');
+  if (!isSafeStoredName(storedName)) return null;
+
+  const info = await supabaseStorageInfo(IMAGES_BUCKET, storedName);
+  if (!info) return null;
+
+  return supabasePublicUrl(IMAGES_BUCKET, storedName);
+}
+
+function digitalExtension(originalName, mimeType) {
+  let ext = '';
+  if (originalName && originalName.includes('.')) {
+    ext = '.' + originalName.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+  if (!ext || ext === '.') {
+    ext = { 'application/pdf': '.pdf', 'application/zip': '.zip', 'application/epub+zip': '.epub' }[mimeType] || '.bin';
+  }
+  return ext;
+}
+
+// The file id is carried inside the stored name so it can be recovered later
+// without keeping any server-side state between signing a URL and attaching
+// the finished upload to a product (this server restarts freely, and an admin
+// may take minutes to finish a large upload).
+function buildDigitalStoredName(prefix, originalName, mimeType) {
+  const safePrefix = String(prefix || 'FILE').toUpperCase().replace(/[^A-Z0-9-]/g, '').replace(/^-+|-+$/g, '') || 'FILE';
+  return `${safePrefix}-${crypto.randomBytes(8).toString('hex')}${digitalExtension(originalName, mimeType)}`;
+}
+
+function isSafeStoredName(storedName) {
+  return typeof storedName === 'string'
+    && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(storedName)
+    && !storedName.includes('..');
+}
+
+function digitalIdFromStoredName(storedName) {
+  const match = /-([0-9a-f]{16})\.[A-Za-z0-9]+$/.exec(storedName || '');
+  return match ? match[1] : crypto.randomBytes(8).toString('hex');
 }
 
 async function saveBase64File(base64String, originalName, sku) {
@@ -506,23 +623,42 @@ async function saveBase64File(base64String, originalName, sku) {
   if (!match) return null;
 
   const mimeType = match[1];
-  let ext = '';
-  if (originalName && originalName.includes('.')) {
-    ext = '.' + originalName.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
-  }
-  if (!ext) {
-    ext = { 'application/pdf': '.pdf', 'application/zip': '.zip', 'application/epub+zip': '.epub' }[mimeType] || '.bin';
-  }
-
   const buffer = Buffer.from(match[2], 'base64');
-  const fileId = crypto.randomBytes(8).toString('hex');
-  const storedName = `${sku}-${fileId}${ext}`;
+  const storedName = buildDigitalStoredName(sku, originalName, mimeType);
   await supabaseStorageUpload(DIGITAL_BUCKET, storedName, buffer, mimeType);
 
   return {
-    id: fileId,
+    id: digitalIdFromStoredName(storedName),
     name: (originalName || storedName).trim() || storedName,
     size: buffer.length,
+    storedName
+  };
+}
+
+// A digital file reaches us one of two ways: already uploaded straight to
+// storage by the browser (the normal path - we only get its name back and
+// verify it landed), or inline as a base64 data URL (the older path, kept so
+// nothing that still posts that shape breaks). Returns null for anything that
+// can't be verified, so a bad entry is dropped rather than recorded as a file
+// customers would later fail to download.
+async function resolveDigitalEntry(entry, sku) {
+  if (!entry || typeof entry !== 'object') return null;
+
+  if (typeof entry.data === 'string' && entry.data) {
+    return saveBase64File(entry.data, entry.name, sku);
+  }
+
+  const storedName = String(entry.storedName || '');
+  if (!isSafeStoredName(storedName)) return null;
+
+  const info = await supabaseStorageInfo(DIGITAL_BUCKET, storedName);
+  if (!info) return null;
+
+  const displayName = String(entry.name || storedName).trim() || storedName;
+  return {
+    id: digitalIdFromStoredName(storedName),
+    name: displayName,
+    size: Number(info.size) || 0,
     storedName
   };
 }
@@ -714,14 +850,13 @@ async function handleApiProducts(req, res) {
         // before touching anything already stored.
         const savedNewImages = [];
         for (const image of newImagesRaw) {
-          const saved = await saveBase64Image(image, sku);
+          const saved = await resolveImageEntry(image, sku);
           if (saved) savedNewImages.push(saved);
         }
 
         const savedNewDigital = [];
         for (const entry of newDigitalRaw) {
-          if (!entry || typeof entry !== 'object') continue;
-          const saved = await saveBase64File(entry.data, entry.name, sku);
+          const saved = await resolveDigitalEntry(entry, sku);
           if (saved) savedNewDigital.push(saved);
         }
 
@@ -822,14 +957,13 @@ async function handleApiProducts(req, res) {
         const sku = generateSku(title, category);
         const savedImages = [];
         for (const image of images) {
-          const savedLink = await saveBase64Image(image, sku);
+          const savedLink = await resolveImageEntry(image, sku);
           if (savedLink) savedImages.push(savedLink);
         }
 
         const savedDigitalFiles = [];
         for (const entry of digitalFilesRaw) {
-          if (!entry || typeof entry !== 'object') continue;
-          const saved = await saveBase64File(entry.data, entry.name, sku);
+          const saved = await resolveDigitalEntry(entry, sku);
           if (saved) savedDigitalFiles.push(saved);
         }
 
@@ -861,6 +995,63 @@ async function handleApiProducts(req, res) {
   }
 
   sendJson(res, 405, { success: false, message: 'Method not allowed.' });
+}
+
+// Admin-only. Reserves a name in the digital-files bucket and returns a signed
+// URL the browser uploads the raw file to directly. Nothing is attached to a
+// product here - the product save that follows re-checks that the object
+// really exists before recording it.
+function handleUploadUrl(req, res, kind) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { success: false, message: 'Method not allowed.' });
+    return;
+  }
+  if (!isAuthorized(req)) {
+    sendJson(res, 401, { success: false, message: 'Unauthorized access.' });
+    return;
+  }
+
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+
+  req.on('end', async () => {
+    try {
+      const payload = JSON.parse(body || '{}');
+      const name = String(payload.name || '').trim();
+      const contentType = String(payload.contentType || '').trim();
+
+      if (!name) {
+        sendJson(res, 400, { success: false, message: 'A file name is required.' });
+        return;
+      }
+
+      let existing = null;
+      const productId = String(payload.productId || '').trim();
+      if (productId) existing = await getProductById(productId);
+
+      const prefix = storedNamePrefix({
+        sku: existing && existing.sku,
+        title: payload.title,
+        category: payload.category
+      });
+
+      const isImage = kind === 'image';
+      const bucket = isImage ? IMAGES_BUCKET : DIGITAL_BUCKET;
+      const storedName = isImage
+        ? buildImageStoredName(prefix, name, contentType)
+        : buildDigitalStoredName(prefix, name, contentType);
+      const uploadUrl = await supabaseSignedUploadUrl(bucket, storedName);
+
+      sendJson(res, 200, {
+        success: true,
+        id: isImage ? undefined : digitalIdFromStoredName(storedName),
+        storedName,
+        uploadUrl
+      });
+    } catch (error) {
+      sendJson(res, 500, { success: false, message: 'Could not start the file upload.', error: error.message });
+    }
+  });
 }
 
 function handleCreatePaypalOrder(req, res) {
@@ -1147,6 +1338,11 @@ const server = http.createServer(async (req, res) => {
 
   if (reqPath === '/api/products') {
     await handleApiProducts(req, res);
+    return;
+  }
+
+  if (reqPath === '/api/uploads/digital' || reqPath === '/api/uploads/image') {
+    handleUploadUrl(req, res, reqPath.endsWith('/image') ? 'image' : 'digital');
     return;
   }
 

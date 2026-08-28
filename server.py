@@ -94,6 +94,50 @@ def supabase_storage_upload(bucket, object_path, content, content_type):
         raise RuntimeError(f"Supabase Storage upload to {bucket}/{object_path} failed: {exc.code} {detail}")
 
 
+def supabase_signed_upload_url(bucket, object_path):
+    """Short-lived, single-object upload URL handed to the admin's browser.
+
+    Digital files go straight from the admin's machine to Supabase Storage.
+    Routing the bytes through this app server instead (base64 inside the
+    product JSON) cost ~1.37x in size and made the admin sit through a second
+    upload before the save could begin - the reason large PDFs failed to
+    attach on an edit. The URL is scoped to this one object path and expires,
+    so no service key ever reaches the browser.
+    """
+    url = f"{SUPABASE_URL}/storage/v1/object/upload/sign/{bucket}/{object_path}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+    }
+    req = urllib.request.Request(url, data=b"{}", headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Supabase Storage sign for {bucket}/{object_path} failed: {exc.code} {detail}")
+    if not data.get("url"):
+        raise RuntimeError("Supabase Storage returned no signed upload URL.")
+    return f"{SUPABASE_URL}/storage/v1{data['url']}"
+
+
+def supabase_storage_info(bucket, object_path):
+    """Stored object's real metadata, or None when it isn't there.
+
+    Used to confirm a browser-uploaded file actually landed before its name is
+    attached to a product - the client's word alone is never enough.
+    """
+    url = f"{SUPABASE_URL}/storage/v1/object/info/{bucket}/{object_path}"
+    headers = {"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
 def supabase_storage_download(bucket, object_path):
     url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{object_path}"
     headers = {"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
@@ -449,6 +493,45 @@ def generate_sku(title, category):
     return f"{clean_category}-{clean_title}-{unique}"
 
 
+def image_extension(mime_type, original_name):
+    mt = str(mime_type or "").lower()
+    if "png" in mt:
+        return ".png"
+    if "webp" in mt:
+        return ".webp"
+    if "gif" in mt:
+        return ".gif"
+    if "jpeg" in mt or "jpg" in mt:
+        return ".jpg"
+
+    # The browser occasionally reports no type at all; fall back to the file's
+    # own extension before giving up and calling it a jpg.
+    ext = ""
+    if original_name and "." in original_name:
+        ext = "." + re.sub(r"[^a-z0-9]", "", original_name.rsplit(".", 1)[-1].lower())
+    if ext == ".jpeg":
+        return ".jpg"
+    return ext if ext in (".png", ".webp", ".gif", ".jpg") else ".jpg"
+
+
+def stored_name_prefix(sku=None, title=None, category=None):
+    """Only ever a readable filename prefix - the random file id after it is
+    what actually keeps stored names unique. A product being created has no sku
+    yet, so its images fall back to a prefix built from title and category."""
+    if sku:
+        return sku
+
+    def clean(value):
+        return re.sub(r"[^A-Z0-9]+", "-", str(value or "").upper()).strip("-")[:4]
+
+    return "-".join([p for p in (clean(category), clean(title)) if p]) or "FILE"
+
+
+def build_image_stored_name(prefix, original_name, mime_type):
+    safe_prefix = re.sub(r"[^A-Z0-9-]", "", str(prefix or "FILE").upper()).strip("-") or "FILE"
+    return f"{safe_prefix}-{os.urandom(8).hex()}{image_extension(mime_type, original_name)}"
+
+
 def save_base64_image(value, sku):
     if not isinstance(value, str) or not value.startswith("data:image/"):
         return None
@@ -456,18 +539,67 @@ def save_base64_image(value, sku):
     if not match:
         return None
     mime_type, encoded = match.groups()
-    ext = ".jpg"
-    if "png" in mime_type:
-        ext = ".png"
-    elif "webp" in mime_type:
-        ext = ".webp"
-    elif "gif" in mime_type:
-        ext = ".gif"
-    file_id = os.urandom(8).hex()
-    file_name = f"{sku}-{file_id}{ext}"
+    file_name = build_image_stored_name(sku, "", mime_type)
     content = base64.b64decode(encoded)
     supabase_storage_upload(IMAGES_BUCKET, file_name, content, mime_type)
     return supabase_public_url(IMAGES_BUCKET, file_name)
+
+
+def resolve_image_entry(entry, sku):
+    """Product images are stored as plain URL strings, so this always resolves
+    to a URL (or None). Like digital files, an image either arrives already
+    uploaded straight to storage by the browser, or inline as a base64 data
+    URL."""
+    if isinstance(entry, str):
+        return save_base64_image(entry, sku)
+    if not isinstance(entry, dict):
+        return None
+    if isinstance(entry.get("data"), str) and entry["data"]:
+        return save_base64_image(entry["data"], sku)
+
+    stored_name = str(entry.get("storedName") or "")
+    if not is_safe_stored_name(stored_name):
+        return None
+
+    if not supabase_storage_info(IMAGES_BUCKET, stored_name):
+        return None
+
+    return supabase_public_url(IMAGES_BUCKET, stored_name)
+
+
+def digital_extension(original_name, mime_type):
+    ext = ""
+    if original_name and "." in original_name:
+        ext = "." + re.sub(r"[^a-z0-9]", "", original_name.rsplit(".", 1)[-1].lower())
+    if not ext or ext == ".":
+        ext = {
+            "application/pdf": ".pdf",
+            "application/zip": ".zip",
+            "application/epub+zip": ".epub",
+        }.get(mime_type, ".bin")
+    return ext
+
+
+def build_digital_stored_name(prefix, original_name, mime_type):
+    """The file id is carried inside the stored name so it can be recovered
+    later without keeping server-side state between signing a URL and
+    attaching the finished upload (this server restarts freely, and an admin
+    may take minutes to finish a large upload)."""
+    safe_prefix = re.sub(r"[^A-Z0-9-]", "", str(prefix or "FILE").upper()).strip("-") or "FILE"
+    return f"{safe_prefix}-{os.urandom(8).hex()}{digital_extension(original_name, mime_type)}"
+
+
+def is_safe_stored_name(stored_name):
+    return (
+        isinstance(stored_name, str)
+        and re.match(r"^[A-Za-z0-9][A-Za-z0-9._-]*$", stored_name) is not None
+        and ".." not in stored_name
+    )
+
+
+def digital_id_from_stored_name(stored_name):
+    match = re.search(r"-([0-9a-f]{16})\.[A-Za-z0-9]+$", stored_name or "")
+    return match.group(1) if match else os.urandom(8).hex()
 
 
 def save_base64_file(value, original_name, sku):
@@ -478,28 +610,51 @@ def save_base64_file(value, original_name, sku):
         return None
     mime_type, encoded = match.groups()
 
-    ext = ""
-    if original_name and "." in original_name:
-        ext = "." + re.sub(r"[^a-z0-9]", "", original_name.rsplit(".", 1)[-1].lower())
-    if not ext:
-        ext = {
-            "application/pdf": ".pdf",
-            "application/zip": ".zip",
-            "application/epub+zip": ".epub",
-        }.get(mime_type, ".bin")
-
     try:
         raw = base64.b64decode(encoded)
     except Exception:
         return None
 
-    file_id = os.urandom(8).hex()
-    stored_name = f"{sku}-{file_id}{ext}"
+    stored_name = build_digital_stored_name(sku, original_name, mime_type)
     supabase_storage_upload(DIGITAL_BUCKET, stored_name, raw, mime_type)
     return {
-        "id": file_id,
+        "id": digital_id_from_stored_name(stored_name),
         "name": (original_name or stored_name).strip() or stored_name,
         "size": len(raw),
+        "storedName": stored_name,
+    }
+
+
+def resolve_digital_entry(entry, sku):
+    """A digital file reaches us one of two ways: already uploaded straight to
+    storage by the browser (the normal path - we only get its name back and
+    verify it landed), or inline as a base64 data URL (the older path, kept so
+    nothing that still posts that shape breaks). Returns None for anything that
+    can't be verified, so a bad entry is dropped rather than recorded as a file
+    customers would later fail to download."""
+    if not isinstance(entry, dict):
+        return None
+
+    if isinstance(entry.get("data"), str) and entry["data"]:
+        return save_base64_file(entry["data"], entry.get("name"), sku)
+
+    stored_name = str(entry.get("storedName") or "")
+    if not is_safe_stored_name(stored_name):
+        return None
+
+    info = supabase_storage_info(DIGITAL_BUCKET, stored_name)
+    if not info:
+        return None
+
+    display_name = str(entry.get("name") or stored_name).strip() or stored_name
+    try:
+        size = int(info.get("size") or 0)
+    except (TypeError, ValueError):
+        size = 0
+    return {
+        "id": digital_id_from_stored_name(stored_name),
+        "name": display_name,
+        "size": size,
         "storedName": stored_name,
     }
 
@@ -861,15 +1016,13 @@ class AdminHandler(BaseHTTPRequestHandler):
         # before touching anything that's already on disk.
         saved_new_images = []
         for image in new_images_raw:
-            saved_path = save_base64_image(image, sku)
+            saved_path = resolve_image_entry(image, sku)
             if saved_path:
                 saved_new_images.append(saved_path)
 
         saved_new_digital = []
         for entry in new_digital_raw:
-            if not isinstance(entry, dict):
-                continue
-            saved = save_base64_file(entry.get("data"), entry.get("name"), sku)
+            saved = resolve_digital_entry(entry, sku)
             if saved:
                 saved_new_digital.append(saved)
 
@@ -961,6 +1114,61 @@ class AdminHandler(BaseHTTPRequestHandler):
             self.wfile.write(response_body)
             return
 
+        # Admin-only. Reserves a name in the digital-files bucket and returns a
+        # signed URL the browser uploads the raw file to directly. Nothing is
+        # attached to a product here - the product save that follows re-checks
+        # that the object really exists before recording it.
+        if path in ("/api/uploads/digital", "/api/uploads/image"):
+            if not is_authorized(self):
+                send_json(self, 401, {"success": False, "message": "Unauthorized access."})
+                return
+
+            content_length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(content_length).decode("utf-8")
+            try:
+                payload = json.loads(body or "{}")
+            except Exception:
+                send_json(self, 400, {"success": False, "message": "Invalid request body."})
+                return
+
+            name = str(payload.get("name", "")).strip()
+            if not name:
+                send_json(self, 400, {"success": False, "message": "A file name is required."})
+                return
+
+            existing = None
+            product_id = str(payload.get("productId", "")).strip()
+            if product_id:
+                try:
+                    existing = get_product_by_id(product_id)
+                except Exception:
+                    existing = None
+
+            prefix = stored_name_prefix(
+                sku=(existing or {}).get("sku"),
+                title=payload.get("title"),
+                category=payload.get("category"),
+            )
+
+            is_image = path.endswith("/image")
+            bucket = IMAGES_BUCKET if is_image else DIGITAL_BUCKET
+            content_type = str(payload.get("contentType", "")).strip()
+            stored_name = (
+                build_image_stored_name(prefix, name, content_type) if is_image
+                else build_digital_stored_name(prefix, name, content_type)
+            )
+            try:
+                upload_url = supabase_signed_upload_url(bucket, stored_name)
+            except Exception as exc:
+                send_json(self, 500, {"success": False, "message": "Could not start the file upload.", "error": str(exc)})
+                return
+
+            response = {"success": True, "storedName": stored_name, "uploadUrl": upload_url}
+            if not is_image:
+                response["id"] = digital_id_from_stored_name(stored_name)
+            send_json(self, 200, response)
+            return
+
         if path == "/api/logout":
             cookies = parse_cookies(self.headers.get("Cookie", ""))
             session = cookies.get("session")
@@ -1037,7 +1245,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             sku = generate_sku(title, category)
             saved_images = []
             for image in images:
-                saved_path = save_base64_image(image, sku)
+                saved_path = resolve_image_entry(image, sku)
                 if saved_path:
                     saved_images.append(saved_path)
 
@@ -1047,9 +1255,7 @@ class AdminHandler(BaseHTTPRequestHandler):
 
             saved_digital_files = []
             for entry in digital_files_raw:
-                if not isinstance(entry, dict):
-                    continue
-                saved = save_base64_file(entry.get("data"), entry.get("name"), sku)
+                saved = resolve_digital_entry(entry, sku)
                 if saved:
                     saved_digital_files.append(saved)
 

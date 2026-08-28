@@ -409,13 +409,71 @@
         }).format(Number(value) || 0);
       }
 
-      function toDataUrl(file) {
+      // Images and digital files both go straight to storage rather than
+      // through this site's API. Sending them as base64 inside the product
+      // JSON inflated them by ~37% and pushed the whole save into one very
+      // large request, which the host intermittently cut off mid-upload - so
+      // attaching a sizeable PDF to an existing product would just fail with
+      // no useful explanation.
+      function putFileWithProgress(url, file, onProgress) {
         return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', url, true);
+          if (file.type) xhr.setRequestHeader('Content-Type', file.type);
+          xhr.upload.addEventListener('progress', event => {
+            if (event.lengthComputable) onProgress(event.loaded / event.total);
+          });
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload of "${file.name}" failed (HTTP ${xhr.status}).`));
+            }
+          });
+          xhr.addEventListener('error', () => reject(new Error(`Upload of "${file.name}" failed - the connection dropped.`)));
+          xhr.addEventListener('abort', () => reject(new Error(`Upload of "${file.name}" was cancelled.`)));
+          xhr.send(file);
         });
+      }
+
+      // kind is 'image' or 'digital' - both take the same route: ask the server
+      // to reserve a name, upload the raw bytes straight to storage, then hand
+      // the product save nothing but the name it landed under.
+      async function uploadToStorage(kind, file, label, index, total) {
+        const response = await fetch(apiUrl(`/api/uploads/${kind}`), {
+          method: 'POST',
+          headers: withAuth({ 'Content-Type': 'application/json' }),
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            name: file.name,
+            contentType: file.type || '',
+            productId: editingProductId || '',
+            title: document.getElementById('title').value.trim(),
+            category: document.getElementById('category').value
+          })
+        });
+
+        const ticket = await response.json().catch(() => ({}));
+        if (!response.ok || !ticket.uploadUrl) {
+          throw new Error(ticket.message || `Could not start the upload for "${file.name}".`);
+        }
+
+        await putFileWithProgress(ticket.uploadUrl, file, fraction => {
+          const percent = Math.round(fraction * 100);
+          setStatus(`Uploading ${label} "${file.name}" (${index + 1} of ${total}) - ${percent}%`);
+        });
+
+        return { id: ticket.id, name: file.name, size: file.size, storedName: ticket.storedName };
+      }
+
+      async function uploadAll(kind, fileList, label) {
+        // One at a time so the progress readout stays meaningful and a slow
+        // connection isn't asked to push several large files at once.
+        const uploaded = [];
+        for (let index = 0; index < fileList.length; index += 1) {
+          uploaded.push(await uploadToStorage(kind, fileList[index], label, index, fileList.length));
+        }
+        return uploaded;
       }
 
       function formatFileSize(bytes) {
@@ -546,12 +604,20 @@
         const files = Array.from(imagesInput.files || []);
         const digitalFiles = Array.from(digitalFilesInput.files || []);
 
+        submitButton.disabled = true;
+
         try {
-          const newImages = await Promise.all(files.map(file => toDataUrl(file)));
-          const newDigitalFiles = await Promise.all(digitalFiles.map(async file => ({
-            name: file.name,
-            data: await toDataUrl(file)
-          })));
+          // Checked before any upload starts, so a rejected edit never leaves
+          // an orphaned file sitting in storage.
+          if (editingProductId && editKeepImages.length + files.length === 0) {
+            setStatus('At least one product image is required.', true);
+            return;
+          }
+
+          const newImages = await uploadAll('image', files, 'image');
+          const newDigitalFiles = await uploadAll('digital', digitalFiles, 'file');
+
+          if (files.length || digitalFiles.length) setStatus('Saving product…');
 
           const basePayload = {
             title: document.getElementById('title').value.trim(),
@@ -563,11 +629,6 @@
           let response;
 
           if (editingProductId) {
-            if (editKeepImages.length + newImages.length === 0) {
-              setStatus('At least one product image is required.', true);
-              return;
-            }
-
             response = await fetch(apiUrl('/api/products'), {
               method: 'PUT',
               headers: withAuth({ 'Content-Type': 'application/json' }),
@@ -590,10 +651,10 @@
             });
           }
 
-          const data = await response.json();
+          const data = await response.json().catch(() => ({}));
 
           if (!response.ok || !data.success) {
-            setStatus(data.message || 'Unable to save product.', true);
+            setStatus(data.message || `Unable to save product (HTTP ${response.status}).`, true);
             return;
           }
 
@@ -601,7 +662,11 @@
           cancelEdit();
           await loadProducts();
         } catch (error) {
-          setStatus('There was a problem saving the product.', true);
+          // Surface the real reason - the old blanket message hid upload
+          // failures and made every problem look identical.
+          setStatus(error && error.message ? error.message : 'There was a problem saving the product.', true);
+        } finally {
+          submitButton.disabled = false;
         }
       });
 
