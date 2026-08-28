@@ -319,7 +319,7 @@ function injectProductMeta(htmlText, product) {
     ? `${title} | Dwelling Dream`
     : `${title} — Dwelling Dream`;
   const images = product.images || [];
-  const imageUrl = images[0] || `${SITE_ORIGIN}/assets/dd2-bundle-palette.webp`;
+  const imageUrl = images[0] ? productFeed.publicImageUrl(images[0]) : `${SITE_ORIGIN}/assets/dd2-bundle-palette.webp`;
   const canonicalUrl = `${SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug=${productSlug(product)}`;
 
   htmlText = htmlText.replace(/<title>.*?<\/title>/s, `<title>${esc(pageTitle)}</title>`);
@@ -347,7 +347,7 @@ function injectProductMeta(htmlText, product) {
   if (images.length) {
     htmlText = htmlText.replace(
       '<img src="assets/dd2-bundle-palette.webp" alt="Palette preview"',
-      `<img src="${esc(images[0])}" alt="${esc(title)}"`
+      `<img src="${esc(productFeed.publicImageUrl(images[0]))}" alt="${esc(title)}"`
     );
   }
 
@@ -1362,6 +1362,38 @@ const server = http.createServer(async (req, res) => {
 
   if (reqPath === '/api/products') {
     await handleApiProducts(req, res);
+    return;
+  }
+
+  // Product images, served from this domain so Hostinger's CDN caches them.
+  // Pointing crawlers straight at Supabase Storage got a large share of
+  // requests rate-limited (HTTP 429); behind the CDN each object is fetched
+  // from Supabase once and served from the edge thereafter. Immutable because
+  // stored names contain a random id and are never rewritten in place.
+  if (reqPath.startsWith('/product-image/') && (req.method === 'GET' || req.method === 'HEAD')) {
+    const objectName = reqPath.slice('/product-image/'.length);
+    if (!isSafeStoredName(objectName)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+    let content = null;
+    try {
+      content = await supabaseStorageDownload(IMAGES_BUCKET, objectName);
+    } catch (error) {
+      content = null;
+    }
+    if (!content) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': getMimeType(objectName),
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Length': content.length
+    });
+    res.end(req.method === 'HEAD' ? undefined : content);
     return;
   }
 

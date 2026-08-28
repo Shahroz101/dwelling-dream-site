@@ -27,7 +27,28 @@ BRAND = "Dwelling Dream"
 # Deliberately empty: google_product_category is optional, Google auto-classifies
 # when absent, and a confidently-wrong category is worse than none. Add an
 # internal category here to override, e.g. {"Behr": "Home & Garden > Decor"}.
-GOOGLE_PRODUCT_CATEGORY = {}
+# Google warned that missing values limit visibility in recommendations and
+# shopping surfaces. Google's taxonomy has no entry for "digital paint palette
+# guide"; Decor is the closest honest fit for a home-colour lookbook. Must be a
+# verbatim path from https://support.google.com/merchants/answer/6324436
+DEFAULT_GOOGLE_PRODUCT_CATEGORY = "Home & Garden > Decor"
+GOOGLE_PRODUCT_CATEGORY = {
+    "Behr": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
+    "Sherwin Williams": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
+    "Benjamin Moore": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
+}
+
+# Google and Pinterest fetch every image in a burst. Pointed straight at
+# Supabase Storage that returns HTTP 429 for a large share of them (reproduced:
+# 176 of 430), because the free tier rate-limits. Serving them from this site
+# puts Hostinger's CDN in front, so Supabase is asked for each object once.
+SUPABASE_PUBLIC_IMAGE = re.compile(
+    r"^https://[a-z0-9-]+\.supabase\.co/storage/v1/object/public/product-images/(.+)$")
+
+
+def public_image_url(url):
+    m = SUPABASE_PUBLIC_IMAGE.match(str(url or ""))
+    return f"{SITE_ORIGIN}/product-image/{m.group(1)}" if m else url
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1F\x7F]")
 
@@ -70,7 +91,11 @@ def product_url(product):
 
 
 def product_images(product):
-    return [u for u in (product.get("images") or []) if isinstance(u, str) and u.startswith("https://")]
+    """Maps to site-hosted URLs; used by the feeds and JSON-LD only. The
+    products API deliberately keeps returning raw Supabase URLs, because the
+    admin panel round-trips those exact strings back as keepImages."""
+    return [public_image_url(u) for u in (product.get("images") or [])
+            if isinstance(u, str) and u.startswith("https://")]
 
 
 def price_amount(product):
@@ -132,7 +157,7 @@ def feed_item(product):
         "description": clean_text(product.get("description"), 5000),
         "link": product_url(product),
         "image_link": images[0] if images else None,
-        "additional_image_link": images[1:11],
+        "additional_image_link": images[1:5],
         "availability": availability_of(product),
         "price": f"{price_amount(product)} {currency_of(product)}",
         "brand": BRAND,

@@ -326,7 +326,7 @@ def inject_product_meta(html_text, product):
     description = product.get("description") or "A nine-color coordinated paint palette. Instant digital download."
     page_title = f"{title} | Dwelling Dream" if category and category.lower() not in title.lower() else f"{title} — Dwelling Dream"
     images = product.get("images") or []
-    image_url = images[0] if images else f"{SITE_ORIGIN}/assets/dd2-bundle-palette.webp"
+    image_url = product_feed.public_image_url(images[0]) if images else f"{SITE_ORIGIN}/assets/dd2-bundle-palette.webp"
     canonical_url = f"{SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug={product_slug(product)}"
 
     def esc(value):
@@ -357,7 +357,7 @@ def inject_product_meta(html_text, product):
     if images:
         html_text = html_text.replace(
             '<img src="assets/dd2-bundle-palette.webp" alt="Palette preview"',
-            f'<img src="{esc(images[0])}" alt="{esc(title)}"',
+            f'<img src="{esc(product_feed.public_image_url(images[0]))}" alt="{esc(title)}"',
             1,
         )
 
@@ -765,6 +765,35 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
             self.send_response(403)
             self.end_headers()
+            return
+
+        # Product images served from this domain so Hostinger's CDN caches
+        # them. Crawlers pointed straight at Supabase Storage got a large share
+        # rate-limited (HTTP 429); behind the CDN each object is fetched once.
+        if path.startswith("/product-image/"):
+            object_name = path[len("/product-image/"):]
+            content = None
+            if is_safe_stored_name(object_name):
+                try:
+                    content = supabase_storage_download(IMAGES_BUCKET, object_name)
+                except Exception:
+                    content = None
+            if not content:
+                self.send_response(404)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", "9")
+                self.end_headers()
+                self.wfile.write(b"Not found")
+                return
+            self.send_response(200)
+            ext = object_name.rsplit(".", 1)[-1].lower() if "." in object_name else ""
+            image_mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                          "webp": "image/webp", "gif": "image/gif"}.get(ext, "application/octet-stream")
+            self.send_header("Content-Type", image_mime)
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
             return
 
         # Google Merchant Center scheduled fetch target. Public and read-only:
