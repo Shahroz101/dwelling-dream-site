@@ -37,11 +37,32 @@ def slugify(value):
     return text.strip("-")
 
 
-def product_slug(product):
+def derived_slug(product):
+    """The original rule: derive from category + title. Kept because every URL
+    published before products.slug existed was built this way, and those links
+    must keep resolving forever."""
     title = product.get("title") or ""
     category = product.get("category") or ""
     base = title if category.lower() in title.lower() else f"{category} {title}"
     return slugify(base)
+
+
+def product_slug(product):
+    """The canonical slug. Once products.slug is populated (see
+    supabase/schema_product_slug.sql) a product's URL is fixed at creation and
+    survives any retitle. Falls back to the derived rule when the column is
+    absent, so this is safe before that migration."""
+    stored = product.get("slug")
+    stored = stored.strip() if isinstance(stored, str) else ""
+    return stored or derived_slug(product)
+
+
+def matches_slug(product, slug):
+    """A product answers to its canonical slug AND its derived one, so a URL
+    shared before a rename still lands on the right product instead of 404ing."""
+    if not slug:
+        return False
+    return slug in (product_slug(product), derived_slug(product))
 
 
 def product_url(product):

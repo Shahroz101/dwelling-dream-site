@@ -261,6 +261,7 @@ function rowToProduct(row) {
   return {
     id: row.id,
     sku: row.sku,
+    slug: row.slug || null,
     title: row.title,
     description: row.description,
     category: row.category,
@@ -294,7 +295,7 @@ function resolveProductForQuery(searchParams, products) {
   const productId = searchParams.get('id') || searchParams.get('sku') || '';
 
   if (slug) {
-    const match = products.find(p => productSlug(p) === slug);
+    const match = products.find(p => productFeed.matchesSlug(p, slug));
     return { product: match || null, status: match ? 'found' : 'not_found' };
   }
   if (productId) {
@@ -358,6 +359,21 @@ async function getProductById(productId) {
   return rows[0] ? rowToProduct(rows[0]) : null;
 }
 
+// products.slug may not exist yet (see supabase/schema_product_slug.sql), and
+// PostgREST rejects an insert naming an unknown column - so probe once and
+// remember. Until the migration runs, slugs stay derived and nothing breaks.
+let slugColumnSupported = null;
+async function supportsSlugColumn() {
+  if (slugColumnSupported !== null) return slugColumnSupported;
+  try {
+    await supabaseRequest('products?select=slug&limit=1');
+    slugColumnSupported = true;
+  } catch (error) {
+    slugColumnSupported = false;
+  }
+  return slugColumnSupported;
+}
+
 async function insertProduct(product) {
   const row = {
     id: product.id,
@@ -371,6 +387,8 @@ async function insertProduct(product) {
     created_at: product.createdAt,
     updated_at: product.createdAt
   };
+  // Set once, at creation, so a later retitle cannot move the product's URL.
+  if (await supportsSlugColumn()) row.slug = productFeed.derivedSlug(product);
   const rows = await supabaseRequest('products', { method: 'POST', body: row });
   return rowToProduct(rows[0]);
 }

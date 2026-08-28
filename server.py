@@ -261,6 +261,7 @@ def row_to_product(row):
     return {
         "id": row["id"],
         "sku": row["sku"],
+        "slug": row.get("slug") or None,
         "title": row["title"],
         "description": row["description"],
         "category": row["category"],
@@ -288,6 +289,7 @@ import product_feed
 SITE_ORIGIN = product_feed.SITE_ORIGIN
 slugify = product_feed.slugify
 product_slug = product_feed.product_slug
+derived_slug = product_feed.derived_slug
 
 
 def resolve_product_for_query(query, products):
@@ -301,7 +303,7 @@ def resolve_product_for_query(query, products):
 
     if slug:
         for product in products:
-            if product_slug(product) == slug:
+            if product_feed.matches_slug(product, slug):
                 return product, "found"
         return None, "not_found"
 
