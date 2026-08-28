@@ -1,4 +1,4 @@
-# Google Merchant Center feed
+# Product feeds - Google Merchant Center & Pinterest
 
 Supabase is the only place product data lives. The website, the Product JSON-LD
 on each product page, the sitemap and the Google Merchant Center feed are all
@@ -10,19 +10,29 @@ Supabase products table
         +-- /api/products ........... the website (client-rendered)
         +-- Product JSON-LD ......... injected into product page HTML server-side
         +-- /api/google-shopping-feed  Google Merchant Center
+        +-- /api/pinterest-feed ..... Pinterest catalogs
         +-- /sitemap.xml ............ search engines
 ```
 
-## The endpoint
+## The endpoints
 
-**https://dwellingdream.shop/api/google-shopping-feed**
+**Google:** https://dwellingdream.shop/api/google-shopping-feed
+**Pinterest:** https://dwellingdream.shop/api/pinterest-feed
 
 - RSS 2.0 with the `xmlns:g="http://base.google.com/ns/1.0"` namespace
 - `Content-Type: application/xml; charset=utf-8`
 - Cached 30 minutes (`max-age=1800`)
 - Public and read-only. It contains only what already appears on the product
   pages; the Supabase service key never leaves the server.
-- Suitable for Merchant Center's scheduled URL fetch.
+- Suitable for Merchant Center's scheduled URL fetch and Pinterest's daily
+  data-source ingestion.
+
+Both are built from the same rows by the same code and differ in exactly one
+field: **availability**. Google wants `in_stock` / `out_of_stock`; Pinterest
+wants `in stock` / `out of stock`. Pinterest also has no use for
+`identifier_exists`, so it is omitted there. Everything else - id, title,
+description, link, images, price, brand, condition, mpn, product_type - is
+byte-identical, so the two catalogs can never disagree about a product.
 
 If Supabase is unreachable the endpoint returns **503**, never an empty feed.
 That is deliberate: Google reads an empty feed as "delist everything".
@@ -166,6 +176,22 @@ Google's own tools:
   structured data without executing JavaScript.
 - A URL whose slug matches no product gets the generic page and **no** JSON-LD,
   rather than another product's data.
+
+## Pinterest setup
+
+1. Pinterest Business account -> **Catalogs** -> add a data source.
+2. Choose the hosted-file / URL option and paste:
+   `https://dwellingdream.shop/api/pinterest-feed`
+3. Format is **XML (RSS)**; set currency **USD** and your country.
+4. Pinterest ingests once daily - no scheduling to configure beyond that.
+5. Claim the domain first (the `p:domain_verify` tag is already in the
+   homepage `<head>`), otherwise the catalog will not publish.
+6. Pinterest requires the same policy pages Google does: refund/returns policy
+   and contact details on the site.
+
+Pinterest reports per-item problems under Catalogs -> Diagnostics. Since the
+feed is generated from Supabase, fixes are made to the product row, not to a
+file - the next daily ingestion picks them up.
 
 ## Manual Merchant Center setup
 

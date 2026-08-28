@@ -115,8 +115,12 @@ async function main() {
   }
 
   if (target) {
-    const url = `${target.replace(/\/$/, '')}/api/google-shopping-feed`;
-    console.log(`\nFetching live endpoint ${url}`);
+   for (const [catalog, route, expectedAvailability] of [
+     ['Google', '/api/google-shopping-feed', 'in_stock'],
+     ['Pinterest', '/api/pinterest-feed', 'in stock']
+   ]) {
+    const url = `${target.replace(/\/$/, '')}${route}`;
+    console.log(`\n${catalog}: fetching ${url}`);
     try {
       const res = await fetch(url);
       const body = await res.text();
@@ -145,10 +149,22 @@ async function main() {
       const httpUrls = [...body.matchAll(/<(?:link|g:image_link)>(http:\/\/[^<]+)</g)];
       if (httpUrls.length) { failed = true; console.log(`  x ${httpUrls.length} non-HTTPS URL(s)`); }
       else console.log('  all URLs HTTPS');
+
+      // Each catalog spells availability differently; sending the wrong one
+      // gets every item rejected.
+      const availabilities = [...new Set([...body.matchAll(/<g:availability>([^<]+)</g)].map(m => m[1]))];
+      const wrong = availabilities.filter(a => a !== expectedAvailability && a !== expectedAvailability.replace('in', 'out of'));
+      if (availabilities.length && !availabilities.includes(expectedAvailability)) {
+        failed = true;
+        console.log(`  x availability is ${JSON.stringify(availabilities)}, ${catalog} expects "${expectedAvailability}"`);
+      } else {
+        console.log(`  availability "${expectedAvailability}" correct for ${catalog}`);
+      }
     } catch (error) {
       failed = true;
       console.log(`  x could not fetch: ${error.message}`);
     }
+   }
   }
 
   console.log(failed ? '\nFAILED' : '\nPASSED');

@@ -770,7 +770,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         # Google Merchant Center scheduled fetch target. Public and read-only:
         # it exposes only what already appears on the product pages, and the
         # Supabase service key never leaves this process.
-        if path == "/api/google-shopping-feed":
+        if path in ("/api/google-shopping-feed", "/api/pinterest-feed"):
             try:
                 products = read_products()
             except Exception as exc:
@@ -786,7 +786,8 @@ class AdminHandler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
                 return
 
-            body = product_feed.build_feed_xml(products).encode("utf-8")
+            dialect = "pinterest" if path == "/api/pinterest-feed" else "google"
+            body = product_feed.build_feed_xml(products, dialect=dialect).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/xml; charset=utf-8")
             self.send_header("Cache-Control", "public, max-age=1800")

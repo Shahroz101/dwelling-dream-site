@@ -146,7 +146,12 @@ def feed_item(product):
     }
 
 
-def build_feed_xml(products, generated_at=None):
+# Pinterest ingests the same RSS + g: namespace shape as Google, but spells
+# availability with a space ("in stock") rather than an underscore.
+PINTEREST_AVAILABILITY = {"in_stock": "in stock", "out_of_stock": "out of stock"}
+
+
+def build_feed_xml(products, generated_at=None, dialect="google"):
     from email.utils import format_datetime
     from datetime import datetime, timezone
 
@@ -156,6 +161,8 @@ def build_feed_xml(products, generated_at=None):
         if not is_listable(product):
             continue
         item = feed_item(product)
+        pinterest = dialect == "pinterest"
+        availability = PINTEREST_AVAILABILITY.get(item["availability"], item["availability"]) if pinterest else item["availability"]
         lines = [
             f"      <g:id>{escape_xml(item['id'])}</g:id>",
             f"      <title>{escape_xml(item['title'])}</title>",
@@ -166,12 +173,13 @@ def build_feed_xml(products, generated_at=None):
         lines += [f"      <g:additional_image_link>{escape_xml(u)}</g:additional_image_link>"
                   for u in item["additional_image_link"]]
         lines += [
-            f"      <g:availability>{escape_xml(item['availability'])}</g:availability>",
+            f"      <g:availability>{escape_xml(availability)}</g:availability>",
             f"      <g:price>{escape_xml(item['price'])}</g:price>",
             f"      <g:brand>{escape_xml(item['brand'])}</g:brand>",
             f"      <g:condition>{escape_xml(item['condition'])}</g:condition>",
-            f"      <g:identifier_exists>{escape_xml(item['identifier_exists'])}</g:identifier_exists>",
         ]
+        if not pinterest:
+            lines.append(f"      <g:identifier_exists>{escape_xml(item['identifier_exists'])}</g:identifier_exists>")
         if item["mpn"]:
             lines.append(f"      <g:mpn>{escape_xml(item['mpn'])}</g:mpn>")
         if item["google_product_category"]:
@@ -310,6 +318,7 @@ ROBOTS_TXT = "\n".join([
     # Longest-match wins, so this re-permits the Merchant Center feed that the
     # broader /api/ rule would otherwise cover.
     "Allow: /api/google-shopping-feed",
+    "Allow: /api/pinterest-feed",
     "",
     f"Sitemap: {SITE_ORIGIN}/sitemap.xml",
     "",

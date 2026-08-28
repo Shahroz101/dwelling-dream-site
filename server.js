@@ -1368,7 +1368,7 @@ const server = http.createServer(async (req, res) => {
   // Google Merchant Center scheduled fetch target. Public and read-only: it
   // exposes only what already appears on the product pages, and the Supabase
   // service key never leaves this process.
-  if (reqPath === '/api/google-shopping-feed') {
+  if (reqPath === '/api/google-shopping-feed' || reqPath === '/api/pinterest-feed') {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       sendJson(res, 405, { success: false, message: 'Method not allowed.' });
       return;
@@ -1384,7 +1384,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const xml = productFeed.buildFeedXml(products);
+    const dialect = reqPath === '/api/pinterest-feed' ? 'pinterest' : 'google';
+    const xml = productFeed.buildFeedXml(products, { dialect });
     res.writeHead(200, {
       'Content-Type': 'application/xml; charset=utf-8',
       'Cache-Control': 'public, max-age=1800',
@@ -1434,6 +1435,7 @@ const server = http.createServer(async (req, res) => {
       // Longest-match wins, so this re-permits the Merchant Center feed that
       // the broader /api/ rule would otherwise cover.
       'Allow: /api/google-shopping-feed',
+      'Allow: /api/pinterest-feed',
       '',
       `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
       ''
