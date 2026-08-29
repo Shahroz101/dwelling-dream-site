@@ -71,23 +71,46 @@ sends `g:identifier_exists = no` and identifies items by brand + `g:mpn` (SKU).
 
 ### Google product category
 
-`g:google_product_category` is **deliberately unset**. It is optional, Google
-auto-classifies when it is absent, and a confidently-wrong category is worse
-than none. To set one, edit the map in **both**:
+Set to **`Media > Books > E-books`** (taxonomy id 543542) for every internal
+category.
+
+Two earlier attempts were rejected by Merchant Center diagnostics, which is
+worth knowing before changing it:
+
+- *unset* -> warning 157, "missing values may limit visibility"
+- `Home & Garden > Decor` -> warning 126, only two levels deep. None of Decor's
+  children fit either; they are all physical objects (artwork, clocks, baskets).
+
+`Media > Books > E-books` is three levels deep and is also the more honest
+description: these are 100+ page downloadable PDFs.
+
+The value must be a **verbatim** path from Google's published taxonomy. An
+unrecognised path is a hard error, not a warning. Check any replacement against
+the official file before shipping it:
+
+```bash
+curl -s https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt \
+  | grep -F "Media > Books > E-books"
+```
+
+To change it, edit the map in **both**:
 
 - `lib/product-feed.js` → `GOOGLE_PRODUCT_CATEGORY`
 - `lib/product_feed.py` → `GOOGLE_PRODUCT_CATEGORY`
 
+All three internal categories currently share one value via
+`DEFAULT_GOOGLE_PRODUCT_CATEGORY`. To give a category its own value, set it
+explicitly:
+
 ```js
 const GOOGLE_PRODUCT_CATEGORY = {
-  'Behr': 'Home & Garden > Decor',
-  'Sherwin Williams': 'Home & Garden > Decor',
-  'Benjamin Moore': 'Home & Garden > Decor'
+  'Behr': DEFAULT_GOOGLE_PRODUCT_CATEGORY,
+  'Sherwin Williams': 'Media > Books > E-books',
+  'Benjamin Moore': DEFAULT_GOOGLE_PRODUCT_CATEGORY
 };
 ```
 
-Values must come from Google's official taxonomy:
-https://support.google.com/merchants/answer/6324436
+Taxonomy reference: https://support.google.com/merchants/answer/6324436
 
 ## Everyday tasks
 

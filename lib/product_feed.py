@@ -27,11 +27,16 @@ BRAND = "Dwelling Dream"
 # Deliberately empty: google_product_category is optional, Google auto-classifies
 # when absent, and a confidently-wrong category is worse than none. Add an
 # internal category here to override, e.g. {"Behr": "Home & Garden > Decor"}.
-# Google warned that missing values limit visibility in recommendations and
-# shopping surfaces. Google's taxonomy has no entry for "digital paint palette
-# guide"; Decor is the closest honest fit for a home-colour lookbook. Must be a
-# verbatim path from https://support.google.com/merchants/answer/6324436
-DEFAULT_GOOGLE_PRODUCT_CATEGORY = "Home & Garden > Decor"
+# Verbatim path from Google's published taxonomy (id 543542,
+# taxonomy-with-ids.en-US.txt, version 2021-09-21). Must stay verbatim - an
+# unrecognised path is a hard error, not a warning.
+#
+# "Home & Garden > Decor" was tried first but Google flagged it as only two
+# levels deep (warning 126), and none of Decor's children fit: they are all
+# physical objects. These products are 100+ page downloadable PDFs, so E-books
+# is both three levels deep and the more honest description.
+# https://support.google.com/merchants/answer/6324436
+DEFAULT_GOOGLE_PRODUCT_CATEGORY = "Media > Books > E-books"
 GOOGLE_PRODUCT_CATEGORY = {
     "Behr": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
     "Sherwin Williams": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
