@@ -165,6 +165,7 @@ def feed_item(product):
         "additional_image_link": images[1:5],
         "availability": availability_of(product),
         "price": f"{price_amount(product)} {currency_of(product)}",
+        "currency": currency_of(product),
         "brand": BRAND,
         "condition": "new",
         # No GTIN/UPC/EAN exists for these and inventing one is a policy
@@ -176,9 +177,18 @@ def feed_item(product):
     }
 
 
-# Pinterest ingests the same RSS + g: namespace shape as Google, but spells
-# availability with a space ("in stock") rather than an underscore.
-PINTEREST_AVAILABILITY = {"in_stock": "in stock", "out_of_stock": "out of stock"}
+# Pinterest ingests the same RSS + g: namespace shape as Google but spells
+# several values differently. Taken from Pinterest's own sample feed:
+#   availability      "In Stock"      (Google: in_stock)
+#   condition         "New"           (Google: new)
+#   identifier_exists "FALSE"         (Google: no)
+# Sending Google's spellings to Pinterest gets items rejected.
+PINTEREST_AVAILABILITY = {"in_stock": "In Stock", "out_of_stock": "Out of Stock"}
+
+# Nothing is ever shipped - these are downloads - so a zero shipping cost is
+# truthful. g:tax is deliberately NOT emitted: US sales tax on digital goods
+# varies by state and asserting a rate would be inventing data.
+PINTEREST_SHIPPING_COUNTRY = "US"
 
 
 def build_feed_xml(products, generated_at=None, dialect="google"):
@@ -186,35 +196,45 @@ def build_feed_xml(products, generated_at=None, dialect="google"):
     from datetime import datetime, timezone
 
     generated_at = generated_at or datetime.now(timezone.utc)
+    pinterest = dialect == "pinterest"
     blocks = []
+
     for product in products:
         if not is_listable(product):
             continue
         item = feed_item(product)
-        pinterest = dialect == "pinterest"
-        availability = PINTEREST_AVAILABILITY.get(item["availability"], item["availability"]) if pinterest else item["availability"]
-        lines = [
-            f"      <g:id>{escape_xml(item['id'])}</g:id>",
-            f"      <title>{escape_xml(item['title'])}</title>",
-            f"      <description>{escape_xml(item['description'])}</description>",
-            f"      <link>{escape_xml(item['link'])}</link>",
-            f"      <g:image_link>{escape_xml(item['image_link'])}</g:image_link>",
-        ]
-        lines += [f"      <g:additional_image_link>{escape_xml(u)}</g:additional_image_link>"
-                  for u in item["additional_image_link"]]
-        lines += [
-            f"      <g:availability>{escape_xml(availability)}</g:availability>",
-            f"      <g:price>{escape_xml(item['price'])}</g:price>",
-            f"      <g:brand>{escape_xml(item['brand'])}</g:brand>",
-            f"      <g:condition>{escape_xml(item['condition'])}</g:condition>",
-        ]
-        if not pinterest:
-            lines.append(f"      <g:identifier_exists>{escape_xml(item['identifier_exists'])}</g:identifier_exists>")
-        if item["mpn"]:
-            lines.append(f"      <g:mpn>{escape_xml(item['mpn'])}</g:mpn>")
+        lines = []
+
+        def push(tag, value):
+            lines.append(f"      <{tag}>{escape_xml(value)}</{tag}>")
+
+        push("g:id", item["id"])
+        push("title", item["title"])
+        push("description", item["description"])
+        push("g:product_type", item["product_type"])
         if item["google_product_category"]:
-            lines.append(f"      <g:google_product_category>{escape_xml(item['google_product_category'])}</g:google_product_category>")
-        lines.append(f"      <g:product_type>{escape_xml(item['product_type'])}</g:product_type>")
+            push("g:google_product_category", item["google_product_category"])
+        push("link", item["link"])
+        push("g:image_link", item["image_link"])
+        push("g:condition", "New" if pinterest else item["condition"])
+        push("g:availability",
+             PINTEREST_AVAILABILITY.get(item["availability"], item["availability"])
+             if pinterest else item["availability"])
+        push("g:price", item["price"])
+        if item["mpn"]:
+            push("g:mpn", item["mpn"])
+        push("g:brand", item["brand"])
+
+        if pinterest:
+            lines.append("      <g:shipping>")
+            lines.append(f"          <g:country>{escape_xml(PINTEREST_SHIPPING_COUNTRY)}</g:country>")
+            lines.append(f"          <g:price>0 {escape_xml(item['currency'])}</g:price>")
+            lines.append("      </g:shipping>")
+
+        push("g:identifier_exists", "FALSE" if pinterest else item["identifier_exists"])
+        for url in item["additional_image_link"]:
+            push("g:additional_image_link", url)
+
         blocks.append("    <item>\n" + "\n".join(lines) + "\n    </item>")
 
     return (

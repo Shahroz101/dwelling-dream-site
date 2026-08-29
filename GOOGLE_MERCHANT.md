@@ -27,12 +27,25 @@ Supabase products table
 - Suitable for Merchant Center's scheduled URL fetch and Pinterest's daily
   data-source ingestion.
 
-Both are built from the same rows by the same code and differ in exactly one
-field: **availability**. Google wants `in_stock` / `out_of_stock`; Pinterest
-wants `in stock` / `out of stock`. Pinterest also has no use for
-`identifier_exists`, so it is omitted there. Everything else - id, title,
-description, link, images, price, brand, condition, mpn, product_type - is
-byte-identical, so the two catalogs can never disagree about a product.
+Both are built from the same product rows by the same code, but written out in
+each platform's own dialect. The values below come from each platform's
+published sample feed - sending the wrong spelling gets items rejected:
+
+| Field | Google | Pinterest |
+|---|---|---|
+| `g:availability` | `in_stock` / `out_of_stock` | `In Stock` / `Out of Stock` |
+| `g:condition` | `new` | `New` |
+| `g:identifier_exists` | `no` | `FALSE` |
+| `g:shipping` | omitted | `US`, `0 USD` |
+
+Everything else - id, title, description, link, images, price, brand, mpn,
+product_type, google_product_category - is identical, so the two catalogs can
+never disagree about a product.
+
+`g:shipping` is `0` because nothing is ever shipped. **`g:tax` is deliberately
+not emitted**: US sales tax on digital goods varies by state, and asserting a
+rate would be inventing data. Add it in `buildFeedXml` only once you know the
+rate you are actually obliged to charge.
 
 If Supabase is unreachable the endpoint returns **503**, never an empty feed.
 That is deliberate: Google reads an empty feed as "delist everything".

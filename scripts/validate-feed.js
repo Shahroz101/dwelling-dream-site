@@ -115,9 +115,11 @@ async function main() {
   }
 
   if (target) {
-   for (const [catalog, route, expectedAvailability] of [
-     ['Google', '/api/google-shopping-feed', 'in_stock'],
-     ['Pinterest', '/api/pinterest-feed', 'in stock']
+   for (const [catalog, route, expectedAvailability, expectedCondition, expectedIdentifier] of [
+     // Each platform's own spelling, taken from their published sample feeds.
+     // Sending the other one gets every item rejected.
+     ['Google', '/api/google-shopping-feed', 'in_stock', 'new', 'no'],
+     ['Pinterest', '/api/pinterest-feed', 'In Stock', 'New', 'FALSE']
    ]) {
     const url = `${target.replace(/\/$/, '')}${route}`;
     console.log(`\n${catalog}: fetching ${url}`);
@@ -159,6 +161,19 @@ async function main() {
         console.log(`  x availability is ${JSON.stringify(availabilities)}, ${catalog} expects "${expectedAvailability}"`);
       } else {
         console.log(`  availability "${expectedAvailability}" correct for ${catalog}`);
+      }
+
+      for (const [label, expected, re] of [
+        ['condition', expectedCondition, /<g:condition>([^<]+)</g],
+        ['identifier_exists', expectedIdentifier, /<g:identifier_exists>([^<]+)</g]
+      ]) {
+        const found = [...new Set([...body.matchAll(re)].map(m => m[1]))];
+        if (found.length && !found.includes(expected)) {
+          failed = true;
+          console.log(`  x ${label} is ${JSON.stringify(found)}, ${catalog} expects "${expected}"`);
+        } else {
+          console.log(`  ${label} "${expected}" correct for ${catalog}`);
+        }
       }
     } catch (error) {
       failed = true;
