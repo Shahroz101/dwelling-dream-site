@@ -186,9 +186,17 @@ def feed_item(product):
 PINTEREST_AVAILABILITY = {"in_stock": "In Stock", "out_of_stock": "Out of Stock"}
 
 # Nothing is ever shipped - these are downloads - so a zero shipping cost is
-# truthful. g:tax is deliberately NOT emitted: US sales tax on digital goods
-# varies by state and asserting a rate would be inventing data.
+# truthful.
 PINTEREST_SHIPPING_COUNTRY = "US"
+
+# g:tax tells Pinterest how much tax to ADD on top of the advertised price. The
+# store prices tax-inclusive - $16.00 is what the buyer pays - so the amount
+# added at checkout is genuinely zero. Rate 0 means "nothing is added to the
+# shown price", NOT "this product is exempt"; it says nothing about what the
+# seller owes and remits. If the store ever adds tax at checkout, this must
+# change at the same time or Pinterest will advertise a price lower than
+# buyers are charged.
+PINTEREST_TAX = {"country": "US", "rate": 0, "tax_ship": "n"}
 
 
 def build_feed_xml(products, generated_at=None, dialect="google"):
@@ -226,6 +234,11 @@ def build_feed_xml(products, generated_at=None, dialect="google"):
         push("g:brand", item["brand"])
 
         if pinterest:
+            lines.append("      <g:tax>")
+            lines.append(f"          <g:country>{escape_xml(PINTEREST_TAX['country'])}</g:country>")
+            lines.append(f"          <g:rate>{escape_xml(PINTEREST_TAX['rate'])}</g:rate>")
+            lines.append(f"          <g:tax_ship>{escape_xml(PINTEREST_TAX['tax_ship'])}</g:tax_ship>")
+            lines.append("      </g:tax>")
             lines.append("      <g:shipping>")
             lines.append(f"          <g:country>{escape_xml(PINTEREST_SHIPPING_COUNTRY)}</g:country>")
             lines.append(f"          <g:price>0 {escape_xml(item['currency'])}</g:price>")

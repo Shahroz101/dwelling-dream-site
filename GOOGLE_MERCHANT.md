@@ -37,15 +37,29 @@ published sample feed - sending the wrong spelling gets items rejected:
 | `g:condition` | `new` | `New` |
 | `g:identifier_exists` | `no` | `FALSE` |
 | `g:shipping` | omitted | `US`, `0 USD` |
+| `g:tax` | omitted | `US`, rate `0`, `tax_ship n` |
 
 Everything else - id, title, description, link, images, price, brand, mpn,
 product_type, google_product_category - is identical, so the two catalogs can
 never disagree about a product.
 
-`g:shipping` is `0` because nothing is ever shipped. **`g:tax` is deliberately
-not emitted**: US sales tax on digital goods varies by state, and asserting a
-rate would be inventing data. Add it in `buildFeedXml` only once you know the
-rate you are actually obliged to charge.
+`g:shipping` is `0` because nothing is ever shipped.
+
+**`g:tax` rate is `0` because the store prices tax-inclusive.** That field tells
+Pinterest how much tax to *add on top of* the advertised price; since $16.00 is
+exactly what the buyer pays, the amount added is zero. Rate `0` means "nothing
+is added to the shown price" - it is **not** a claim that the product is
+exempt, and it says nothing about what you owe or remit.
+
+Google is not sent a tax attribute at all: it is US-only there, and Google
+prefers account-level tax settings (Merchant Center -> Settings -> Sales tax)
+over per-item values. Everywhere outside the US Google requires feed prices to
+be tax-inclusive, which they already are.
+
+**If the store ever starts adding tax at checkout, `PINTEREST_TAX` must change
+in the same release** - otherwise Pinterest advertises a price lower than
+buyers are actually charged, which is a policy violation. It lives in
+`lib/product-feed.js` and `lib/product_feed.py`.
 
 If Supabase is unreachable the endpoint returns **503**, never an empty feed.
 That is deliberate: Google reads an empty feed as "delist everything".
