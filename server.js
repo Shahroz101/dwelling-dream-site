@@ -1400,7 +1400,11 @@ const server = http.createServer(async (req, res) => {
   // Google Merchant Center scheduled fetch target. Public and read-only: it
   // exposes only what already appears on the product pages, and the Supabase
   // service key never leaves this process.
-  if (reqPath === '/api/google-shopping-feed' || reqPath === '/api/pinterest-feed') {
+  // Also answers on /google-shopping-feed.xml and /pinterest-feed.xml. Some
+  // feed ingesters key off a recognised file extension, and an extensionless
+  // /api/ path gives them nothing to go on.
+  if (['/api/google-shopping-feed', '/api/pinterest-feed',
+       '/google-shopping-feed.xml', '/pinterest-feed.xml'].includes(reqPath)) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       sendJson(res, 405, { success: false, message: 'Method not allowed.' });
       return;
@@ -1416,12 +1420,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const dialect = reqPath === '/api/pinterest-feed' ? 'pinterest' : 'google';
+    const dialect = reqPath.includes('pinterest') ? 'pinterest' : 'google';
     const xml = productFeed.buildFeedXml(products, { dialect });
+    // Deliberately no X-Robots-Tag here. It previously said "noindex", which is
+    // meant to keep the XML itself out of search results - but a feed crawler
+    // that honours the header can read it as "do not use this resource" and
+    // fail the whole ingestion with no explanation.
     res.writeHead(200, {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=1800',
-      'X-Robots-Tag': 'noindex'
+      'Cache-Control': 'public, max-age=1800'
     });
     res.end(req.method === 'HEAD' ? undefined : xml);
     return;
@@ -1458,16 +1465,24 @@ const server = http.createServer(async (req, res) => {
 
   if (reqPath === '/robots.txt' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    // The Allow lines come first and the feeds are never covered by a broad
+    // Disallow. Relying on longest-match precedence was a mistake: it is a
+    // Google extension, and a crawler that reads rules in order, or ignores
+    // Allow entirely, would treat "Disallow: /api/" as blocking the feeds.
     res.end([
       'User-agent: *',
+      'Allow: /api/google-shopping-feed',
+      'Allow: /api/pinterest-feed',
+      'Allow: /google-shopping-feed.xml',
+      'Allow: /pinterest-feed.xml',
+      'Allow: /product-image/',
       'Allow: /',
       'Disallow: /admin.html',
       'Disallow: /login.html',
-      'Disallow: /api/',
-      // Longest-match wins, so this re-permits the Merchant Center feed that
-      // the broader /api/ rule would otherwise cover.
-      'Allow: /api/google-shopping-feed',
-      'Allow: /api/pinterest-feed',
+      'Disallow: /api/download',
+      'Disallow: /api/login',
+      'Disallow: /api/logout',
+      'Disallow: /api/paypal/',
       '',
       `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
       ''

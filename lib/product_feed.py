@@ -372,16 +372,24 @@ def build_sitemap_xml(products):
     )
 
 
+# The Allow lines come first and the feeds are never covered by a broad
+# Disallow. Relying on longest-match precedence was a mistake: it is a Google
+# extension, and a crawler that reads rules in order, or ignores Allow
+# entirely, would treat "Disallow: /api/" as blocking the feeds.
 ROBOTS_TXT = "\n".join([
     "User-agent: *",
+    "Allow: /api/google-shopping-feed",
+    "Allow: /api/pinterest-feed",
+    "Allow: /google-shopping-feed.xml",
+    "Allow: /pinterest-feed.xml",
+    "Allow: /product-image/",
     "Allow: /",
     "Disallow: /admin.html",
     "Disallow: /login.html",
-    "Disallow: /api/",
-    # Longest-match wins, so this re-permits the Merchant Center feed that the
-    # broader /api/ rule would otherwise cover.
-    "Allow: /api/google-shopping-feed",
-    "Allow: /api/pinterest-feed",
+    "Disallow: /api/download",
+    "Disallow: /api/login",
+    "Disallow: /api/logout",
+    "Disallow: /api/paypal/",
     "",
     f"Sitemap: {SITE_ORIGIN}/sitemap.xml",
     "",

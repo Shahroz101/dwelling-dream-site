@@ -799,7 +799,11 @@ class AdminHandler(BaseHTTPRequestHandler):
         # Google Merchant Center scheduled fetch target. Public and read-only:
         # it exposes only what already appears on the product pages, and the
         # Supabase service key never leaves this process.
-        if path in ("/api/google-shopping-feed", "/api/pinterest-feed"):
+        # Also answers on the .xml paths - some feed ingesters key off a
+        # recognised file extension, and an extensionless /api/ path gives
+        # them nothing to go on.
+        if path in ("/api/google-shopping-feed", "/api/pinterest-feed",
+                    "/google-shopping-feed.xml", "/pinterest-feed.xml"):
             try:
                 products = read_products()
             except Exception as exc:
@@ -815,12 +819,14 @@ class AdminHandler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
                 return
 
-            dialect = "pinterest" if path == "/api/pinterest-feed" else "google"
+            dialect = "pinterest" if "pinterest" in path else "google"
             body = product_feed.build_feed_xml(products, dialect=dialect).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/xml; charset=utf-8")
+            # Deliberately no X-Robots-Tag. It previously said "noindex",
+            # which a feed crawler that honours the header can read as "do not
+            # use this resource" and fail ingestion with no explanation.
             self.send_header("Cache-Control", "public, max-age=1800")
-            self.send_header("X-Robots-Tag", "noindex")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
