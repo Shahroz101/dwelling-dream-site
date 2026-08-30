@@ -754,6 +754,21 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self):
+        # www and the bare domain both served the full site with HTTP 200, so
+        # the store existed at two addresses with identical content. Everything
+        # that names a URL - canonical tags, OG tags, the sitemap, both feeds -
+        # uses the bare domain, so that is canonical and www redirects onto it.
+        # Google Merchant Center claims a specific host, and a site reachable at
+        # two is a reason for it to keep asking you to claim it.
+        host = self.headers.get("Host", "")
+        if host.lower().startswith("www."):
+            self.send_response(301)
+            self.send_header("Location", f"https://{host[4:]}{self.path}")
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
         url = urlparse(self.path)
         path = unquote(url.path)  # Decode URL-encoded characters like %20 to spaces
 

@@ -1333,6 +1333,24 @@ function handleLogout(req, res) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+
+  // www and the bare domain both served the full site with HTTP 200, so the
+  // store existed at two addresses with identical content. Everything that
+  // names a URL - canonical tags, OG tags, the sitemap, both product feeds -
+  // uses the bare domain (SITE_ORIGIN), so that is the canonical one and www
+  // is redirected onto it. Google Merchant Center claims a specific host, and
+  // a site reachable at two is a reason for it to keep asking you to claim it.
+  const requestHost = String(req.headers.host || '');
+  if (/^www\./i.test(requestHost)) {
+    const canonicalHost = requestHost.replace(/^www\./i, '');
+    res.writeHead(301, {
+      Location: `https://${canonicalHost}${req.url}`,
+      'Cache-Control': 'public, max-age=3600'
+    });
+    res.end();
+    return;
+  }
+
   // Decode %20 etc. so routes/filenames with spaces (all the "Dwelling Dream
   // *.dc.html" pages) match, mirroring server.py's unquote(url.path).
   const reqPath = decodeURIComponent(url.pathname);
