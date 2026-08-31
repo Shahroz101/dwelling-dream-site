@@ -393,6 +393,24 @@ class Component extends DCLogic {
       return params.get('id') || params.get('sku') || '';
     };
 
+    // Storefront currency comes from ?currency= in the URL, not from the
+    // visitor's IP. Google crawls the GB feed's links and must see the GBP
+    // price that the GB feed advertises; a query parameter guarantees that.
+    const CURRENCIES = { USD: { symbol: '$', field: 'price' }, GBP: { symbol: '\u00a3', field: 'priceGbp' } };
+    const activeCurrency = (() => {
+      const wanted = String(new URLSearchParams(window.location.search).get('currency') || '').toUpperCase();
+      return CURRENCIES[wanted] ? wanted : 'USD';
+    })();
+    // A product with no price in the requested currency (a new one has no GBP
+    // price until an admin sets it) falls back to USD, so the page never shows
+    // a blank price and checkout is asked for a currency it can honour.
+    const currencyFor = product => {
+      const field = CURRENCIES[activeCurrency].field;
+      return Number((product || {})[field]) > 0 ? activeCurrency : 'USD';
+    };
+    const symbolFor = product => CURRENCIES[currencyFor(product)].symbol;
+    const priceOf = product => Number((product || {})[CURRENCIES[currencyFor(product)].field] || 0);
+
     const getProductSlug = () => new URLSearchParams(window.location.search).get('slug') || '';
 
     const slugify = value => String(value || '')
@@ -539,7 +557,7 @@ class Component extends DCLogic {
       const title = product.title || 'Product';
       const description = product.description || 'No description available.';
       const category = product.category || 'Product';
-      const price = Number(product.price || 0);
+      const price = priceOf(product);
 
       document.title = `${title} — Dwelling Dream`;
       const meta = document.querySelector('meta[name="description"]');
@@ -548,7 +566,7 @@ class Component extends DCLogic {
       setText('#p-h', `${title}`);
       setText('[data-product-brand]', category);
       setText('[data-product-description]', description);
-      setText('[data-product-price]', `$${price.toFixed(2)}`);
+      setText('[data-product-price]', `${symbolFor(product)}${price.toFixed(2)}`);
       setText('[data-product-summary]', description);
       setText('[data-product-breadcrumb]', title);
 
@@ -560,7 +578,7 @@ class Component extends DCLogic {
 
       const addButtons = Array.from(document.querySelectorAll('[data-add]'));
       addButtons.forEach(button => {
-        button.textContent = `Add to cart — $${price.toFixed(2)}`;
+        button.textContent = `Add to cart — ${symbolFor(product)}${price.toFixed(2)}`;
       });
 
       updateGallery(safeImages);
@@ -667,7 +685,7 @@ class Component extends DCLogic {
     function openBuyNowModal() {
       if (!currentProduct || !buyNowModal) return;
       setText('[data-buy-now-title]', currentProduct.title || 'Product');
-      setText('[data-buy-now-price]', `$${Number(currentProduct.price || 0).toFixed(2)}`);
+      setText('[data-buy-now-price]', `${symbolFor(currentProduct)}${priceOf(currentProduct).toFixed(2)}`);
       buyNowModal.style.display = 'flex';
       renderBuyNowPaypal();
     }
@@ -694,7 +712,7 @@ class Component extends DCLogic {
 
       let paypal;
       try {
-        paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'USD');
+        paypal = await loadPaypalSdk(config.paypalClientId, currencyFor(currentProduct));
       } catch (error) {
         showBuyNowMessage('Unable to load PayPal. Please check your connection.', { retry: true });
         return;
@@ -716,7 +734,7 @@ class Component extends DCLogic {
             response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/create-order'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: [{ id: product.id, qty: 1 }] })
+              body: JSON.stringify({ items: [{ id: product.id, qty: 1 }], currency: currencyFor(product) })
             });
           } catch (error) {
             showBuyNowMessage('Network error - please check your connection and try again.');

@@ -58,6 +58,33 @@ def public_image_url(url):
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1F\x7F]")
 
+# Supported storefront currencies. The UK gets a separate fixed GBP price
+# rather than a converted one, because Google requires the feed price to equal
+# the landing-page price and a live exchange rate cannot guarantee that.
+CURRENCIES = {
+    "USD": {"code": "USD", "symbol": "$", "field": "price", "country": "US"},
+    "GBP": {"code": "GBP", "symbol": "£", "field": "priceGbp", "country": "GB"},
+}
+DEFAULT_CURRENCY = "USD"
+
+
+def currency_config(code):
+    return CURRENCIES.get(str(code or "").upper(), CURRENCIES[DEFAULT_CURRENCY])
+
+
+def price_in(product, code):
+    """Amount in a currency, or None when the product has no price in it.
+
+    None means exclude from that country's feed - never fall back to USD,
+    which would advertise a price the checkout would not honour.
+    """
+    cfg = currency_config(code)
+    try:
+        value = float(product.get(cfg["field"]))
+    except (TypeError, ValueError):
+        return None
+    return f"{value:.2f}" if value > 0 else None
+
 
 def slugify(value):
     text = re.sub(r"[^a-z0-9]+", "-", str(value or "").lower().strip())
@@ -92,8 +119,13 @@ def matches_slug(product, slug):
     return slug in (product_slug(product), derived_slug(product))
 
 
-def product_url(product):
-    return f"{SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug={product_slug(product)}"
+def product_url(product, code=None):
+    """Currency is carried in the URL rather than guessed from the visitor's
+    IP: Google crawls the GB feed's links from the UK and must see the GBP
+    price that feed advertises. A query parameter guarantees that."""
+    base = f"{SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug={product_slug(product)}"
+    cfg = currency_config(code)
+    return base if cfg["code"] == DEFAULT_CURRENCY else f"{base}&currency={cfg['code']}"
 
 
 def product_images(product):
@@ -122,14 +154,17 @@ def availability_of(product):
     return "out_of_stock" if product.get("active") is False else "in_stock"
 
 
-def is_listable(product):
+def is_listable(product, code=None):
+    """`code` is the storefront currency the listing is for. A product with no
+    price in that currency is not listable there."""
+    code = code or DEFAULT_CURRENCY
     return bool(
         product
         and product.get("active") is not False
         and product.get("id")
         and (product.get("title") or "").strip()
         and (product.get("description") or "").strip()
-        and price_amount(product)
+        and price_in(product, code)
         and product_images(product)
     )
 
@@ -154,19 +189,21 @@ def clean_text(value, max_length=None):
     return text
 
 
-def feed_item(product):
+def feed_item(product, code=None):
     images = product_images(product)
     category = product.get("category")
+    cfg = currency_config(code)
     return {
         "id": str(product.get("id")),
         "title": clean_text(product.get("title"), 150),
         "description": clean_text(product.get("description"), 5000),
-        "link": product_url(product),
+        "link": product_url(product, cfg["code"]),
         "image_link": images[0] if images else None,
         "additional_image_link": images[1:5],
         "availability": availability_of(product),
-        "price": f"{price_amount(product)} {currency_of(product)}",
-        "currency": currency_of(product),
+        "price": f"{price_in(product, cfg['code'])} {cfg['code']}",
+        "currency": cfg["code"],
+        "shippingCountry": cfg["country"],
         "brand": BRAND,
         "condition": "new",
         # No GTIN/UPC/EAN exists for these and inventing one is a policy
@@ -207,18 +244,19 @@ PINTEREST_SHIPPING_COUNTRY = "US"
 PINTEREST_TAX = {"country": "US", "rate": 0, "tax_ship": "n"}
 
 
-def build_feed_xml(products, generated_at=None, dialect="google"):
+def build_feed_xml(products, generated_at=None, dialect="google", currency=None):
     from email.utils import format_datetime
     from datetime import datetime, timezone
 
     generated_at = generated_at or datetime.now(timezone.utc)
     pinterest = dialect == "pinterest"
+    cfg = currency_config(currency)
     blocks = []
 
     for product in products:
-        if not is_listable(product):
+        if not is_listable(product, cfg["code"]):
             continue
-        item = feed_item(product)
+        item = feed_item(product, cfg["code"])
         lines = []
 
         def push(tag, value):
@@ -242,11 +280,13 @@ def build_feed_xml(products, generated_at=None, dialect="google"):
         push("g:brand", item["brand"])
 
         if not pinterest:
-            for country in SHIPPING_COUNTRIES:
-                lines.append("      <g:shipping>")
-                lines.append(f"          <g:country>{escape_xml(country)}</g:country>")
-                lines.append(f"          <g:price>0 {escape_xml(item['currency'])}</g:price>")
-                lines.append("      </g:shipping>")
+            # One country per feed: a GBP feed ships to GB, a USD feed to US.
+            # Mixing them would advertise a price in the wrong currency for a
+            # country, which Google rejects.
+            lines.append("      <g:shipping>")
+            lines.append(f"          <g:country>{escape_xml(item['shippingCountry'])}</g:country>")
+            lines.append(f"          <g:price>0 {escape_xml(item['currency'])}</g:price>")
+            lines.append("      </g:shipping>")
 
         if pinterest:
             lines.append("      <g:tax>")
@@ -278,25 +318,36 @@ def build_feed_xml(products, generated_at=None, dialect="google"):
     )
 
 
-def product_json_ld(product):
-    """Mirrors feed_item() field for field so page and feed cannot disagree."""
+def effective_currency(product, code):
+    """A product may have no price in the requested currency - a new one has no
+    GBP price until an admin sets it. Pages fall back to the default currency
+    rather than rendering a null price. Feeds do NOT fall back: they drop the
+    item, so nothing is advertised in a currency checkout would refuse."""
+    cfg = currency_config(code)
+    return cfg["code"] if price_in(product, cfg["code"]) else DEFAULT_CURRENCY
+
+
+def product_json_ld(product, code=None):
+    """Mirrors feed_item() field for field so page and feed cannot disagree,
+    including the currency the page is currently rendering."""
     images = product_images(product)
+    cfg = currency_config(effective_currency(product, code))
     schema = {
         "@context": "https://schema.org",
         "@type": "Product",
         "name": clean_text(product.get("title"), 150),
         "description": clean_text(product.get("description"), 5000),
         "image": images[:10],
-        "url": product_url(product),
+        "url": product_url(product, cfg["code"]),
         "brand": {"@type": "Brand", "name": BRAND},
         "offers": {
             "@type": "Offer",
-            "price": price_amount(product),
-            "priceCurrency": currency_of(product),
+            "price": price_in(product, cfg["code"]),
+            "priceCurrency": cfg["code"],
             "availability": "https://schema.org/InStock"
             if availability_of(product) == "in_stock"
             else "https://schema.org/OutOfStock",
-            "url": product_url(product),
+            "url": product_url(product, cfg["code"]),
             "itemCondition": "https://schema.org/NewCondition",
         },
     }
@@ -307,9 +358,9 @@ def product_json_ld(product):
     return schema
 
 
-def product_json_ld_script(product):
+def product_json_ld_script(product, code=None):
     """`</` is escaped so a description containing "</script>" cannot break out."""
-    payload = json.dumps(product_json_ld(product), ensure_ascii=False).replace("<", "\\u003c")
+    payload = json.dumps(product_json_ld(product, code), ensure_ascii=False).replace("<", "\\u003c")
     return f'<script type="application/ld+json">{payload}</script>\n'
 
 

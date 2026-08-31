@@ -266,6 +266,7 @@ function rowToProduct(row) {
     description: row.description,
     category: row.category,
     price: Number(row.price),
+    priceGbp: row.price_gbp === null || row.price_gbp === undefined ? null : Number(row.price_gbp),
     currency: row.currency || ORDER_CURRENCY,
     active: row.active !== undefined ? Boolean(row.active) : true,
     images: row.images || [],
@@ -309,7 +310,7 @@ function resolveProductForQuery(searchParams, products) {
 // resolved product - fixes the bug where crawlers, ad-quality bots and
 // social previews (none of which reliably wait for the client-side fetch)
 // saw one hardcoded product's data regardless of the URL's slug.
-function injectProductMeta(htmlText, product) {
+function injectProductMeta(htmlText, product, currency) {
   const esc = value => String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const title = product.title || 'Paint Color Palette';
@@ -320,7 +321,7 @@ function injectProductMeta(htmlText, product) {
     : `${title} — Dwelling Dream`;
   const images = product.images || [];
   const imageUrl = images[0] ? productFeed.publicImageUrl(images[0]) : `${SITE_ORIGIN}/assets/dd2-bundle-palette.webp`;
-  const canonicalUrl = `${SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug=${productSlug(product)}`;
+  const canonicalUrl = productFeed.productUrl(product, currency);
 
   htmlText = htmlText.replace(/<title>.*?<\/title>/s, `<title>${esc(pageTitle)}</title>`);
   htmlText = htmlText.replace(/<meta name="description" content=".*?" \/>/s, `<meta name="description" content="${esc(description)}" />`);
@@ -339,7 +340,7 @@ function injectProductMeta(htmlText, product) {
   // visible price is filled in later by client-side JS, which Google is not
   // guaranteed to wait for. `</` is escaped so a description containing
   // "</script>" cannot break out of the script element.
-  const jsonLd = JSON.stringify(productFeed.productJsonLd(product)).replace(/</g, '\\u003c');
+  const jsonLd = JSON.stringify(productFeed.productJsonLd(product, currency)).replace(/</g, '\\u003c');
   const structuredData = `<script type="application/ld+json">${jsonLd}</script>\n`;
 
   htmlText = htmlText.replace('</helmet>', ogTags + structuredData + '</helmet>');
@@ -374,6 +375,29 @@ async function supportsSlugColumn() {
   return slugColumnSupported;
 }
 
+// Same pattern for price_gbp (see supabase/schema_price_gbp.sql). Before that
+// migration runs the column does not exist, and naming it in a write would be
+// rejected by PostgREST - so the GBP price is simply not persisted yet.
+let priceGbpColumnSupported = null;
+async function supportsPriceGbpColumn() {
+  if (priceGbpColumnSupported !== null) return priceGbpColumnSupported;
+  try {
+    await supabaseRequest('products?select=price_gbp&limit=1');
+    priceGbpColumnSupported = true;
+  } catch (error) {
+    priceGbpColumnSupported = false;
+  }
+  return priceGbpColumnSupported;
+}
+
+// Normalises the admin's GBP input: blank/absent -> null (excluded from the GB
+// feed), anything non-numeric or <= 0 -> null rather than a bogus price.
+function normalisePriceGbp(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
 async function insertProduct(product) {
   const row = {
     id: product.id,
@@ -389,6 +413,7 @@ async function insertProduct(product) {
   };
   // Set once, at creation, so a later retitle cannot move the product's URL.
   if (await supportsSlugColumn()) row.slug = productFeed.derivedSlug(product);
+  if (await supportsPriceGbpColumn()) row.price_gbp = normalisePriceGbp(product.priceGbp);
   const rows = await supabaseRequest('products', { method: 'POST', body: row });
   return rowToProduct(rows[0]);
 }
@@ -905,7 +930,7 @@ async function handleApiProducts(req, res) {
 
         const updatedAt = new Date().toISOString();
         try {
-          await updateProduct(productId, {
+          const patch = {
             title,
             description,
             category,
@@ -913,7 +938,9 @@ async function handleApiProducts(req, res) {
             images: finalImages,
             digital_files: finalDigital,
             updated_at: updatedAt
-          });
+          };
+          if (await supportsPriceGbpColumn()) patch.price_gbp = normalisePriceGbp(payload.priceGbp);
+          await updateProduct(productId, patch);
         } catch (error) {
           sendJson(res, 500, { success: false, message: 'Failed to update product.', error: error.message });
           return;
@@ -997,6 +1024,7 @@ async function handleApiProducts(req, res) {
           title,
           description,
           price,
+          priceGbp: normalisePriceGbp(payload.priceGbp),
           category,
           images: savedImages,
           digitalFiles: savedDigitalFiles,
@@ -1102,6 +1130,16 @@ function handleCreatePaypalOrder(req, res) {
         return;
       }
 
+      // The browser may ask to be charged in a supported storefront currency
+      // (USD default, GBP for the UK). It only names the currency - every
+      // amount still comes from Supabase, never from the request.
+      const requestedCurrency = String(payload.currency || ORDER_CURRENCY).toUpperCase();
+      if (!Object.prototype.hasOwnProperty.call(productFeed.CURRENCIES, requestedCurrency)) {
+        sendJson(res, 400, { success: false, message: 'Unsupported currency.' });
+        return;
+      }
+      const orderCurrency = requestedCurrency;
+
       let products;
       try {
         products = await readProducts();
@@ -1124,13 +1162,16 @@ function handleCreatePaypalOrder(req, res) {
           sendJson(res, 400, { success: false, message: `${product.title || 'This item'} is not currently available.` });
           return;
         }
-        if ((product.currency || ORDER_CURRENCY) !== ORDER_CURRENCY) {
-          sendJson(res, 400, { success: false, message: 'Unsupported product currency.' });
+        // A product with no price in the requested currency must not be sold
+        // in it - refuse rather than silently charging the USD amount.
+        const priceString = productFeed.priceIn(product, orderCurrency);
+        if (!priceString) {
+          sendJson(res, 400, { success: false, message: `${product.title || 'This item'} is not available in ${orderCurrency}.` });
           return;
         }
 
         const qty = Math.max(1, Math.min(20, parseInt(entry.qty, 10) || 1));
-        const price = Number(product.price || 0);
+        const price = Number(priceString);
         const priceCents = Math.round(price * 100);
         totalCents += priceCents * qty;
         orderItems.push({
@@ -1171,7 +1212,7 @@ function handleCreatePaypalOrder(req, res) {
           body: {
             intent: 'CAPTURE',
             purchase_units: [{
-              amount: { currency_code: ORDER_CURRENCY, value: total.toFixed(2) }
+              amount: { currency_code: orderCurrency, value: total.toFixed(2) }
             }]
           }
         });
@@ -1191,7 +1232,7 @@ function handleCreatePaypalOrder(req, res) {
         paypalOrderId: paypalOrder.id,
         items: orderItems,
         total,
-        currency: ORDER_CURRENCY,
+        currency: orderCurrency,
         status: 'PENDING',
         paid: false,
         createdAt: new Date().toISOString()
@@ -1422,7 +1463,8 @@ const server = http.createServer(async (req, res) => {
   // feed ingesters key off a recognised file extension, and an extensionless
   // /api/ path gives them nothing to go on.
   if (['/api/google-shopping-feed', '/api/pinterest-feed',
-       '/google-shopping-feed.xml', '/pinterest-feed.xml'].includes(reqPath)) {
+       '/google-shopping-feed.xml', '/pinterest-feed.xml',
+       '/api/google-shopping-feed-gb', '/google-shopping-feed-gb.xml'].includes(reqPath)) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       sendJson(res, 405, { success: false, message: 'Method not allowed.' });
       return;
@@ -1439,7 +1481,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     const dialect = reqPath.includes('pinterest') ? 'pinterest' : 'google';
-    const xml = productFeed.buildFeedXml(products, { dialect });
+    // One feed per Merchant Center target country, each in that country's
+    // currency. Google requires the feed price to match the landing page, and
+    // the -gb links carry ?currency=GBP so the page renders GBP to match.
+    const currency = reqPath.includes('-gb') ? 'GBP' : 'USD';
+    const xml = productFeed.buildFeedXml(products, { dialect, currency });
     // Deliberately no X-Robots-Tag here. It previously said "noindex", which is
     // meant to keep the XML itself out of search results - but a feed crawler
     // that honours the header can read it as "do not use this resource" and
@@ -1651,7 +1697,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const products = await readProducts();
       const { product } = resolveProductForQuery(url.searchParams, products);
-      if (product) htmlText = injectProductMeta(htmlText, product);
+      if (product) htmlText = injectProductMeta(htmlText, product, url.searchParams.get('currency'));
     } catch (error) {
       // Product database unreachable - fall through to the generic
       // template; the client-side fetch will surface the real error.

@@ -266,6 +266,7 @@ def row_to_product(row):
         "description": row["description"],
         "category": row["category"],
         "price": float(row["price"]),
+        "priceGbp": None if row.get("price_gbp") is None else float(row["price_gbp"]),
         "currency": row.get("currency") or ORDER_CURRENCY,
         "active": row.get("active", True),
         "images": row.get("images") or [],
@@ -316,7 +317,7 @@ def resolve_product_for_query(query, products):
     return (products[0] if products else None), "none_specified"
 
 
-def inject_product_meta(html_text, product):
+def inject_product_meta(html_text, product, currency=None):
     """Server-side <title>/meta/OG injection for the product page, keyed off
     the resolved product - fixes the bug where crawlers, ad-quality bots and
     social previews (none of which reliably wait for the client-side fetch)
@@ -327,7 +328,7 @@ def inject_product_meta(html_text, product):
     page_title = f"{title} | Dwelling Dream" if category and category.lower() not in title.lower() else f"{title} — Dwelling Dream"
     images = product.get("images") or []
     image_url = product_feed.public_image_url(images[0]) if images else f"{SITE_ORIGIN}/assets/dd2-bundle-palette.webp"
-    canonical_url = f"{SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug={product_slug(product)}"
+    canonical_url = product_feed.product_url(product, currency)
 
     def esc(value):
         return (value or "").replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
@@ -351,7 +352,7 @@ def inject_product_meta(html_text, product):
     # renders the page, so crawlers get it in the initial HTML response - the
     # visible price is filled in later by client-side JS, which Google is not
     # guaranteed to wait for.
-    structured_data = product_feed.product_json_ld_script(product)
+    structured_data = product_feed.product_json_ld_script(product, currency)
     html_text = html_text.replace("</helmet>", og_tags + structured_data + "</helmet>", 1)
 
     if images:
@@ -818,7 +819,8 @@ class AdminHandler(BaseHTTPRequestHandler):
         # recognised file extension, and an extensionless /api/ path gives
         # them nothing to go on.
         if path in ("/api/google-shopping-feed", "/api/pinterest-feed",
-                    "/google-shopping-feed.xml", "/pinterest-feed.xml"):
+                    "/google-shopping-feed.xml", "/pinterest-feed.xml",
+                    "/api/google-shopping-feed-gb", "/google-shopping-feed-gb.xml"):
             try:
                 products = read_products()
             except Exception as exc:
@@ -835,7 +837,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
 
             dialect = "pinterest" if "pinterest" in path else "google"
-            body = product_feed.build_feed_xml(products, dialect=dialect).encode("utf-8")
+            # One feed per Merchant Center target country, each in that
+            # country's currency. The -gb links carry ?currency=GBP so the
+            # landing page renders GBP and matches what the feed advertises.
+            currency = "GBP" if "-gb" in path else "USD"
+            body = product_feed.build_feed_xml(products, dialect=dialect, currency=currency).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/xml; charset=utf-8")
             # Deliberately no X-Robots-Tag. It previously said "noindex",
@@ -905,7 +911,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 query = parse_qs(url.query)
                 product, _status = resolve_product_for_query(query, products)
                 if product:
-                    html_text = inject_product_meta(html_text, product)
+                    html_text = inject_product_meta(html_text, product, (query.get("currency") or [None])[0])
             except RuntimeError:
                 pass  # Product database unreachable - fall through to the generic template; the client-side fetch will surface the real error.
             serve_html_text(self, html_text)
@@ -919,7 +925,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             send_json(self, 200, {
                 "paypalClientId": PAYPAL_CLIENT_ID,
                 "paypalEnvironment": PAYPAL_ENVIRONMENT,
-                "currency": ORDER_CURRENCY,
+                "currency": order_currency,
             })
             return
 
@@ -1412,6 +1418,14 @@ class AdminHandler(BaseHTTPRequestHandler):
                 send_json(self, 400, {"success": False, "message": "No items to check out."})
                 return
 
+            # The browser may ask to be charged in a supported storefront
+            # currency (USD default, GBP for the UK). It only names the
+            # currency - every amount still comes from Supabase.
+            order_currency = str(payload.get("currency") or ORDER_CURRENCY).upper()
+            if order_currency not in product_feed.CURRENCIES:
+                send_json(self, 400, {"success": False, "message": "Unsupported currency."})
+                return
+
             try:
                 products_by_id = {str(product.get("id")): product for product in read_products()}
             except RuntimeError as exc:
@@ -1430,12 +1444,15 @@ class AdminHandler(BaseHTTPRequestHandler):
                 if not product.get("active", True):
                     send_json(self, 400, {"success": False, "message": f"{product.get('title', 'This item')} is not currently available."})
                     return
-                if (product.get("currency") or ORDER_CURRENCY) != ORDER_CURRENCY:
-                    send_json(self, 400, {"success": False, "message": "Unsupported product currency."})
+                # A product with no price in the requested currency must not
+                # be sold in it - refuse rather than charging the USD amount.
+                price_string = product_feed.price_in(product, order_currency)
+                if not price_string:
+                    send_json(self, 400, {"success": False, "message": f"{product.get('title', 'This item')} is not available in {order_currency}."})
                     return
 
                 qty = max(1, min(20, int(entry.get("qty") or 1)))
-                price = float(product.get("price") or 0)
+                price = float(price_string)
                 price_cents = round(price * 100)
                 total_cents += price_cents * qty
                 order_items.append({
@@ -1473,7 +1490,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     "intent": "CAPTURE",
                     "purchase_units": [{
                         "amount": {
-                            "currency_code": ORDER_CURRENCY,
+                            "currency_code": order_currency,
                             "value": f"{total:.2f}",
                         },
                     }],
@@ -1492,7 +1509,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 "paypalOrderId": paypal_order["id"],
                 "items": order_items,
                 "total": total,
-                "currency": ORDER_CURRENCY,
+                "currency": order_currency,
                 "status": "PENDING",
                 "paid": False,
                 "createdAt": now_iso(),

@@ -317,8 +317,14 @@
             </div>
 
             <div class="field">
-              <label for="price">Price</label>
-              <input id="price" name="price" type="number" min="0" step="0.01" placeholder="24.00" required />
+              <label for="price">Price (USD)</label>
+              <input id="price" name="price" type="number" min="0" step="0.01" placeholder="16.00" required />
+            </div>
+
+            <div class="field">
+              <label for="priceGbp">Price (GBP)</label>
+              <input id="priceGbp" name="priceGbp" type="number" min="0" step="0.01" placeholder="14.99" />
+              <p class="field-hint">Optional. A fixed UK price, not a conversion &mdash; Google requires the feed price to match what the shopper is actually charged. Leave blank and the product is simply left out of the UK feed.</p>
             </div>
 
             <div class="field">
@@ -511,6 +517,7 @@
         document.getElementById('title').value = product.title || '';
         document.getElementById('description').value = product.description || '';
         document.getElementById('price').value = product.price || '';
+        document.getElementById('priceGbp').value = product.priceGbp == null ? '' : product.priceGbp;
         document.getElementById('category').value = product.category || '';
         imagesInput.value = '';
         digitalFilesInput.value = '';
@@ -623,6 +630,7 @@
             title: document.getElementById('title').value.trim(),
             description: document.getElementById('description').value.trim(),
             price: Number(document.getElementById('price').value),
+            priceGbp: document.getElementById('priceGbp').value === '' ? null : Number(document.getElementById('priceGbp').value),
             category: document.getElementById('category').value
           };
 
