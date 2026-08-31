@@ -352,6 +352,38 @@ function injectProductMeta(htmlText, product, currency) {
     );
   }
 
+  // Render the visible product data into the HTML too, not just the metadata.
+  // The page otherwise ships "$0.00" and "Loading description..." and fills
+  // them in from /api/products after load. Google fetches the landing page to
+  // check it against the feed and does not reliably run that JavaScript, so it
+  // saw $0.00 where the feed said 16.00 USD - a price mismatch, which is a
+  // disapproval reason. The client still populates these afterwards with the
+  // identical values, so nothing double-renders or flickers.
+  const activeCurrency = productFeed.effectiveCurrency(product, currency);
+  const amount = productFeed.priceIn(product, activeCurrency);
+  const symbol = productFeed.currencyConfig(activeCurrency).symbol;
+  const priceLabel = amount ? `${symbol}${amount}` : '';
+
+  // Replaces the text inside <tag ... data-x ...>text</tag>. These placeholders
+  // are single text nodes, so this stays a targeted swap rather than a parse.
+  const setTextByAttr = (html, attr, value) => html.replace(
+    new RegExp(`(<(\\w+)[^>]*\\b${attr}\\b[^>]*>)([^<]*)(</\\2>)`),
+    (match, open, tag, _text, close) => `${open}${esc(value)}${close}`
+  );
+
+  htmlText = setTextByAttr(htmlText, 'data-product-breadcrumb', title);
+  htmlText = setTextByAttr(htmlText, 'data-product-brand', category);
+  htmlText = setTextByAttr(htmlText, 'data-product-summary', description);
+  htmlText = setTextByAttr(htmlText, 'data-product-description', description);
+  if (priceLabel) htmlText = setTextByAttr(htmlText, 'data-product-price', priceLabel);
+
+  htmlText = htmlText.replace(/(<h1[^>]*id="p-h"[^>]*>)([^<]*)(<\/h1>)/,
+    (m, open, _t, close) => `${open}${esc(title)}${close}`);
+
+  if (priceLabel) {
+    htmlText = htmlText.replace(/Add to cart\s*—[^<]*/g, `Add to cart — ${esc(priceLabel)}`);
+  }
+
   return htmlText;
 }
 

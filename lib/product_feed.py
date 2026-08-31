@@ -360,7 +360,10 @@ def product_json_ld(product, code=None):
 
 def product_json_ld_script(product, code=None):
     """`</` is escaped so a description containing "</script>" cannot break out."""
-    payload = json.dumps(product_json_ld(product, code), ensure_ascii=False).replace("<", "\\u003c")
+    # separators match JSON.stringify so this module and lib/product-feed.js
+    # emit byte-identical pages.
+    payload = json.dumps(product_json_ld(product, code), ensure_ascii=False,
+                         separators=(",", ":")).replace("<", "\\u003c")
     return f'<script type="application/ld+json">{payload}</script>\n'
 
 

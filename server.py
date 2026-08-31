@@ -362,6 +362,39 @@ def inject_product_meta(html_text, product, currency=None):
             1,
         )
 
+    # Render the visible product data too, not just the metadata. The page
+    # otherwise ships "$0.00" and "Loading description..." and fills them in
+    # from /api/products after load. Google fetches the landing page to check
+    # it against the feed and does not reliably run that JavaScript, so it saw
+    # $0.00 where the feed said 16.00 USD - a price mismatch, which is a
+    # disapproval reason. The client repopulates with identical values.
+    active_currency = product_feed.effective_currency(product, currency)
+    amount = product_feed.price_in(product, active_currency)
+    symbol = product_feed.currency_config(active_currency)["symbol"]
+    price_label = f"{symbol}{amount}" if amount else ""
+
+    def set_text_by_attr(html, attr, value):
+        """Replaces the text inside <tag ... data-x ...>text</tag>. These
+        placeholders are single text nodes, so this stays a targeted swap."""
+        return re.sub(
+            r"(<(\w+)[^>]*\b" + re.escape(attr) + r"\b[^>]*>)([^<]*)(</\2>)",
+            lambda m: f"{m.group(1)}{esc(value)}{m.group(4)}",
+            html, count=1,
+        )
+
+    html_text = set_text_by_attr(html_text, "data-product-breadcrumb", title)
+    html_text = set_text_by_attr(html_text, "data-product-brand", category)
+    html_text = set_text_by_attr(html_text, "data-product-summary", description)
+    html_text = set_text_by_attr(html_text, "data-product-description", description)
+    if price_label:
+        html_text = set_text_by_attr(html_text, "data-product-price", price_label)
+
+    html_text = re.sub(r'(<h1[^>]*id="p-h"[^>]*>)([^<]*)(</h1>)',
+                       lambda m: f"{m.group(1)}{esc(title)}{m.group(3)}", html_text, count=1)
+
+    if price_label:
+        html_text = re.sub(r"Add to cart\s*\u2014[^<]*", f"Add to cart \u2014 {esc(price_label)}", html_text)
+
     return html_text
 
 
