@@ -392,8 +392,15 @@ def inject_product_meta(html_text, product, currency=None):
     html_text = re.sub(r'(<h1[^>]*id="p-h"[^>]*>)([^<]*)(</h1>)',
                        lambda m: f"{m.group(1)}{esc(title)}{m.group(3)}", html_text, count=1)
 
+    # Anchored on the actual <button data-add> elements. A bare text replace
+    # matched the identical string inside the page's own JavaScript too and,
+    # because [^<]* runs to the next '<', swallowed a whole block of script.
     if price_label:
-        html_text = re.sub(r"Add to cart\s*\u2014[^<]*", f"Add to cart \u2014 {esc(price_label)}", html_text)
+        html_text = re.sub(
+            r"(<button[^>]*\bdata-add\b[^>]*>)([^<]*)(</button>)",
+            lambda m: f"{m.group(1)}Add to cart \u2014 {esc(price_label)}{m.group(3)}",
+            html_text,
+        )
 
     return html_text
 

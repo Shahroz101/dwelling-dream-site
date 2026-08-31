@@ -380,8 +380,16 @@ function injectProductMeta(htmlText, product, currency) {
   htmlText = htmlText.replace(/(<h1[^>]*id="p-h"[^>]*>)([^<]*)(<\/h1>)/,
     (m, open, _t, close) => `${open}${esc(title)}${close}`);
 
+  // Anchored on the actual <button data-add> elements. A bare text replace of
+  // "Add to cart — ..." matched the identical string inside the page's own
+  // JavaScript too and, because [^<]* runs to the next '<', swallowed a whole
+  // block of script - which killed the gallery, the swipe handlers and the
+  // recommendations while the server-rendered text still looked correct.
   if (priceLabel) {
-    htmlText = htmlText.replace(/Add to cart\s*—[^<]*/g, `Add to cart — ${esc(priceLabel)}`);
+    htmlText = htmlText.replace(
+      /(<button[^>]*\bdata-add\b[^>]*>)([^<]*)(<\/button>)/g,
+      (match, open, _text, close) => `${open}Add to cart — ${esc(priceLabel)}${close}`
+    );
   }
 
   return htmlText;
