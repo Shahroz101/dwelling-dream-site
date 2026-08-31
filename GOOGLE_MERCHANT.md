@@ -36,14 +36,23 @@ published sample feed - sending the wrong spelling gets items rejected:
 | `g:availability` | `in_stock` / `out_of_stock` | `In Stock` / `Out of Stock` |
 | `g:condition` | `new` | `New` |
 | `g:identifier_exists` | `no` | `FALSE` |
-| `g:shipping` | omitted | `US`, `0 USD` |
+| `g:shipping` | one block per country in `SHIPPING_COUNTRIES` | `US`, `0 USD` |
 | `g:tax` | omitted | `US`, rate `0`, `tax_ship n` |
 
 Everything else - id, title, description, link, images, price, brand, mpn,
 product_type, google_product_category - is identical, so the two catalogs can
 never disagree about a product.
 
-`g:shipping` is `0` because nothing is ever shipped.
+`g:shipping` is `0` because nothing is ever shipped. Google raises "products
+are set to show in countries that lack shipping information" even for digital
+goods, so the Google feed emits one free-shipping block per country in
+`SHIPPING_COUNTRIES` (`lib/product-feed.js` and `lib/product_feed.py`).
+
+**That list must match the countries targeted in Merchant Center.** Adding a
+country there does not make the price valid there: Google requires the price
+currency to match the target country, and this store prices only in USD. A
+USD-priced feed targeting the UK will keep producing currency errors no matter
+what shipping says.
 
 **`g:tax` rate is `0` because the store prices tax-inclusive.** That field tells
 Pinterest how much tax to *add on top of* the advertised price; since $16.00 is
@@ -98,18 +107,21 @@ sends `g:identifier_exists = no` and identifies items by brand + `g:mpn` (SKU).
 
 ### Google product category
 
-Set to **`Media > Books > E-books`** (taxonomy id 543542) for every internal
-category.
+Set to **`Home & Garden > Decor > Artwork > Posters, Prints, & Visual Artwork`**
+(taxonomy id 500044) for every internal category.
 
-Two earlier attempts were rejected by Merchant Center diagnostics, which is
-worth knowing before changing it:
+Three earlier values were rejected. Read this before changing it:
 
-- *unset* -> warning 157, "missing values may limit visibility"
-- `Home & Garden > Decor` -> warning 126, only two levels deep. None of Decor's
-  children fit either; they are all physical objects (artwork, clocks, baskets).
+| Value | Merchant Center response |
+|---|---|
+| *unset* | Warning 157 - missing, may limit visibility |
+| `Home & Garden > Decor` | Warning 126 - only two levels deep |
+| `Media > Books > E-books` | **ERROR** - "Digital books not supported and cannot be listed on Shopping" |
 
-`Media > Books > E-books` is three levels deep and is also the more honest
-description: these are 100+ page downloadable PDFs.
+The ebooks value was the worst outcome: **Google bans digital books from
+Shopping outright**, so it did not merely warn, it disqualified every item.
+Depth is not worth an error - if the current value is ever rejected, fall back
+to `Home & Garden > Decor`, which only warns.
 
 The value must be a **verbatim** path from Google's published taxonomy. An
 unrecognised path is a hard error, not a warning. Check any replacement against

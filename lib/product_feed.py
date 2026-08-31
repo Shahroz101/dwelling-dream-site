@@ -27,16 +27,17 @@ BRAND = "Dwelling Dream"
 # Deliberately empty: google_product_category is optional, Google auto-classifies
 # when absent, and a confidently-wrong category is worse than none. Add an
 # internal category here to override, e.g. {"Behr": "Home & Garden > Decor"}.
-# Verbatim path from Google's published taxonomy (id 543542,
-# taxonomy-with-ids.en-US.txt, version 2021-09-21). Must stay verbatim - an
-# unrecognised path is a hard error, not a warning.
+# Verbatim path from Google's published taxonomy (id 500044). Must stay
+# verbatim - an unrecognised path is a hard error, not a warning.
 #
-# "Home & Garden > Decor" was tried first but Google flagged it as only two
-# levels deep (warning 126), and none of Decor's children fit: they are all
-# physical objects. These products are 100+ page downloadable PDFs, so E-books
-# is both three levels deep and the more honest description.
+# History, which matters before changing it:
+#   unset                   -> warning 157 (missing)
+#   Home & Garden > Decor   -> warning 126 (only two levels)
+#   Media > Books > E-books -> ERROR, "Digital books not supported and cannot
+#                              be listed on Shopping" - Google bans ebooks, so
+#                              that value disqualified every item.
 # https://support.google.com/merchants/answer/6324436
-DEFAULT_GOOGLE_PRODUCT_CATEGORY = "Media > Books > E-books"
+DEFAULT_GOOGLE_PRODUCT_CATEGORY = "Home & Garden > Decor > Artwork > Posters, Prints, & Visual Artwork"
 GOOGLE_PRODUCT_CATEGORY = {
     "Behr": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
     "Sherwin Williams": DEFAULT_GOOGLE_PRODUCT_CATEGORY,
@@ -186,7 +187,14 @@ def feed_item(product):
 PINTEREST_AVAILABILITY = {"in_stock": "In Stock", "out_of_stock": "Out of Stock"}
 
 # Nothing is ever shipped - these are downloads - so a zero shipping cost is
-# truthful.
+# truthful. Google reported "products are set to show in countries that lack
+# shipping information", which it raises even for digital goods, so both feeds
+# carry an explicit free-shipping line per targeted country.
+#
+# Must match the countries targeted in Merchant Center. Adding a country here
+# does NOT make the price valid there: Google requires the price currency to
+# match the target country, and this store prices only in USD.
+SHIPPING_COUNTRIES = ["US", "GB"]
 PINTEREST_SHIPPING_COUNTRY = "US"
 
 # g:tax tells Pinterest how much tax to ADD on top of the advertised price. The
@@ -232,6 +240,13 @@ def build_feed_xml(products, generated_at=None, dialect="google"):
         if item["mpn"]:
             push("g:mpn", item["mpn"])
         push("g:brand", item["brand"])
+
+        if not pinterest:
+            for country in SHIPPING_COUNTRIES:
+                lines.append("      <g:shipping>")
+                lines.append(f"          <g:country>{escape_xml(country)}</g:country>")
+                lines.append(f"          <g:price>0 {escape_xml(item['currency'])}</g:price>")
+                lines.append("      </g:shipping>")
 
         if pinterest:
             lines.append("      <g:tax>")
