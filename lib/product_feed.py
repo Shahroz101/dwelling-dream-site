@@ -199,7 +199,11 @@ def feed_item(product, code=None):
         "description": clean_text(product.get("description"), 5000),
         "link": product_url(product, cfg["code"]),
         "image_link": images[0] if images else None,
-        "additional_image_link": images[1:5],
+        # Up to 10 additional images. Temporarily cut to 4 while images were
+        # served straight from Supabase Storage, whose free tier rate-limited
+        # the crawl (Google error 1205 / warning 1222). They now go through
+        # /product-image/ behind the CDN, so the full set is affordable.
+        "additional_image_link": images[1:11],
         "availability": availability_of(product),
         "price": f"{price_in(product, cfg['code'])} {cfg['code']}",
         "currency": cfg["code"],
