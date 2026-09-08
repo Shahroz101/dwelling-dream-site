@@ -928,6 +928,36 @@ class AdminHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        # Clean URLs. Pages are authored as "Dwelling Dream About.dc.html" and
+        # similar, which leaked the design-tool filenames - and their %20
+        # spaces - into every public URL. Old filenames 301 to the short paths.
+        PAGE_ROUTES = {
+            "/about": "Dwelling Dream About.dc.html",
+            "/help": "Dwelling Dream Help.dc.html",
+            "/cart": "Dwelling Dream Cart.dc.html",
+            "/order": "Dwelling Dream Order.dc.html",
+            "/palettes": "Dwelling Dream Palettes.dc.html",
+        }
+        LEGACY_PAGE_PATHS = {
+            "/Dwelling Dream About.dc.html": "/about",
+            "/Dwelling Dream Help.dc.html": "/help",
+            "/Dwelling Dream Cart.dc.html": "/cart",
+            "/Dwelling Dream Order.dc.html": "/order",
+            "/Dwelling Dream Palettes.dc.html": "/palettes",
+            "/Dwelling Dream Homepage v2.dc.html": "/",
+        }
+        if path in LEGACY_PAGE_PATHS:
+            dest = LEGACY_PAGE_PATHS[path] + (("?" + url.query) if url.query else "")
+            self.send_response(301)
+            self.send_header("Location", dest)
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if path in PAGE_ROUTES:
+            serve_file(self, ROOT / PAGE_ROUTES[path])
+            return
+
         if path == "/":
             serve_file(self, ROOT / "Dwelling Dream Homepage v2.dc.html")
             return
@@ -950,7 +980,12 @@ class AdminHandler(BaseHTTPRequestHandler):
             serve_file(self, ROOT / "Dwelling Dream Palettes.dc.html")
             return
 
-        if path == "/product" or path == "/Dwelling Dream Product.dc.html":
+        # Product pages live at /palettes/{slug}; the legacy forms still
+        # resolve and are redirected there in a single hop.
+        product_path_slug = (
+            unquote(path[len("/palettes/"):]) if path.startswith("/palettes/") else None
+        )
+        if product_path_slug is not None or path in ("/product", "/Dwelling Dream Product.dc.html"):
             try:
                 html_text = (ROOT / "Dwelling Dream Product.dc.html").read_text(encoding="utf-8")
             except FileNotFoundError:
@@ -960,20 +995,26 @@ class AdminHandler(BaseHTTPRequestHandler):
             try:
                 products = read_products()
                 query = parse_qs(url.query)
+                if product_path_slug:
+                    query = dict(query)
+                    query["slug"] = [product_path_slug]
                 product, _status = resolve_product_for_query(query, products)
                 if product:
                     # Slugs were shortened. Old links still resolve because
                     # matches_slug also accepts the derived category+title
                     # form, but serving one page on two URLs is duplicate
                     # content - so redirect anything non-canonical.
-                    requested = (query.get("slug") or [None])[0]
+                    # One canonical location per product. Anything else - an
+                    # old slug, /product?slug=, the .dc.html filename -
+                    # redirects here in a single hop, never a chain.
                     canonical = product_slug(product)
-                    if requested and requested != canonical:
-                        params = {k: v[:] for k, v in query.items()}
-                        params["slug"] = [canonical]
-                        flat = "&".join(f"{k}={quote(v[0])}" for k, v in params.items())
+                    canonical_path = f"/palettes/{canonical}"
+                    if path != canonical_path:
+                        extra = {k: v for k, v in parse_qs(url.query).items()
+                                 if k not in ("slug", "id", "sku")}
+                        flat = "&".join(f"{k}={quote(v[0])}" for k, v in extra.items())
                         self.send_response(301)
-                        self.send_header("Location", f"{url.path}?{flat}")
+                        self.send_header("Location", canonical_path + (("?" + flat) if flat else ""))
                         self.send_header("Cache-Control", "public, max-age=3600")
                         self.send_header("Content-Length", "0")
                         self.end_headers()

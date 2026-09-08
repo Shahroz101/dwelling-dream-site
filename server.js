@@ -1602,12 +1602,7 @@ const server = http.createServer(async (req, res) => {
       products = [];
     }
     const esc = productFeed.escapeXml;
-    const staticPaths = [
-      '/',
-      '/Dwelling%20Dream%20Palettes.dc.html',
-      '/Dwelling%20Dream%20About.dc.html',
-      '/Dwelling%20Dream%20Help.dc.html'
-    ];
+    const staticPaths = ['/', '/palettes', '/about', '/help'];
     const urls = staticPaths.map(p => `  <url>\n    <loc>${esc(SITE_ORIGIN + p)}</loc>\n  </url>`);
     for (const product of products) {
       if (!productFeed.isListable(product)) continue;
@@ -1776,12 +1771,48 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (reqPath === '/palettes' || reqPath === '/Dwelling Dream Palettes.dc.html') {
-    serveFile(res, path.join(ROOT, 'Dwelling Dream Palettes.dc.html'));
+  // Clean URLs. The pages are authored as "Dwelling Dream About.dc.html" and
+  // similar, which leaked the design-tool filenames - and their %20-encoded
+  // spaces - into every public URL. Each page now has a short path, and the
+  // old filename 301s to it so existing links and any indexed URLs survive.
+  const PAGE_ROUTES = {
+    '/about': 'Dwelling Dream About.dc.html',
+    '/help': 'Dwelling Dream Help.dc.html',
+    '/cart': 'Dwelling Dream Cart.dc.html',
+    '/order': 'Dwelling Dream Order.dc.html',
+    '/palettes': 'Dwelling Dream Palettes.dc.html'
+  };
+  const LEGACY_PAGE_PATHS = {
+    '/Dwelling Dream About.dc.html': '/about',
+    '/Dwelling Dream Help.dc.html': '/help',
+    '/Dwelling Dream Cart.dc.html': '/cart',
+    '/Dwelling Dream Order.dc.html': '/order',
+    '/Dwelling Dream Palettes.dc.html': '/palettes',
+    '/Dwelling Dream Homepage v2.dc.html': '/'
+  };
+
+  if (LEGACY_PAGE_PATHS[reqPath] && req.method === 'GET') {
+    res.writeHead(301, {
+      Location: `${LEGACY_PAGE_PATHS[reqPath]}${url.search}`,
+      'Cache-Control': 'public, max-age=3600'
+    });
+    res.end();
     return;
   }
 
-  if (reqPath === '/product' || reqPath === '/Dwelling Dream Product.dc.html') {
+  if (PAGE_ROUTES[reqPath] && req.method === 'GET') {
+    serveFile(res, path.join(ROOT, PAGE_ROUTES[reqPath]));
+    return;
+  }
+
+  // Product pages live at /palettes/{slug}. /product and the old .dc.html
+  // filename still resolve so existing links and indexed URLs survive; both are
+  // redirected to the canonical path below rather than serving a duplicate.
+  const productPathSlug = reqPath.startsWith('/palettes/')
+    ? decodeURIComponent(reqPath.slice('/palettes/'.length))
+    : null;
+
+  if (productPathSlug !== null || reqPath === '/product' || reqPath === '/Dwelling Dream Product.dc.html') {
     let htmlText;
     try {
       htmlText = fs.readFileSync(path.join(ROOT, 'Dwelling Dream Product.dc.html'), 'utf-8');
@@ -1792,7 +1823,9 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       const products = await readProducts();
-      const { product } = resolveProductForQuery(url.searchParams, products);
+      const params = new URLSearchParams(url.search);
+      if (productPathSlug) params.set('slug', productPathSlug);
+      const { product } = resolveProductForQuery(params, products);
 
       // Slugs were shortened (the category prefix was redundant, and one
       // product carried a 132-character keyword-stuffed slug). Old links still
@@ -1800,13 +1833,19 @@ const server = http.createServer(async (req, res) => {
       // form - but serving the same page on two URLs is duplicate content, so
       // anything that is not the canonical slug is redirected to it.
       if (product) {
-        const requested = url.searchParams.get('slug');
+        // One canonical location per product: /palettes/{canonical-slug}.
+        // Anything else - an old slug, /product?slug=, the .dc.html filename -
+        // redirects straight here in a single hop, never a chain.
         const canonical = productSlug(product);
-        if (requested && requested !== canonical) {
-          const target = new URL(url.href);
-          target.searchParams.set('slug', canonical);
+        const canonicalPath = `/palettes/${canonical}`;
+        const extra = new URLSearchParams(url.search);
+        extra.delete('slug');
+        extra.delete('id');
+        extra.delete('sku');
+        const query = extra.toString();
+        if (reqPath !== canonicalPath) {
           res.writeHead(301, {
-            Location: `${target.pathname}${target.search}`,
+            Location: query ? `${canonicalPath}?${query}` : canonicalPath,
             'Cache-Control': 'public, max-age=3600'
           });
           res.end();

@@ -123,9 +123,9 @@ def product_url(product, code=None):
     """Currency is carried in the URL rather than guessed from the visitor's
     IP: Google crawls the GB feed's links from the UK and must see the GBP
     price that feed advertises. A query parameter guarantees that."""
-    base = f"{SITE_ORIGIN}/Dwelling%20Dream%20Product.dc.html?slug={product_slug(product)}"
+    base = f"{SITE_ORIGIN}/palettes/{product_slug(product)}"
     cfg = currency_config(code)
-    return base if cfg["code"] == DEFAULT_CURRENCY else f"{base}&currency={cfg['code']}"
+    return base if cfg["code"] == DEFAULT_CURRENCY else f"{base}?currency={cfg['code']}"
 
 
 def product_images(product):
@@ -422,12 +422,7 @@ def validate_products(products):
 
 
 def build_sitemap_xml(products):
-    static_paths = [
-        "/",
-        "/Dwelling%20Dream%20Palettes.dc.html",
-        "/Dwelling%20Dream%20About.dc.html",
-        "/Dwelling%20Dream%20Help.dc.html",
-    ]
+    static_paths = ["/", "/palettes", "/about", "/help"]
     urls = [f"  <url>\n    <loc>{escape_xml(SITE_ORIGIN + p)}</loc>\n  </url>" for p in static_paths]
     for product in products:
         if not is_listable(product):
