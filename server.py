@@ -13,7 +13,7 @@ import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse, unquote, parse_qs
+from urllib.parse import urlparse, unquote, parse_qs, quote
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
@@ -962,6 +962,22 @@ class AdminHandler(BaseHTTPRequestHandler):
                 query = parse_qs(url.query)
                 product, _status = resolve_product_for_query(query, products)
                 if product:
+                    # Slugs were shortened. Old links still resolve because
+                    # matches_slug also accepts the derived category+title
+                    # form, but serving one page on two URLs is duplicate
+                    # content - so redirect anything non-canonical.
+                    requested = (query.get("slug") or [None])[0]
+                    canonical = product_slug(product)
+                    if requested and requested != canonical:
+                        params = {k: v[:] for k, v in query.items()}
+                        params["slug"] = [canonical]
+                        flat = "&".join(f"{k}={quote(v[0])}" for k, v in params.items())
+                        self.send_response(301)
+                        self.send_header("Location", f"{url.path}?{flat}")
+                        self.send_header("Cache-Control", "public, max-age=3600")
+                        self.send_header("Content-Length", "0")
+                        self.end_headers()
+                        return
                     html_text = inject_product_meta(html_text, product, (query.get("currency") or [None])[0])
             except RuntimeError:
                 pass  # Product database unreachable - fall through to the generic template; the client-side fetch will surface the real error.

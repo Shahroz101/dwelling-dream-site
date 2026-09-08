@@ -1793,7 +1793,27 @@ const server = http.createServer(async (req, res) => {
     try {
       const products = await readProducts();
       const { product } = resolveProductForQuery(url.searchParams, products);
-      if (product) htmlText = injectProductMeta(htmlText, product, url.searchParams.get('currency'));
+
+      // Slugs were shortened (the category prefix was redundant, and one
+      // product carried a 132-character keyword-stuffed slug). Old links still
+      // resolve, because matchesSlug also accepts the derived category+title
+      // form - but serving the same page on two URLs is duplicate content, so
+      // anything that is not the canonical slug is redirected to it.
+      if (product) {
+        const requested = url.searchParams.get('slug');
+        const canonical = productSlug(product);
+        if (requested && requested !== canonical) {
+          const target = new URL(url.href);
+          target.searchParams.set('slug', canonical);
+          res.writeHead(301, {
+            Location: `${target.pathname}${target.search}`,
+            'Cache-Control': 'public, max-age=3600'
+          });
+          res.end();
+          return;
+        }
+        htmlText = injectProductMeta(htmlText, product, url.searchParams.get('currency'));
+      }
     } catch (error) {
       // Product database unreachable - fall through to the generic
       // template; the client-side fetch will surface the real error.
