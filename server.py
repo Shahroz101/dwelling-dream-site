@@ -719,9 +719,9 @@ def send_json(handler, status, payload):
     handler.wfile.write(data)
 
 
-def serve_html_text(handler, html_text):
+def serve_html_text(handler, html_text, status_code=200):
     content = html_text.encode("utf-8")
-    handler.send_response(200)
+    handler.send_response(status_code)
     handler.send_header("Content-Type", "text/html; charset=utf-8")
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Content-Length", str(len(content)))
@@ -985,6 +985,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         product_path_slug = (
             unquote(path[len("/palettes/"):]) if path.startswith("/palettes/") else None
         )
+        # "not_found" means a slug was asked for and matched nothing. That must
+        # answer 404, not 200 with a friendly message - a 200 is a soft 404 and
+        # Google keeps the dead URL in the index.
+        product_status = "none_specified"
         if product_path_slug is not None or path in ("/product", "/Dwelling Dream Product.dc.html"):
             try:
                 html_text = (ROOT / "Dwelling Dream Product.dc.html").read_text(encoding="utf-8")
@@ -998,7 +1002,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 if product_path_slug:
                     query = dict(query)
                     query["slug"] = [product_path_slug]
-                product, _status = resolve_product_for_query(query, products)
+                product, product_status = resolve_product_for_query(query, products)
                 if product:
                     # Slugs were shortened. Old links still resolve because
                     # matches_slug also accepts the derived category+title
@@ -1022,7 +1026,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     html_text = inject_product_meta(html_text, product, (query.get("currency") or [None])[0])
             except RuntimeError:
                 pass  # Product database unreachable - fall through to the generic template; the client-side fetch will surface the real error.
-            serve_html_text(self, html_text)
+            serve_html_text(self, html_text, 404 if product_status == "not_found" else 200)
             return
 
         if path == "/api/config":

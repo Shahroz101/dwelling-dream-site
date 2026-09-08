@@ -803,9 +803,9 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
-function serveHtmlText(res, htmlText) {
+function serveHtmlText(res, htmlText, statusCode = 200) {
   const content = Buffer.from(htmlText, 'utf-8');
-  res.writeHead(200, {
+  res.writeHead(statusCode, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store'
   });
@@ -1811,6 +1811,10 @@ const server = http.createServer(async (req, res) => {
   const productPathSlug = reqPath.startsWith('/palettes/')
     ? decodeURIComponent(reqPath.slice('/palettes/'.length))
     : null;
+  // 'not_found' means a slug was asked for and matched nothing. That has to
+  // answer 404, not 200 with a friendly message - a 200 is a soft 404 and
+  // Google will keep the dead URL in the index.
+  let productStatus = 'none_specified';
 
   if (productPathSlug !== null || reqPath === '/product' || reqPath === '/Dwelling Dream Product.dc.html') {
     let htmlText;
@@ -1825,7 +1829,8 @@ const server = http.createServer(async (req, res) => {
       const products = await readProducts();
       const params = new URLSearchParams(url.search);
       if (productPathSlug) params.set('slug', productPathSlug);
-      const { product } = resolveProductForQuery(params, products);
+      const { product, status } = resolveProductForQuery(params, products);
+      productStatus = status;
 
       // Slugs were shortened (the category prefix was redundant, and one
       // product carried a 132-character keyword-stuffed slug). Old links still
@@ -1857,7 +1862,7 @@ const server = http.createServer(async (req, res) => {
       // Product database unreachable - fall through to the generic
       // template; the client-side fetch will surface the real error.
     }
-    serveHtmlText(res, htmlText);
+    serveHtmlText(res, htmlText, productStatus === 'not_found' ? 404 : 200);
     return;
   }
 
