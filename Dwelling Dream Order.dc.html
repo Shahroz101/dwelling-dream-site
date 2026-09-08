@@ -47,7 +47,7 @@
 
   <header data-nav="" style="position: fixed; top: 0; left: 0; right: 0; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 18px clamp(18px, 3.4vw, 54px); pointer-events: none; background: rgba(245,242,234,.9); border-bottom: 1px solid #D8D2C8; backdrop-filter: blur(14px);">
     <a href="/" aria-label="Dwelling Dream home" style="pointer-events: auto; display: inline-flex; align-items: center;">
-      <img src="assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
+      <img src="/assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
     </a>
     <nav aria-label="Primary" style="pointer-events: auto; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 36px);">
       <a href="/" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Home</a>
@@ -125,8 +125,8 @@
 
 </x-dc>
 <script type="module">
-  import { initDwellingDream } from './interactions.js';
-  import { syncCartBadge } from './cart.js';
+  import { initDwellingDream } from '/interactions.js';
+  import { syncCartBadge } from '/cart.js';
 
   initDwellingDream(document, { navThreshold: -1 });
   syncCartBadge(document);

@@ -348,7 +348,7 @@ function injectProductMeta(htmlText, product, currency) {
 
   if (images.length) {
     htmlText = htmlText.replace(
-      '<img src="assets/dd2-bundle-palette.webp" alt="Palette preview"',
+      '<img src="/assets/dd2-bundle-palette.webp" alt="Palette preview"',
       `<img src="${esc(productFeed.publicImageUrl(images[0]))}" alt="${esc(title)}"`
     );
   }

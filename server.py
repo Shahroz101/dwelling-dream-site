@@ -358,7 +358,7 @@ def inject_product_meta(html_text, product, currency=None):
 
     if images:
         html_text = html_text.replace(
-            '<img src="assets/dd2-bundle-palette.webp" alt="Palette preview"',
+            '<img src="/assets/dd2-bundle-palette.webp" alt="Palette preview"',
             f'<img src="{esc(product_feed.public_image_url(images[0]))}" alt="{esc(title)}"',
             1,
         )

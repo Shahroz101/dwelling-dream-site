@@ -60,7 +60,7 @@
 
   <header style="position: fixed; top: 0; left: 0; right: 0; z-index: 80; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 18px clamp(18px, 3.4vw, 54px); pointer-events: none; background: rgba(245,242,234,.9); border-bottom: 1px solid #D8D2C8; backdrop-filter: blur(14px);">
     <a href="/" aria-label="Dwelling Dream home" style="pointer-events: auto; display: inline-flex; align-items: center;">
-      <img src="assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
+      <img src="/assets/logo-mark.png" alt="Dwelling Dream" style="display: block; height: clamp(38px, 4.4vw, 54px); width: auto;" />
     </a>
     <nav aria-label="Primary" style="pointer-events: auto; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 36px);">
       <a href="/" style="color: inherit; font-size: 13px; letter-spacing: .1em;">Home</a>
@@ -267,7 +267,7 @@
       <div data-foot-grid="" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: clamp(28px, 4vw, 64px); padding-bottom: clamp(36px, 5vh, 56px); border-bottom: 1px solid rgba(245,242,234,.14);">
 
         <div style="display: flex; flex-direction: column; gap: 18px; max-width: 34ch;">
-          <img src="assets/logo-mark-light.png" alt="Dwelling Dream" style="display: block; align-self: center; height: 62px; width: auto; flex: 0 0 auto;" />
+          <img src="/assets/logo-mark-light.png" alt="Dwelling Dream" style="display: block; align-self: center; height: 62px; width: auto; flex: 0 0 auto;" />
           <p style="margin: 0; font-size: 13px; line-height: 1.7; letter-spacing: 0; text-transform: none; color: #BEB7AD;">Beautifully curated colors for beautiful spaces. Nine-color palettes, guides and planners — instant digital downloads.</p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <a href="#" aria-label="Dwelling Dream on Pinterest" style="display: inline-flex; align-items: center; padding: 9px 16px; border: 1px solid rgba(245,242,234,.28); border-radius: 999px; color: #F5F2EA; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; transition: background .3s ease, border-color .3s ease;" style-hover="background: rgba(245,242,234,.12); color: #F5F2EA;">Pinterest</a>
@@ -317,8 +317,8 @@
 
 </x-dc>
 <script type="module">
-  import { initDwellingDream } from './interactions.js';
-  import { syncCartBadge } from './cart.js';
+  import { initDwellingDream } from '/interactions.js';
+  import { syncCartBadge } from '/cart.js';
 
   initDwellingDream(document, { navThreshold: -1 });
   syncCartBadge(document);
