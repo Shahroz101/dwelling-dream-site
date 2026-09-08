@@ -32,6 +32,15 @@
   :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
   ::selection { background: #DFD3C3; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+  /* Grid and flex children default to min-width:auto, so they refuse to shrink
+     below their content's intrinsic width. One wide child - the product
+     thumbnail strip is 11 x 56px - therefore forces its whole column wider
+     than the phone screen, and every sibling in that column (hero image,
+     description, price, buttons) gets clipped off the right edge. Allowing
+     them to shrink lets the scroll container scroll instead. No effect on
+     wider screens, where the content already fits. */
+  [data-foot-grid] > *,
+  [data-grid] > * { min-width: 0; }
   @media (max-width: 860px) {
     nav[aria-label="Primary"] { gap: 10px !important; }
     nav[aria-label="Primary"] > a:not([data-cart]) { display: none !important; }

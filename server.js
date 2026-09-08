@@ -285,6 +285,7 @@ async function readProducts() {
 // JSON-LD, the Google Merchant Center feed and the sitemap can never disagree
 // about a product - see lib/product-feed.js.
 const productFeed = require('./lib/product-feed');
+const imageVariants = require('./lib/image-variants');
 const { SITE_ORIGIN, productSlug } = productFeed;
 
 // Mirrors the client-side matching in Dwelling Dream Product.dc.html's
@@ -671,7 +672,49 @@ async function resolveImageEntry(entry, sku) {
   const info = await supabaseStorageInfo(IMAGES_BUCKET, storedName);
   if (!info) return null;
 
+  // Images are uploaded browser -> Supabase directly, so this is the first
+  // point the server knows a new one exists. Kick off the .avif/.webp
+  // companions without awaiting: the admin should not wait seconds per image
+  // for encoding, and a failure here must never fail the product save.
+  queueImageVariants(storedName);
+
   return supabasePublicUrl(IMAGES_BUCKET, storedName);
+}
+
+// sharp is an optionalDependency and a native module. If it did not install on
+// this host, variant generation is skipped and /product-image/ simply serves
+// the original - so a missing encoder degrades quality-of-service, never
+// availability. Never let this throw into a request handler.
+let sharpModule;
+let sharpUnavailable = false;
+function loadSharp() {
+  if (sharpModule || sharpUnavailable) return sharpModule;
+  try {
+    sharpModule = require('sharp');
+  } catch (error) {
+    sharpUnavailable = true;
+    console.warn(`Image variants disabled: sharp is unavailable (${error.message})`);
+  }
+  return sharpModule;
+}
+
+async function queueImageVariants(storedName) {
+  const sharp = loadSharp();
+  if (!sharp) return;
+  try {
+    const source = await supabaseStorageDownload(IMAGES_BUCKET, storedName);
+    if (!source) return;
+    for (const [ext, contentType, encode] of [
+      ['.avif', 'image/avif', img => img.avif({ quality: 50, effort: 4 })]
+    ]) {
+      const name = imageVariants.variantName(storedName, ext);
+      if (!name || name === storedName) continue;
+      const output = await encode(sharp(source, { failOn: 'none' })).toBuffer();
+      await supabaseStorageUpload(IMAGES_BUCKET, name, output, contentType);
+    }
+  } catch (error) {
+    console.warn(`Image variant generation failed for ${storedName}: ${error.message}`);
+  }
 }
 
 function digitalExtension(originalName, mimeType) {
@@ -1476,11 +1519,21 @@ const server = http.createServer(async (req, res) => {
       res.end('Not found');
       return;
     }
+    // Serve the smallest format this client actually claims to support:
+    // .avif, then .webp, then the original. The URL is always the .jpg one, so
+    // product rows, feeds and JSON-LD are unaffected. A client sending */* -
+    // which includes Merchant Center and Pinterest - gets the original, since
+    // AVIF support in product feeds is not guaranteed.
+    const candidates = imageVariants.negotiateVariants(objectName, req.headers.accept);
+    let chosen = null;
     let content = null;
-    try {
-      content = await supabaseStorageDownload(IMAGES_BUCKET, objectName);
-    } catch (error) {
-      content = null;
+    for (const candidate of candidates) {
+      try {
+        content = await supabaseStorageDownload(IMAGES_BUCKET, candidate.name);
+      } catch (error) {
+        content = null;
+      }
+      if (content) { chosen = candidate; break; }
     }
     if (!content) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -1488,8 +1541,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     res.writeHead(200, {
-      'Content-Type': getMimeType(objectName),
+      'Content-Type': chosen.contentType,
       'Cache-Control': 'public, max-age=31536000, immutable',
+      // Without this a cache could hand an AVIF to a browser that cannot
+      // decode it, because every format shares one URL.
+      Vary: 'Accept',
       'Content-Length': content.length
     });
     res.end(req.method === 'HEAD' ? undefined : content);

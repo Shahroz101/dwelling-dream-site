@@ -151,6 +151,53 @@ const GOOGLE_PRODUCT_CATEGORY = {
 
 Taxonomy reference: https://support.google.com/merchants/answer/6324436
 
+## Image formats
+
+Every product image is stored twice in the `product-images` bucket:
+
+```
+SKU-00.jpg     the original - always present, canonical
+SKU-00.avif    ~57% smaller
+```
+
+`/product-image/SKU-00.jpg` reads the request's `Accept` header and serves the
+`.avif` when the client explicitly accepts `image/avif`, otherwise the original.
+**The URL never changes**, so product rows, feed `image_link` values and JSON-LD
+all keep pointing at the `.jpg` and are unaffected.
+
+A client sending `*/*` - which includes Merchant Center and Pinterest - gets the
+original. That is deliberate: AVIF support in product feeds is not guaranteed,
+and an unreadable image is worse than a larger one.
+
+The response carries `Vary: Accept`, without which a cache could hand an AVIF to
+a browser that cannot decode it.
+
+WebP is deliberately not generated. AVIF already covers ~93% of browsers, WebP
+would only have helped Safari 14-15, and each extra format costs storage on a
+Supabase tier that is over half full. To reintroduce it, add the format to
+`lib/image-variants.js` **and** `lib/image_variants.py`, then re-run the
+backfill.
+
+**Backfill** (existing images):
+
+```bash
+npm install sharp                                  # optional dependency
+node scripts/generate-image-variants.js --dry-run  # report only
+node scripts/generate-image-variants.js            # generate what's missing
+```
+
+Safe to re-run; existing variants are skipped unless `--force`, and originals
+are never touched.
+
+**New uploads** are handled automatically. Images go browser -> Supabase
+directly, so the server generates the `.avif` when the product is saved, without
+blocking the response.
+
+`sharp` is an **optionalDependency** loaded lazily inside a try/catch. If it
+fails to build on the host, uploads still succeed, the site still serves images,
+and only variant generation is skipped - a missing encoder degrades quality of
+service, never availability.
+
 ## Everyday tasks
 
 All of these are done in the admin panel or Supabase. **Nothing needs a code

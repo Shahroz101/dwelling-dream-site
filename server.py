@@ -286,6 +286,7 @@ def read_products():
 # about a product - see lib/product_feed.py (mirror of lib/product-feed.js).
 sys.path.insert(0, str(ROOT / "lib"))
 import product_feed
+import image_variants
 
 SITE_ORIGIN = product_feed.SITE_ORIGIN
 slugify = product_feed.slugify
@@ -829,11 +830,21 @@ class AdminHandler(BaseHTTPRequestHandler):
         if path.startswith("/product-image/"):
             object_name = path[len("/product-image/"):]
             content = None
+            chosen = None
+            # Serve the smallest format this client claims to support: .avif,
+            # then .webp, then the original. The URL is always the .jpg one, so
+            # product rows, feeds and JSON-LD are unaffected. A client sending
+            # */* - which includes Merchant Center and Pinterest - gets the
+            # original, since AVIF support in product feeds is not guaranteed.
             if is_safe_stored_name(object_name):
-                try:
-                    content = supabase_storage_download(IMAGES_BUCKET, object_name)
-                except Exception:
-                    content = None
+                for candidate in image_variants.negotiate_variants(object_name, self.headers.get("Accept")):
+                    try:
+                        content = supabase_storage_download(IMAGES_BUCKET, candidate["name"])
+                    except Exception:
+                        content = None
+                    if content:
+                        chosen = candidate
+                        break
             if not content:
                 self.send_response(404)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
@@ -842,11 +853,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Not found")
                 return
             self.send_response(200)
-            ext = object_name.rsplit(".", 1)[-1].lower() if "." in object_name else ""
-            image_mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
-                          "webp": "image/webp", "gif": "image/gif"}.get(ext, "application/octet-stream")
-            self.send_header("Content-Type", image_mime)
+            self.send_header("Content-Type", chosen["content_type"])
             self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+            # Without this a cache could hand an AVIF to a browser that cannot
+            # decode it, because every format shares one URL.
+            self.send_header("Vary", "Accept")
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
