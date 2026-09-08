@@ -444,6 +444,22 @@ class Component extends DCLogic {
       if (el) el.textContent = value || '';
     };
 
+    // Hostinger's CDN runs its own image optimisation on .jpg/.png URLs: it
+    // transcodes them to WebP and strips our Vary header, so the server's
+    // Accept-based negotiation never reaches the browser. It passes .avif URLs
+    // through untouched, though, so referencing the AVIF explicitly in a
+    // <picture> is what actually delivers it - 191KB against the CDN's 312KB
+    // WebP. Browsers without AVIF fall back to the .jpg and still get the
+    // CDN's WebP, so nobody is worse off.
+    const avifTwin = url => {
+      if (!/\/product-image\//.test(url)) return null;
+      const dot = url.lastIndexOf('.');
+      if (dot <= 0) return null;
+      const ext = url.slice(dot).toLowerCase();
+      if (ext === '.avif') return null;
+      return url.slice(0, dot) + '.avif';
+    };
+
     const updateGallery = (images) => {
       const mediaWrap = document.querySelector('[data-main-media]');
       const thumbsWrap = document.querySelector('[role="tablist"][aria-label="Product images"]');
@@ -464,7 +480,7 @@ class Component extends DCLogic {
 
       mediaWrap.innerHTML = normalized.map((image, index) => `
         <div data-view="${index}" style="position:absolute; inset:0; opacity:${index === 0 ? 1 : 0}; transition:opacity .5s ease; ${index === 0 ? '' : 'pointer-events:none;'}">
-          <img src="${image}" alt="Product image ${index + 1}" style="width:100%; height:100%; display:block; object-fit:cover;" draggable="false" />
+          <picture>${avifTwin(image) ? `<source srcset="${avifTwin(image)}" type="image/avif" />` : ''}<img src="${image}" alt="Product image ${index + 1}" style="width:100%; height:100%; display:block; object-fit:cover;" draggable="false" /></picture>
         </div>
       `).join('') + arrows;
 
