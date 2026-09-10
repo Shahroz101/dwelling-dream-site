@@ -125,6 +125,6 @@ can read it back out.
 
 - `server.js` / `server.py` - PayPal OAuth + order create/capture, `/api/config`, replaced the old always-paid `/api/orders` stub.
 - `supabase/schema_paypal.sql` - the migration from step 2.
-- `Dwelling Dream Cart.dc.html` - renders PayPal Buttons on checkout, EUR pricing.
-- `Dwelling Dream Order.dc.html`, `Dwelling Dream Product.dc.html`, `Dwelling Dream Palettes.dc.html`, `admin.html` - EUR pricing.
+- `Dwelling Dream Cart.dc.html` - renders PayPal Buttons on checkout, USD pricing.
+- `Dwelling Dream Order.dc.html`, `Dwelling Dream Product.dc.html`, `Dwelling Dream Palettes.dc.html`, `admin.html` - USD pricing.
 - `.env.example` - variable names only, no secrets, safe to commit.

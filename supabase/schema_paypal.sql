@@ -1,18 +1,18 @@
 -- Adds PayPal payment support to the existing orders table, and a
--- currency column to products (business is EUR-only). Extends the
+-- currency column to products (business is USD-only). Extends the
 -- tables created in seed_products.sql / schema_orders.sql - does not
 -- create new tables, per the "reuse what exists" instruction.
 --
 -- Paste this into the Supabase SQL editor and run it once.
 
 alter table public.products
-  add column if not exists currency text not null default 'EUR',
+  add column if not exists currency text not null default 'USD',
   add column if not exists active boolean not null default true;
 
 alter table public.orders
   add column if not exists paypal_order_id text,
   add column if not exists status text not null default 'PENDING',
-  add column if not exists currency text not null default 'EUR',
+  add column if not exists currency text not null default 'USD',
   add column if not exists customer_email text,
   add column if not exists updated_at timestamptz not null default now();
 

@@ -460,6 +460,11 @@ async function insertProduct(product) {
   // Set once, at creation, so a later retitle cannot move the product's URL.
   if (await supportsSlugColumn()) row.slug = productFeed.derivedSlug(product);
   if (await supportsPriceGbpColumn()) row.price_gbp = normalisePriceGbp(product.priceGbp);
+  // Written explicitly rather than left to the column default, which is 'EUR'
+  // from the original schema and no longer reflects what the store sells in.
+  // Omitting it silently created EUR products that the storefront, the feeds
+  // and checkout all then described in USD.
+  row.currency = productFeed.DEFAULT_CURRENCY;
   const rows = await supabaseRequest('products', { method: 'POST', body: row });
   return rowToProduct(rows[0]);
 }
