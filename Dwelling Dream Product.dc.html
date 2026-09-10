@@ -450,12 +450,25 @@ class Component extends DCLogic {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    const productSlug = product => {
+    // Mirrors productSlug()/matchesSlug() in lib/product-feed.js. The stored
+    // slug is canonical; the derived one is what URLs looked like before slugs
+    // were shortened, and a product still answers to both. Deriving only - as
+    // this did - meant 26 of 44 products looked for a slug no URL uses, so the
+    // page reported the product missing.
+    const derivedSlug = product => {
       const title = product.title || '';
       const category = product.category || '';
       const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
       return slugify(base);
     };
+
+    const productSlug = product => {
+      const stored = typeof product.slug === 'string' ? product.slug.trim() : '';
+      return stored || derivedSlug(product);
+    };
+
+    const matchesSlug = (product, slug) =>
+      Boolean(slug) && (slug === productSlug(product) || slug === derivedSlug(product));
 
     const camel = value => (value || '').trim();
 
@@ -664,7 +677,7 @@ class Component extends DCLogic {
         // item when the page was opened with no product specified at all.
         let product;
         if (slug) {
-          product = products.find(item => productSlug(item) === slug);
+          product = products.find(item => matchesSlug(item, slug));
           if (!product) { showNotFound(); return; }
         } else if (id) {
           product = products.find(item => String(item.id) === String(id) || String(item.sku) === String(id));
