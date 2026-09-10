@@ -46,7 +46,7 @@ never disagree about a product.
 `g:shipping` is `0` because nothing is ever shipped. Google raises "products
 are set to show in countries that lack shipping information" even for digital
 goods, so the Google feed emits one free-shipping block per country in
-`SHIPPING_COUNTRIES` (`lib/product-feed.js` and `lib/product_feed.py`).
+`SHIPPING_COUNTRIES` (`lib/product-feed.js`).
 
 **That list must match the countries targeted in Merchant Center.** Adding a
 country there does not make the price valid there: Google requires the price
@@ -68,7 +68,7 @@ be tax-inclusive, which they already are.
 **If the store ever starts adding tax at checkout, `PINTEREST_TAX` must change
 in the same release** - otherwise Pinterest advertises a price lower than
 buyers are actually charged, which is a policy violation. It lives in
-`lib/product-feed.js` and `lib/product_feed.py`.
+`lib/product-feed.js`.
 
 If Supabase is unreachable the endpoint returns **503**, never an empty feed.
 That is deliberate: Google reads an empty feed as "delist everything".
@@ -135,7 +135,6 @@ curl -s https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt
 To change it, edit the map in **both**:
 
 - `lib/product-feed.js` → `GOOGLE_PRODUCT_CATEGORY`
-- `lib/product_feed.py` → `GOOGLE_PRODUCT_CATEGORY`
 
 All three internal categories currently share one value via
 `DEFAULT_GOOGLE_PRODUCT_CATEGORY`. To give a category its own value, set it
@@ -175,7 +174,7 @@ a browser that cannot decode it.
 WebP is deliberately not generated. AVIF already covers ~93% of browsers, WebP
 would only have helped Safari 14-15, and each extra format costs storage on a
 Supabase tier that is over half full. To reintroduce it, add the format to
-`lib/image-variants.js` **and** `lib/image_variants.py`, then re-run the
+`lib/image-variants.js`, then re-run the
 backfill.
 
 **Backfill** (existing images):
@@ -276,8 +275,6 @@ Google's own tools:
 ## Architecture notes
 
 - `lib/product-feed.js` is used by `server.js` (the deployed runtime).
-- `lib/product_feed.py` and `lib/image_variants.py` are leftovers of a Python
-  implementation that was removed; nothing runs them.
   **Any change to one must be made to the other.** Their output is byte-identical
   apart from the feed's `lastBuildDate`.
 - Product pages are **client-rendered** for prices and images, but the
