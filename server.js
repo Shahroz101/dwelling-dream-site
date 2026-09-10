@@ -1638,6 +1638,35 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Customer reviews, read from data/reviews.json.
+  //
+  // These are shop reviews carried over from Etsy: they are about Dwelling
+  // Dream and its palettes generally, and none of them names which palette it
+  // was left for. They are therefore served as one shop-wide list and labelled
+  // as such on the page. They are deliberately NOT attached to individual
+  // products or emitted as Product/aggregateRating structured data, because
+  // presenting a review of one palette as a review of another misrepresents
+  // it - and Google and Pinterest both treat product review markup that is not
+  // about that product as a policy violation.
+  if (reqPath === '/api/reviews' && (req.method === 'GET' || req.method === 'HEAD')) {
+    let reviews = [];
+    try {
+      reviews = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'reviews.json'), 'utf8'));
+    } catch (error) {
+      // A missing or malformed file must not break the product page; the
+      // section simply renders nothing.
+      console.error('[reviews] could not read data/reviews.json:', error.message);
+      sendJson(res, 200, { success: true, reviews: [], count: 0, average: null });
+      return;
+    }
+    const count = reviews.length;
+    const average = count
+      ? Number((reviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / count).toFixed(2))
+      : null;
+    sendJson(res, 200, { success: true, reviews, count, average });
+    return;
+  }
+
   if (reqPath === '/api/login' && req.method === 'POST') {
     handleApiLogin(req, res);
     return;
