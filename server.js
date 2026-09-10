@@ -1442,16 +1442,33 @@ function handleCapturePaypalOrder(req, res) {
       // Emailing the tokenized URL is what makes "your link stays active"
       // true. The payment is already captured, so a mail failure is logged
       // and swallowed: it must never turn a completed purchase into an error.
+      const order = paidOrder || { ...existingOrder, paid: true };
+      const orderUrl = `${SITE_ORIGIN}/order?order=${encodeURIComponent(existingOrder.id)}&token=${encodeURIComponent(existingOrder.token)}`;
+
       if (payerEmail) {
-        const orderUrl = `${SITE_ORIGIN}/order?order=${encodeURIComponent(existingOrder.id)}&token=${encodeURIComponent(existingOrder.token)}`;
-        const message = mailer.orderConfirmation({
-          order: paidOrder || { ...existingOrder, paid: true },
-          orderUrl
+        const sent = await mailer.sendMail({
+          to: payerEmail,
+          ...mailer.orderConfirmation({ order, orderUrl })
         });
-        const sent = await mailer.sendMail({ to: payerEmail, ...message });
         if (!sent.ok) {
           console.error(`[order ${existingOrder.id}] confirmation email not sent: ${sent.error}`);
         }
+      } else {
+        console.error(`[order ${existingOrder.id}] paid but PayPal returned no payer email - no confirmation sent`);
+      }
+
+      // Tell the shop a sale happened. Sent separately from the buyer's
+      // receipt and outside the payerEmail check, because a sale is worth
+      // knowing about even when PayPal gives us no address to deliver to -
+      // that case is precisely the one needing a human to chase it. Failure
+      // here is logged and swallowed like the receipt above: the money is
+      // already taken, and no notification is worth failing a purchase over.
+      const notified = await mailer.sendMail({
+        to: mailer.SALES_TO,
+        ...mailer.saleNotification({ order, orderUrl, buyerEmail: payerEmail })
+      });
+      if (!notified.ok) {
+        console.error(`[order ${existingOrder.id}] sale notification not sent: ${notified.error}`);
       }
 
       sendJson(res, 200, {
