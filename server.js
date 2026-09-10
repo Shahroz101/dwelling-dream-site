@@ -286,6 +286,7 @@ async function readProducts() {
 // about a product - see lib/product-feed.js.
 const productFeed = require('./lib/product-feed');
 const imageVariants = require('./lib/image-variants');
+const mailer = require('./lib/mailer');
 const { SITE_ORIGIN, productSlug } = productFeed;
 
 // Mirrors the client-side matching in Dwelling Dream Product.dc.html's
@@ -1424,11 +1425,29 @@ function handleCapturePaypalOrder(req, res) {
 
       const payerEmail = capture.payer && capture.payer.email_address ? capture.payer.email_address : null;
 
+      let paidOrder;
       try {
-        await markOrderPaid(existingOrder.id, payerEmail);
+        paidOrder = await markOrderPaid(existingOrder.id, payerEmail);
       } catch (error) {
         sendJson(res, 500, { success: false, message: 'Payment succeeded but saving the order failed.', error: error.message });
         return;
+      }
+
+      // The order page a buyer lands on is not a durable copy of their
+      // purchase - closing that tab used to lose the download link for good.
+      // Emailing the tokenized URL is what makes "your link stays active"
+      // true. The payment is already captured, so a mail failure is logged
+      // and swallowed: it must never turn a completed purchase into an error.
+      if (payerEmail) {
+        const orderUrl = `${SITE_ORIGIN}/order?order=${encodeURIComponent(existingOrder.id)}&token=${encodeURIComponent(existingOrder.token)}`;
+        const message = mailer.orderConfirmation({
+          order: paidOrder || { ...existingOrder, paid: true },
+          orderUrl
+        });
+        const sent = await mailer.sendMail({ to: payerEmail, ...message });
+        if (!sent.ok) {
+          console.error(`[order ${existingOrder.id}] confirmation email not sent: ${sent.error}`);
+        }
       }
 
       sendJson(res, 200, {
@@ -1439,6 +1458,115 @@ function handleCapturePaypalOrder(req, res) {
     } catch (error) {
       sendJson(res, 400, { success: false, message: 'Invalid request body.' });
     }
+  });
+}
+
+// Pinterest's merchant guidelines require a return policy carrying contact
+// information, and every page's footer advertised a Contact link that went
+// nowhere. This is the endpoint behind /contact.
+//
+// The form is public and unauthenticated, so it is the one place a stranger can
+// make the server send mail. Three cheap defences, in order of how much they
+// actually catch: a body size cap, a honeypot field that ordinary browsers
+// leave empty, and a per-IP rate limit.
+const CONTACT_MAX_BODY = 16 * 1024;
+const CONTACT_RATE_LIMIT = 5;              // submissions per window, per IP
+const CONTACT_RATE_WINDOW_MS = 15 * 60 * 1000;
+const contactSubmissions = new Map();      // ip -> timestamps[]
+
+function contactRateLimited(ip) {
+  const now = Date.now();
+  const recent = (contactSubmissions.get(ip) || []).filter(t => now - t < CONTACT_RATE_WINDOW_MS);
+  // Prune while we are here; without this the map grows for the life of the
+  // process on a site that gets crawled.
+  if (recent.length) contactSubmissions.set(ip, recent);
+  else contactSubmissions.delete(ip);
+
+  if (recent.length >= CONTACT_RATE_LIMIT) return true;
+  recent.push(now);
+  contactSubmissions.set(ip, recent);
+  return false;
+}
+
+function handleContactSubmit(req, res) {
+  // Hostinger fronts the app with its CDN, so the socket address is always the
+  // proxy. The client is the first entry of X-Forwarded-For.
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const ip = forwarded || req.socket.remoteAddress || 'unknown';
+
+  if (contactRateLimited(ip)) {
+    sendJson(res, 429, { success: false, message: 'Too many messages from this address. Please try again later.' });
+    return;
+  }
+
+  let body = '';
+  let aborted = false;
+  req.on('data', chunk => {
+    if (aborted) return;
+    body += chunk;
+    if (body.length > CONTACT_MAX_BODY) {
+      aborted = true;
+      sendJson(res, 413, { success: false, message: 'That message is too long.' });
+      req.destroy();
+    }
+  });
+
+  req.on('end', async () => {
+    if (aborted) return;
+
+    let payload;
+    try {
+      payload = JSON.parse(body || '{}');
+    } catch (error) {
+      sendJson(res, 400, { success: false, message: 'Invalid request body.' });
+      return;
+    }
+
+    // Honeypot: hidden in the form, so anything that fills it is automated.
+    // Answer 200 so a bot cannot tell it was caught.
+    if (String(payload.website || '').trim()) {
+      sendJson(res, 200, { success: true, message: 'Thanks - your message is on its way.' });
+      return;
+    }
+
+    const name = String(payload.name || '').trim().slice(0, 120);
+    const email = String(payload.email || '').trim().slice(0, 254);
+    const message = String(payload.message || '').trim().slice(0, 5000);
+
+    if (!name || !email || !message) {
+      sendJson(res, 400, { success: false, message: 'Please fill in your name, email and message.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      sendJson(res, 400, { success: false, message: 'That email address does not look right.' });
+      return;
+    }
+
+    if (!mailer.isMailConfigured()) {
+      // Better to say so than to accept the message and drop it silently - the
+      // whole point of this page is that people can reach a human.
+      console.error('[contact] submission received but SMTP is not configured');
+      sendJson(res, 503, {
+        success: false,
+        message: 'Our contact form is temporarily unavailable. Please email contact@dwellingdream.shop directly.'
+      });
+      return;
+    }
+
+    const sent = await mailer.sendMail({
+      to: mailer.CONTACT_TO,
+      ...mailer.contactMessage({ name, email, message })
+    });
+
+    if (!sent.ok) {
+      sendJson(res, 502, {
+        success: false,
+        message: 'We could not send that just now. Please email contact@dwellingdream.shop directly.'
+      });
+      return;
+    }
+
+    sendJson(res, 200, { success: true, message: 'Thanks - your message is on its way.' });
   });
 }
 
@@ -1478,6 +1606,11 @@ const server = http.createServer(async (req, res) => {
   // Decode %20 etc. so routes/filenames with spaces (all the "Dwelling Dream
   // *.dc.html" pages) match, mirroring server.py's unquote(url.path).
   const reqPath = decodeURIComponent(url.pathname);
+
+  if (reqPath === '/api/contact' && req.method === 'POST') {
+    handleContactSubmit(req, res);
+    return;
+  }
 
   if (reqPath === '/api/login' && req.method === 'POST') {
     handleApiLogin(req, res);
@@ -1602,7 +1735,7 @@ const server = http.createServer(async (req, res) => {
       products = [];
     }
     const esc = productFeed.escapeXml;
-    const staticPaths = ['/', '/palettes', '/about', '/help'];
+    const staticPaths = ['/', '/palettes', '/about', '/help', '/contact'];
     const urls = staticPaths.map(p => `  <url>\n    <loc>${esc(SITE_ORIGIN + p)}</loc>\n  </url>`);
     for (const product of products) {
       if (!productFeed.isListable(product)) continue;
@@ -1780,7 +1913,8 @@ const server = http.createServer(async (req, res) => {
     '/help': 'Dwelling Dream Help.dc.html',
     '/cart': 'Dwelling Dream Cart.dc.html',
     '/order': 'Dwelling Dream Order.dc.html',
-    '/palettes': 'Dwelling Dream Palettes.dc.html'
+    '/palettes': 'Dwelling Dream Palettes.dc.html',
+    '/contact': 'Dwelling Dream Contact.dc.html'
   };
   const LEGACY_PAGE_PATHS = {
     '/Dwelling Dream About.dc.html': '/about',
@@ -1788,6 +1922,7 @@ const server = http.createServer(async (req, res) => {
     '/Dwelling Dream Cart.dc.html': '/cart',
     '/Dwelling Dream Order.dc.html': '/order',
     '/Dwelling Dream Palettes.dc.html': '/palettes',
+    '/Dwelling Dream Contact.dc.html': '/contact',
     '/Dwelling Dream Homepage v2.dc.html': '/'
   };
 
