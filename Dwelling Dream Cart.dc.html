@@ -550,6 +550,55 @@
   // separate "Continue to Checkout" step. Still only loaded on the Cart
   // page, never sitewide. Client ID comes from /api/config (public by
   // design); the secret never leaves the server.
+  function renderCart() {
+    const items = getCart();
+    const emptyEl = document.querySelector('[data-cart-empty]');
+    const filledEl = document.querySelector('[data-cart-filled]');
+    const listEl = document.querySelector('[data-cart-items]');
+    const countEl = document.querySelector('[data-cart-item-count]');
+    const subtotalEl = document.querySelector('[data-cart-subtotal]');
+    const totalEl = document.querySelector('[data-cart-total]');
+
+    const hasItems = items.length > 0;
+    if (emptyEl) {
+      emptyEl.hidden = hasItems;
+      emptyEl.style.display = hasItems ? 'none' : 'grid';
+    }
+    if (filledEl) {
+      filledEl.hidden = !hasItems;
+      filledEl.style.display = hasItems ? 'grid' : 'none';
+    }
+    applyResponsive();
+    computeAtmosphere(items);
+
+    if (countEl) {
+      const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+      countEl.textContent = hasItems ? `${totalQty} palette${totalQty === 1 ? '' : 's'} in your cart` : '';
+    }
+
+    if (!hasItems) {
+      renderEmptyPreviews();
+      const button = document.querySelector('[data-checkout]');
+      if (button) button.style.display = 'none';
+      const msg = document.querySelector('[data-checkout-msg]');
+      if (msg) msg.textContent = '';
+      return;
+    }
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    items.forEach(item => listEl.appendChild(renderCartRow(item)));
+
+    const subtotal = getSubtotal();
+    if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal);
+    if (totalEl) totalEl.textContent = formatPrice(subtotal);
+
+    showCheckoutButton();
+  }
+
+  onCartChange(renderCart);
+  renderCart();
+
   // --- Checkout ------------------------------------------------------
   //
   // Stripe Checkout is hosted: this asks the server for a session and follows
