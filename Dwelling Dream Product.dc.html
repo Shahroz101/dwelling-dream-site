@@ -414,7 +414,7 @@ class Component extends DCLogic {
   // and initCart on top of them - adding an item twice per click. The
   // "What's included" panels had no handler at all until now, so they could
   // never be opened and their content was unreachable.
-  import { initAccordions } from '/interactions.js';
+  import { initAccordions, initScrollProgress, initMagnetic } from '/interactions.js';
 
   (function () {
     let currentProduct = null;
@@ -934,6 +934,15 @@ class Component extends DCLogic {
     // maxHeight caps the open panel, so it must clear the tallest body once it
     // has wrapped on a narrow screen; the 340px default would clip these.
     initAccordions(document, { maxHeight: 900 });
+    // The other two behaviours this page has markup for. The reading-progress
+    // bar and the magnetic buttons were both rendered but never driven, so the
+    // bar sat at zero width and the buttons did not move. Every remaining init
+    // in interactions.js targets markup this page does not have - [data-nav],
+    // [data-reveal], [data-hover-card] and the rest - so calling them would do
+    // nothing, and the two that WOULD bind, initProductGallery and initCart,
+    // are the ones this page already implements itself.
+    initScrollProgress(document);
+    initMagnetic(document);
     loadSelectedProduct();
     loadReviews();
   })();
