@@ -1241,6 +1241,12 @@ function handleCreateCheckoutSession(req, res) {
           title: product.title || 'Product',
           price,
           qty,
+          // Carried so the Stripe payment page can show what is being bought.
+          // publicImageUrl() rewrites the Supabase Storage URL to this domain's
+          // /product-image/ route, which is what Stripe's fetcher must be able
+          // to reach - and what the CDN caches.
+          image: (product.images || []).length ? productFeed.publicImageUrl(product.images[0]) : null,
+          description: String(product.description || '').trim().slice(0, 240) || null,
           digitalFiles: (product.digitalFiles || [])
             .filter(f => f && typeof f === 'object')
             .map(f => ({ id: f.id, name: f.name, size: f.size || 0 }))
