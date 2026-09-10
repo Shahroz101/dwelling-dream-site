@@ -1554,7 +1554,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Decode %20 etc. so routes/filenames with spaces (all the "Dwelling Dream
-  // *.dc.html" pages) match, mirroring server.py's unquote(url.path).
+  // *.dc.html" pages) match, decoding percent-escapes in the path first.
   const reqPath = decodeURIComponent(url.pathname);
 
   if (reqPath === '/api/contact' && req.method === 'POST') {

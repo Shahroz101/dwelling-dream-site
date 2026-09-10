@@ -276,7 +276,8 @@ Google's own tools:
 ## Architecture notes
 
 - `lib/product-feed.js` is used by `server.js` (the deployed runtime).
-- `lib/product_feed.py` is a mirror used by `server.py` (parallel implementation).
+- `lib/product_feed.py` and `lib/image_variants.py` are leftovers of a Python
+  implementation that was removed; nothing runs them.
   **Any change to one must be made to the other.** Their output is byte-identical
   apart from the feed's `lastBuildDate`.
 - Product pages are **client-rendered** for prices and images, but the
