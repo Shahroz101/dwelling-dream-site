@@ -58,22 +58,17 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 const IMAGES_BUCKET = 'product-images';
 const DIGITAL_BUCKET = 'digital-files';
 
-// PayPal is intentionally allowed to be unconfigured - the rest of the site
-// (catalog, admin, existing orders) must keep working even if these are
-// missing. Routes that need PayPal check paypalConfigured() themselves and
-// fail with a clear 500 instead of crashing the whole server at startup.
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
-const PAYPAL_ENVIRONMENT = (process.env.PAYPAL_ENVIRONMENT || 'sandbox').trim().toLowerCase();
-const PAYPAL_API_BASE = PAYPAL_ENVIRONMENT === 'production'
-  ? 'https://api-m.paypal.com'
-  : 'https://api-m.sandbox.paypal.com';
-// The store prices, charges and feeds everything in USD. PayPal shows each
-// buyer their own local currency at checkout and handles the conversion, so no
+// Checkout is intentionally allowed to be unconfigured - the rest of the site
+// (catalog, admin, existing orders and their downloads) must keep working even
+// if the Stripe keys are missing. Routes that need Stripe check
+// payments.isConfigured() themselves and answer with a clear message instead
+// of crashing the whole server at startup.
+//
+// The store prices, charges and feeds everything in USD. Stripe presents each
+// buyer their own local payment methods and handles conversion, so no
 // exchange-rate handling belongs in this codebase. Orders already placed keep
 // whatever currency was stored on the row.
 const ORDER_CURRENCY = 'USD';
-let paypalTokenCache = { token: null, expiresAt: 0 };
 
 // Bundled with every purchase, regardless of which product(s) were bought -
 // uploaded once to Storage, referenced here by fixed id/path. New products
@@ -93,62 +88,6 @@ const DOWNLOAD_MIME_TYPES = {
 function ensureDataFolders() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-function paypalConfigured() {
-  return Boolean(PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET);
-}
-
-async function getPaypalAccessToken() {
-  const now = Date.now();
-  if (paypalTokenCache.token && paypalTokenCache.expiresAt > now + 30000) {
-    return paypalTokenCache.token;
-  }
-
-  const credentials = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
-  const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: 'grant_type=client_credentials'
-  });
-  const data = await res.json();
-  if (!res.ok || !data.access_token) {
-    throw new Error(`PayPal OAuth failed: ${res.status} ${JSON.stringify(data)}`);
-  }
-
-  paypalTokenCache = {
-    token: data.access_token,
-    expiresAt: now + (Number(data.expires_in) || 300) * 1000
-  };
-  return paypalTokenCache.token;
-}
-
-// Returns [httpStatus, parsedJsonBody]. Never throws on a PayPal-side error
-// response - callers check the status themselves, since a failed capture is
-// an expected, handled case, not a server bug.
-async function paypalRequest(path, { method = 'GET', body } = {}) {
-  const token = await getPaypalAccessToken();
-  const res = await fetch(`${PAYPAL_API_BASE}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined
-  });
-  const text = await res.text();
-  let parsed = {};
-  if (text) {
-    try {
-      parsed = JSON.parse(text);
-    } catch (error) {
-      parsed = { raw: text };
-    }
-  }
-  return [res.status, parsed];
 }
 
 async function supabaseRequest(pathAndQuery, { method = 'GET', body } = {}) {
@@ -291,6 +230,7 @@ async function readProducts() {
 const productFeed = require('./lib/product-feed');
 const imageVariants = require('./lib/image-variants');
 const mailer = require('./lib/mailer');
+const payments = require('./lib/payments');
 const { SITE_ORIGIN, productSlug } = productFeed;
 
 // Mirrors the client-side matching in Dwelling Dream Product.dc.html's
@@ -410,6 +350,22 @@ async function getProductById(productId) {
 // PostgREST rejects an insert naming an unknown column - so probe once and
 // remember. Until the migration runs, slugs stay derived and nothing breaks.
 let slugColumnSupported = null;
+// Which column holds the payment provider's reference for an order. It was
+// created as paypal_order_id; renaming it to payment_ref is optional tidying,
+// so both are supported and the rename can happen whenever, without having to
+// land in the same breath as a deploy.
+let paymentRefColumnName = null;
+async function paymentRefColumn() {
+  if (paymentRefColumnName !== null) return paymentRefColumnName;
+  try {
+    await supabaseRequest('orders?select=payment_ref&limit=1');
+    paymentRefColumnName = 'payment_ref';
+  } catch (error) {
+    paymentRefColumnName = 'paypal_order_id';
+  }
+  return paymentRefColumnName;
+}
+
 async function supportsSlugColumn() {
   if (slugColumnSupported !== null) return slugColumnSupported;
   try {
@@ -487,7 +443,7 @@ function rowToOrder(row) {
     paid: Boolean(row.paid),
     status: row.status || (row.paid ? 'COMPLETED' : 'PENDING'),
     currency: row.currency || ORDER_CURRENCY,
-    paypalOrderId: row.paypal_order_id || null,
+    paymentRef: row.payment_ref || row.paypal_order_id || null,
     customerEmail: row.customer_email || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -503,17 +459,22 @@ async function insertOrder(order) {
     currency: order.currency || ORDER_CURRENCY,
     paid: order.paid || false,
     status: order.status || 'PENDING',
-    paypal_order_id: order.paypalOrderId || null,
+    // Key set below, once the available column name is known.
     customer_email: order.customerEmail || null,
     created_at: order.createdAt,
     updated_at: order.updatedAt || order.createdAt
   };
+  row[await paymentRefColumn()] = order.paymentRef || null;
   const rows = await supabaseRequest('orders', { method: 'POST', body: row });
   return rowToOrder(rows[0]);
 }
 
-async function findOrderByPaypalId(paypalOrderId) {
-  const rows = (await supabaseRequest(`orders?paypal_order_id=eq.${encodeURIComponent(paypalOrderId)}&select=*`)) || [];
+// Looks an order up by the payment provider's own reference - now a Stripe
+// Checkout session id. The column is still named paypal_order_id; see
+// PAYMENT_REF_COLUMN.
+async function findOrderByPaymentRef(reference) {
+  const column = await paymentRefColumn();
+  const rows = (await supabaseRequest(`orders?${column}=eq.${encodeURIComponent(reference)}&select=*`)) || [];
   return rows[0] ? rowToOrder(rows[0]) : null;
 }
 
@@ -535,6 +496,12 @@ async function markOrderPaid(orderId, customerEmail) {
     }
   });
   return rows[0] ? rowToOrder(rows[0]) : null;
+}
+
+async function setOrderPaymentRef(orderId, reference) {
+  const body = { updated_at: new Date().toISOString() };
+  body[await paymentRefColumn()] = reference;
+  await supabaseRequest(`orders?id=eq.${encodeURIComponent(orderId)}`, { method: 'PATCH', body });
 }
 
 async function findOrder(orderId, token) {
@@ -1199,16 +1166,18 @@ function handleUploadUrl(req, res, kind) {
   });
 }
 
-function handleCreatePaypalOrder(req, res) {
-  // Public checkout endpoint - no admin auth required. The browser only
-  // ever tells us WHICH products/quantities are wanted; every price used
-  // below comes from Supabase, never from the request.
+// Creates the order, then a Stripe Checkout session for it, and hands the
+// browser the URL to send the buyer to.
+//
+// Public and unauthenticated, so the browser is only ever trusted to say WHICH
+// products and quantities it wants. Every price below is read from Supabase.
+function handleCreateCheckoutSession(req, res) {
   if (req.method !== 'POST') {
     sendJson(res, 405, { success: false, message: 'Method not allowed.' });
     return;
   }
-  if (!paypalConfigured()) {
-    sendJson(res, 500, { success: false, message: 'PayPal is not configured on the server.' });
+  if (!payments.isConfigured()) {
+    sendJson(res, 503, { success: false, message: 'Checkout is temporarily unavailable. Please try again shortly.' });
     return;
   }
 
@@ -1265,8 +1234,7 @@ function handleCreatePaypalOrder(req, res) {
 
         const qty = Math.max(1, Math.min(20, parseInt(entry.qty, 10) || 1));
         const price = Number(priceString);
-        const priceCents = Math.round(price * 100);
-        totalCents += priceCents * qty;
+        totalCents += Math.round(price * 100) * qty;
         orderItems.push({
           productId: product.id,
           sku: product.sku || '',
@@ -1295,42 +1263,20 @@ function handleCreatePaypalOrder(req, res) {
         digitalFiles: GLOBAL_DIGITAL_FILES
       });
 
-      const total = totalCents / 100;
-
-      let paypalStatus;
-      let paypalOrder;
-      try {
-        [paypalStatus, paypalOrder] = await paypalRequest('/v2/checkout/orders', {
-          method: 'POST',
-          body: {
-            intent: 'CAPTURE',
-            purchase_units: [{
-              amount: { currency_code: orderCurrency, value: total.toFixed(2) }
-            }]
-          }
-        });
-      } catch (error) {
-        sendJson(res, 502, { success: false, message: 'Failed to reach PayPal.', error: error.message });
-        return;
-      }
-
-      if (![200, 201].includes(paypalStatus) || !paypalOrder.id) {
-        sendJson(res, 502, { success: false, message: 'Failed to create PayPal order.', error: paypalOrder });
-        return;
-      }
-
       const order = {
         id: crypto.randomBytes(8).toString('hex'),
         token: crypto.randomBytes(24).toString('hex'),
-        paypalOrderId: paypalOrder.id,
         items: orderItems,
-        total,
+        total: totalCents / 100,
         currency: orderCurrency,
         status: 'PENDING',
         paid: false,
         createdAt: new Date().toISOString()
       };
 
+      // The order row is written BEFORE the session exists, so a buyer who pays
+      // can always be matched to something. An order with no session attached
+      // is an abandoned checkout; an unmatched payment would be a lost sale.
       try {
         await insertOrder(order);
       } catch (error) {
@@ -1338,151 +1284,129 @@ function handleCreatePaypalOrder(req, res) {
         return;
       }
 
-      sendJson(res, 201, {
-        success: true,
-        paypalOrderId: paypalOrder.id,
-        orderId: order.id,
-        token: order.token
+      const session = await payments.createCheckoutSession({
+        order,
+        successUrl: `${SITE_ORIGIN}/order?order=${encodeURIComponent(order.id)}&token=${encodeURIComponent(order.token)}`,
+        cancelUrl: `${SITE_ORIGIN}/cart`
       });
+
+      if (!session.ok) {
+        try { await updateOrderStatus(order.id, 'FAILED'); } catch (error) { /* best effort */ }
+        sendJson(res, 502, { success: false, message: 'Could not start checkout. Please try again.', error: session.error });
+        return;
+      }
+
+      try {
+        await setOrderPaymentRef(order.id, session.id);
+      } catch (error) {
+        // Not fatal: the success_url still carries the order id and token, and
+        // the webhook also carries the order id in metadata.
+        console.error(`[order ${order.id}] could not store the checkout session id: ${error.message}`);
+      }
+
+      sendJson(res, 201, { success: true, url: session.url, orderId: order.id, token: order.token });
     } catch (error) {
       sendJson(res, 400, { success: false, message: 'Invalid request body.' });
     }
   });
 }
 
-function handleCapturePaypalOrder(req, res) {
+// Marks an order paid and sends both emails. Shared by the webhook and by the
+// reconcile path, and safe to call twice: it returns early if the order is
+// already paid, so a webhook and a page load racing each other cannot send a
+// buyer two copies of their receipt.
+async function fulfilOrder(order, buyerEmail) {
+  if (!order || order.paid) return order;
+
+  const paidOrder = await markOrderPaid(order.id, buyerEmail);
+  const finalOrder = paidOrder || { ...order, paid: true };
+  const orderUrl = `${SITE_ORIGIN}/order?order=${encodeURIComponent(order.id)}&token=${encodeURIComponent(order.token)}`;
+
+  // The payment is captured by this point, so every mail failure below is
+  // logged and swallowed. None of it is worth failing a paid order over.
+  if (buyerEmail) {
+    const sent = await mailer.sendMail({ to: buyerEmail, ...mailer.orderConfirmation({ order: finalOrder, orderUrl }) });
+    if (!sent.ok) console.error(`[order ${order.id}] confirmation email not sent: ${sent.error}`);
+  } else {
+    console.error(`[order ${order.id}] paid but Stripe returned no buyer email - no confirmation sent`);
+  }
+
+  const notified = await mailer.sendMail({
+    to: mailer.SALES_TO,
+    ...mailer.saleNotification({ order: finalOrder, orderUrl, buyerEmail })
+  });
+  if (!notified.ok) console.error(`[order ${order.id}] sale notification not sent: ${notified.error}`);
+
+  return finalOrder;
+}
+
+// Stripe's webhook. This is what actually confirms payment: the buyer's browser
+// returning to the success URL proves nothing, since anyone can visit a URL.
+//
+// The signature check is the entire security of this endpoint. Without it any
+// caller who found the path could mark orders paid and collect the downloads,
+// so an unverified request is refused rather than trusted.
+function handleStripeWebhook(req, res) {
   if (req.method !== 'POST') {
     sendJson(res, 405, { success: false, message: 'Method not allowed.' });
     return;
   }
-  if (!paypalConfigured()) {
-    sendJson(res, 500, { success: false, message: 'PayPal is not configured on the server.' });
-    return;
-  }
 
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
+  // Collected as raw bytes: Stripe signs the exact body it sent, and a parsed
+  // and re-serialised copy will not verify.
+  const chunks = [];
+  let size = 0;
+  let aborted = false;
+  req.on('data', chunk => {
+    if (aborted) return;
+    size += chunk.length;
+    if (size > 1024 * 1024) { aborted = true; res.writeHead(413); res.end(); req.destroy(); return; }
+    chunks.push(chunk);
+  });
+
   req.on('end', async () => {
+    if (aborted) return;
+
+    const verified = payments.verifyWebhook(Buffer.concat(chunks), req.headers['stripe-signature'] || '');
+    if (!verified.ok) {
+      console.error('[stripe] rejected an unverified webhook:', verified.error);
+      sendJson(res, 400, { success: false, message: 'Signature verification failed.' });
+      return;
+    }
+
+    const event = verified.event;
+    if (event.type !== 'checkout.session.completed' && event.type !== 'checkout.session.async_payment_succeeded') {
+      // Acknowledged, not acted on. Answering 2xx stops Stripe retrying events
+      // this store has no interest in.
+      sendJson(res, 200, { received: true });
+      return;
+    }
+
+    const session = event.data.object;
+    if (session.payment_status !== 'paid') {
+      sendJson(res, 200, { received: true });
+      return;
+    }
+
+    const orderId = (session.metadata && session.metadata.orderId) || session.client_reference_id || '';
+    const buyerEmail = (session.customer_details && session.customer_details.email) || null;
+
     try {
-      const payload = JSON.parse(body || '{}');
-      const paypalOrderId = String(payload.paypalOrderId || '').trim();
-      if (!paypalOrderId) {
-        sendJson(res, 400, { success: false, message: 'paypalOrderId is required.' });
+      const rows = orderId ? (await supabaseRequest(`orders?id=eq.${encodeURIComponent(orderId)}&select=*`)) || [] : [];
+      const order = rows[0] ? rowToOrder(rows[0]) : await findOrderByPaymentRef(session.id);
+      if (!order) {
+        // 200 rather than an error: retrying will not conjure the row, and a
+        // failing webhook endpoint gets disabled by Stripe.
+        console.error(`[stripe] paid session ${session.id} matched no order`);
+        sendJson(res, 200, { received: true, matched: false });
         return;
       }
-
-      let existingOrder;
-      try {
-        existingOrder = await findOrderByPaypalId(paypalOrderId);
-      } catch (error) {
-        sendJson(res, 500, { success: false, message: 'Failed to reach the order database.', error: error.message });
-        return;
-      }
-
-      if (!existingOrder) {
-        sendJson(res, 404, { success: false, message: 'Order not found.' });
-        return;
-      }
-
-      // Idempotency: a repeated capture request for an order that's already
-      // COMPLETED must not process the payment twice or return an error -
-      // just hand back the same success result.
-      if (existingOrder.status === 'COMPLETED') {
-        sendJson(res, 200, {
-          success: true,
-          orderId: existingOrder.id,
-          token: existingOrder.token,
-          alreadyCaptured: true
-        });
-        return;
-      }
-
-      let captureStatus;
-      let capture;
-      try {
-        [captureStatus, capture] = await paypalRequest(`/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}/capture`, { method: 'POST', body: {} });
-      } catch (error) {
-        sendJson(res, 502, { success: false, message: 'Failed to reach PayPal.', error: error.message });
-        return;
-      }
-
-      if (![200, 201].includes(captureStatus) || capture.status !== 'COMPLETED') {
-        try { await updateOrderStatus(existingOrder.id, 'FAILED'); } catch (error) { /* best effort */ }
-        sendJson(res, 402, { success: false, message: 'Payment was not completed.', error: capture });
-        return;
-      }
-
-      let capturedAmount;
-      let capturedCurrency;
-      try {
-        const captured = capture.purchase_units[0].payments.captures[0];
-        capturedAmount = Number(captured.amount.value);
-        capturedCurrency = captured.amount.currency_code;
-      } catch (error) {
-        sendJson(res, 502, { success: false, message: 'Unexpected response from PayPal.' });
-        return;
-      }
-
-      const expectedCents = Math.round(existingOrder.total * 100);
-      const capturedCents = Math.round(capturedAmount * 100);
-
-      if (capturedCents !== expectedCents || capturedCurrency !== (existingOrder.currency || ORDER_CURRENCY)) {
-        try { await updateOrderStatus(existingOrder.id, 'FAILED'); } catch (error) { /* best effort */ }
-        sendJson(res, 402, { success: false, message: 'Payment amount did not match the order.' });
-        return;
-      }
-
-      const payerEmail = capture.payer && capture.payer.email_address ? capture.payer.email_address : null;
-
-      let paidOrder;
-      try {
-        paidOrder = await markOrderPaid(existingOrder.id, payerEmail);
-      } catch (error) {
-        sendJson(res, 500, { success: false, message: 'Payment succeeded but saving the order failed.', error: error.message });
-        return;
-      }
-
-      // The order page a buyer lands on is not a durable copy of their
-      // purchase - closing that tab used to lose the download link for good.
-      // Emailing the tokenized URL is what makes "your link stays active"
-      // true. The payment is already captured, so a mail failure is logged
-      // and swallowed: it must never turn a completed purchase into an error.
-      const order = paidOrder || { ...existingOrder, paid: true };
-      const orderUrl = `${SITE_ORIGIN}/order?order=${encodeURIComponent(existingOrder.id)}&token=${encodeURIComponent(existingOrder.token)}`;
-
-      if (payerEmail) {
-        const sent = await mailer.sendMail({
-          to: payerEmail,
-          ...mailer.orderConfirmation({ order, orderUrl })
-        });
-        if (!sent.ok) {
-          console.error(`[order ${existingOrder.id}] confirmation email not sent: ${sent.error}`);
-        }
-      } else {
-        console.error(`[order ${existingOrder.id}] paid but PayPal returned no payer email - no confirmation sent`);
-      }
-
-      // Tell the shop a sale happened. Sent separately from the buyer's
-      // receipt and outside the payerEmail check, because a sale is worth
-      // knowing about even when PayPal gives us no address to deliver to -
-      // that case is precisely the one needing a human to chase it. Failure
-      // here is logged and swallowed like the receipt above: the money is
-      // already taken, and no notification is worth failing a purchase over.
-      const notified = await mailer.sendMail({
-        to: mailer.SALES_TO,
-        ...mailer.saleNotification({ order, orderUrl, buyerEmail: payerEmail })
-      });
-      if (!notified.ok) {
-        console.error(`[order ${existingOrder.id}] sale notification not sent: ${notified.error}`);
-      }
-
-      sendJson(res, 200, {
-        success: true,
-        orderId: existingOrder.id,
-        token: existingOrder.token
-      });
+      await fulfilOrder(order, buyerEmail);
+      sendJson(res, 200, { received: true });
     } catch (error) {
-      sendJson(res, 400, { success: false, message: 'Invalid request body.' });
+      // A real failure on our side - let Stripe retry.
+      console.error('[stripe] webhook handling failed:', error.message);
+      sendJson(res, 500, { success: false, message: 'Could not process the event.' });
     }
   });
 }
@@ -1678,13 +1602,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (reqPath === '/api/config' && req.method === 'GET') {
-    // Public, non-secret runtime config the frontend needs - the PayPal
-    // Client ID is designed to be public (PayPal's own SDK requires it in
-    // the browser). PAYPAL_CLIENT_SECRET never appears here or anywhere
-    // else reachable from a GET/POST response.
+    // Public, non-secret runtime config the frontend needs. Stripe Checkout is
+    // hosted, so the browser never needs a key at all: it asks this server for
+    // a session and follows the URL it gets back. No Stripe key, publishable
+    // or otherwise, appears in any response.
     sendJson(res, 200, {
-      paypalClientId: PAYPAL_CLIENT_ID,
-      paypalEnvironment: PAYPAL_ENVIRONMENT,
+      paymentsEnabled: payments.isConfigured(),
+      paymentsTestMode: payments.isTestMode(),
       currency: ORDER_CURRENCY
     });
     return;
@@ -1825,7 +1749,8 @@ const server = http.createServer(async (req, res) => {
       'Disallow: /api/download',
       'Disallow: /api/login',
       'Disallow: /api/logout',
-      'Disallow: /api/paypal/',
+      'Disallow: /api/checkout/',
+      'Disallow: /api/stripe/',
       '',
       `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
       ''
@@ -1838,13 +1763,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (reqPath === '/api/paypal/create-order') {
-    await handleCreatePaypalOrder(req, res);
+  if (reqPath === '/api/checkout/create-session') {
+    handleCreateCheckoutSession(req, res);
     return;
   }
 
-  if (reqPath === '/api/paypal/capture-order') {
-    await handleCapturePaypalOrder(req, res);
+  if (reqPath === '/api/stripe/webhook') {
+    handleStripeWebhook(req, res);
     return;
   }
 
@@ -1862,6 +1787,24 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 404, { success: false, message: 'Order not found.' });
       return;
     }
+
+    // The webhook is what confirms payment, but it is not instant and it can
+    // fail to arrive. A buyer redirected back from Stripe would then sit in
+    // front of an unpaid order holding files they have paid for. So an unpaid
+    // order with a session attached is checked directly against Stripe here.
+    // Payment is still established by asking Stripe, never by trusting that
+    // the browser reached this URL.
+    if (!order.paid && order.paymentRef && payments.isConfigured()) {
+      try {
+        const session = await payments.retrieveSession(order.paymentRef);
+        if (session.ok && session.paid) {
+          order = await fulfilOrder(order, session.email) || order;
+        }
+      } catch (error) {
+        console.error(`[order ${order.id}] could not reconcile with Stripe: ${error.message}`);
+      }
+    }
+
     sendJson(res, 200, { success: true, order });
     return;
   }

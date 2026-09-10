@@ -233,7 +233,7 @@
         <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #78736E;">Checkout</p>
         <h2 data-buy-now-title style="margin: 0 0 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.1;"></h2>
         <p data-buy-now-price style="margin: 0 0 22px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;"></p>
-        <div data-buy-now-paypal="" style="min-height: 45px;"></div>
+        <button data-buy-now-go="" type="button" style="display: inline-flex; align-items: center; justify-content: center; width: 100%; padding: 17px 28px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, opacity .25s ease;" style-hover="background: #47443E;">Continue to secure checkout</button>
         <p data-buy-now-msg="" role="status" aria-live="polite" style="margin: 10px 0 0; min-height: 14px; font-size: 11px; letter-spacing: .08em; color: #78736E;"></p>
       </div>
     </div>
@@ -709,25 +709,14 @@ class Component extends DCLogic {
       });
     });
 
-    // --- Buy Now: skips the cart entirely, checks out just this product
-    // via PayPal directly from the product page. Loaded lazily, same as
-    // the Cart page - the SDK only ever loads once a buyer actually
-    // clicks Buy Now, not on every page view.
-    let paypalSdkPromise = null;
-    let buyNowRendered = false;
-
-    function loadPaypalSdk(clientId, currency) {
-      if (paypalSdkPromise) return paypalSdkPromise;
-      paypalSdkPromise = new Promise((resolve, reject) => {
-        if (window.paypal) { resolve(window.paypal); return; }
-        const script = document.createElement('script');
-        script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${encodeURIComponent(currency)}&intent=capture`;
-        script.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error('PayPal SDK did not load correctly.')));
-        script.onerror = () => reject(new Error('Failed to load the PayPal SDK.'));
-        document.head.appendChild(script);
-      });
-      return paypalSdkPromise;
-    }
+    // --- Buy Now: skips the cart entirely and checks out just this product.
+    //
+    // Stripe Checkout is hosted, so there is no widget to render here and no
+    // payment SDK to load: the modal confirms what is being bought, then the
+    // server creates a session and the browser follows it. As on the cart, the
+    // request names only the product and quantity - the price is read from
+    // Supabase server-side.
+    let buyNowInFlight = false;
 
     const buyNowModal = document.querySelector('[data-buy-now-modal]');
     const buyNowMsgEl = document.querySelector('[data-buy-now-msg]');
@@ -741,7 +730,7 @@ class Component extends DCLogic {
       retryBtn.type = 'button';
       retryBtn.textContent = 'Try again';
       retryBtn.style.cssText = 'border:0; background:none; padding:0; font:inherit; color:#292825; text-decoration:underline; cursor:pointer;';
-      retryBtn.addEventListener('click', () => { buyNowRendered = false; showBuyNowMessage(''); renderBuyNowPaypal(); });
+      retryBtn.addEventListener('click', () => { showBuyNowMessage(''); startBuyNow(); });
       buyNowMsgEl.append(retryBtn);
     }
 
@@ -753,99 +742,49 @@ class Component extends DCLogic {
       if (!currentProduct || !buyNowModal) return;
       setText('[data-buy-now-title]', currentProduct.title || 'Product');
       setText('[data-buy-now-price]', `${symbolFor(currentProduct)}${priceOf(currentProduct).toFixed(2)}`);
-      buyNowModal.style.display = 'flex';
-      renderBuyNowPaypal();
-    }
-
-    async function renderBuyNowPaypal() {
-      if (buyNowRendered || !currentProduct) return;
-      const container = document.querySelector('[data-buy-now-paypal]');
-      if (!container) return;
-
-      showBuyNowMessage('Loading PayPal…');
-
-      let config;
-      try {
-        const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/config'));
-        config = await response.json();
-      } catch (error) {
-        showBuyNowMessage('Unable to reach the checkout service.', { retry: true });
-        return;
-      }
-      if (!config || !config.paypalClientId) {
-        showBuyNowMessage('PayPal checkout is not available right now.', { retry: true });
-        return;
-      }
-
-      let paypal;
-      try {
-        paypal = await loadPaypalSdk(config.paypalClientId, currencyFor(currentProduct));
-      } catch (error) {
-        showBuyNowMessage('Unable to load PayPal. Please check your connection.', { retry: true });
-        return;
-      }
-
-      buyNowRendered = true;
-      container.innerHTML = '';
       showBuyNowMessage('');
-
-      let capturing = false;
-      paypal.Buttons({
-        style: { layout: 'vertical', shape: 'pill', color: 'black', label: 'pay' },
-
-        createOrder: async () => {
-          const product = currentProduct;
-          if (!product) { showBuyNowMessage('No product selected.'); throw new Error('No product selected.'); }
-          let response;
-          try {
-            response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/create-order'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: [{ id: product.id, qty: 1 }], currency: currencyFor(product) })
-            });
-          } catch (error) {
-            showBuyNowMessage('Network error - please check your connection and try again.');
-            throw error;
-          }
-          const data = await response.json();
-          if (!response.ok || !data.success) {
-            showBuyNowMessage(data.message || 'Could not start checkout. Please try again.');
-            throw new Error(data.message || 'create-order failed');
-          }
-          return data.paypalOrderId;
-        },
-
-        onApprove: async (data) => {
-          if (capturing) return;
-          capturing = true;
-          showBuyNowMessage('Confirming your payment…');
-          try {
-            const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/capture-order'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paypalOrderId: data.orderID })
-            });
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-              showBuyNowMessage(result.message || 'Payment could not be confirmed. Please contact support if you were charged.');
-              capturing = false;
-              return;
-            }
-            const target = new URL('/order', window.location.href);
-            target.searchParams.set('order', result.orderId);
-            target.searchParams.set('token', result.token);
-            window.location.href = target.toString();
-          } catch (error) {
-            console.error('Capture failed:', error);
-            showBuyNowMessage('Something went wrong confirming your payment. Please try again.');
-            capturing = false;
-          }
-        },
-
-        onCancel: () => showBuyNowMessage('Payment cancelled.'),
-        onError: (err) => { console.error('PayPal error:', err); showBuyNowMessage('Something went wrong with PayPal. Please try again.'); }
-      }).render(container);
+      const go = document.querySelector('[data-buy-now-go]');
+      if (go) { go.disabled = false; go.style.opacity = '1'; }
+      buyNowModal.style.display = 'flex';
     }
+
+    async function startBuyNow() {
+      if (buyNowInFlight || !currentProduct) return;
+      const go = document.querySelector('[data-buy-now-go]');
+
+      buyNowInFlight = true;
+      if (go) { go.disabled = true; go.style.opacity = '.6'; }
+      showBuyNowMessage('Taking you to secure checkout…');
+
+      try {
+        const response = await fetch('/api/checkout/create-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [{ id: currentProduct.id, qty: 1 }],
+            currency: currencyFor(currentProduct)
+          })
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.success || !result.url) {
+          showBuyNowMessage(result.message || 'Could not start checkout.', { retry: true });
+          buyNowInFlight = false;
+          if (go) { go.disabled = false; go.style.opacity = '1'; }
+          return;
+        }
+        window.location.href = result.url;
+      } catch (error) {
+        console.error('Buy now failed:', error);
+        showBuyNowMessage('Could not reach the checkout service.', { retry: true });
+        buyNowInFlight = false;
+        if (go) { go.disabled = false; go.style.opacity = '1'; }
+      }
+    }
+
+    document.querySelectorAll('[data-buy-now-go]').forEach(button => {
+      button.addEventListener('click', startBuyNow);
+    });
 
     document.querySelectorAll('[data-buy-now]').forEach(button => {
       button.addEventListener('click', openBuyNowModal);

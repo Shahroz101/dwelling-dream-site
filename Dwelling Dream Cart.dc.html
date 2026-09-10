@@ -170,7 +170,7 @@
             <span data-cart-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(25px, 2.5vw, 34px);">$0.00</span>
           </div>
 
-          <div data-paypal-container="" style="display: none; min-height: 45px;"></div>
+          <button data-checkout="" data-magnetic="" type="button" style="display: none; align-items: center; justify-content: center; width: 100%; padding: 18px 28px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, opacity .25s ease;" style-hover="background: #47443E;">Checkout securely</button>
           <p data-checkout-msg="" role="status" aria-live="polite" style="margin: 0; min-height: 14px; font-size: 11px; letter-spacing: .08em; color: #78736E;"></p>
 
           <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding-top: 20px; border-top: 1px solid #D8D2C8;">
@@ -550,210 +550,86 @@
   // separate "Continue to Checkout" step. Still only loaded on the Cart
   // page, never sitewide. Client ID comes from /api/config (public by
   // design); the secret never leaves the server.
-  let paypalSdkPromise = null;
-  let paypalRendered = false;
+  // --- Checkout ------------------------------------------------------
+  //
+  // Stripe Checkout is hosted: this asks the server for a session and follows
+  // the URL it returns. No payment SDK is loaded, no card form exists on this
+  // page, and the browser never sees a Stripe key. The server builds the order
+  // from Supabase prices - the request below only names products and
+  // quantities, never amounts.
+  let checkoutInFlight = false;
 
-  function renderCart() {
-    const items = getCart();
-    const emptyEl = document.querySelector('[data-cart-empty]');
-    const filledEl = document.querySelector('[data-cart-filled]');
-    const listEl = document.querySelector('[data-cart-items]');
-    const countEl = document.querySelector('[data-cart-item-count]');
-    const subtotalEl = document.querySelector('[data-cart-subtotal]');
-    const totalEl = document.querySelector('[data-cart-total]');
-
-    const hasItems = items.length > 0;
-    if (emptyEl) {
-      emptyEl.hidden = hasItems;
-      emptyEl.style.display = hasItems ? 'none' : 'grid';
-    }
-    if (filledEl) {
-      filledEl.hidden = !hasItems;
-      filledEl.style.display = hasItems ? 'grid' : 'none';
-    }
-    applyResponsive();
-    computeAtmosphere(items);
-
-    if (countEl) {
-      const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
-      countEl.textContent = hasItems ? `${totalQty} palette${totalQty === 1 ? '' : 's'} in your cart` : '';
-    }
-
-    if (!hasItems) {
-      renderEmptyPreviews();
-      paypalRendered = false;
-      const container = document.querySelector('[data-paypal-container]');
-      if (container) { container.style.display = 'none'; container.innerHTML = ''; }
-      const msg = document.querySelector('[data-checkout-msg]');
-      if (msg) msg.textContent = '';
-      return;
-    }
-    if (!listEl) return;
-
-    listEl.innerHTML = '';
-    items.forEach(item => listEl.appendChild(renderCartRow(item)));
-
-    const subtotal = getSubtotal();
-    if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal);
-    if (totalEl) totalEl.textContent = formatPrice(subtotal);
-
-    renderPaypalButtons();
-  }
-
-  onCartChange(renderCart);
-  renderCart();
-
-  const promoApply = document.querySelector('[data-promo-apply]');
-  const promoInput = document.querySelector('[data-promo-input]');
-  const promoMsg = document.querySelector('[data-promo-msg]');
-  if (promoApply) {
-    promoApply.addEventListener('click', () => {
-      const code = (promoInput && promoInput.value || '').trim();
-      if (promoMsg) promoMsg.textContent = code ? `"${code}" isn't a valid code yet.` : 'Enter a code first.';
-    });
-  }
-
-  // --- PayPal checkout -----------------------------------------------
-  function loadPaypalSdk(clientId, currency) {
-    if (paypalSdkPromise) return paypalSdkPromise;
-    paypalSdkPromise = new Promise((resolve, reject) => {
-      if (window.paypal) { resolve(window.paypal); return; }
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${encodeURIComponent(currency)}&intent=capture`;
-      script.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error('PayPal SDK did not load correctly.')));
-      script.onerror = () => reject(new Error('Failed to load the PayPal SDK.'));
-      document.head.appendChild(script);
-    });
-    return paypalSdkPromise;
+  // Mirrors the product page: the storefront currency is carried in the URL,
+  // not guessed from the visitor. Anything unrecognised falls through to the
+  // server's default rather than being sent as-is.
+  const SUPPORTED_CURRENCIES = ['USD', 'GBP'];
+  function getCurrency() {
+    const wanted = String(new URLSearchParams(window.location.search).get('currency') || '').toUpperCase();
+    return SUPPORTED_CURRENCIES.includes(wanted) ? wanted : 'USD';
   }
 
   function showCheckoutMessage(text, { retry = false } = {}) {
     const checkoutMsg = document.querySelector('[data-checkout-msg]');
     if (!checkoutMsg) return;
-    if (!retry) {
-      checkoutMsg.textContent = text;
-      return;
+    checkoutMsg.textContent = text || '';
+    if (retry) {
+      checkoutMsg.textContent = `${text} `;
+      const again = document.createElement('button');
+      again.type = 'button';
+      again.textContent = 'Try again';
+      again.style.cssText = 'border:0;background:none;padding:0;color:#292825;text-decoration:underline;cursor:pointer;font:inherit;';
+      again.addEventListener('click', () => { showCheckoutMessage(''); startCheckout(); });
+      checkoutMsg.appendChild(again);
     }
-    checkoutMsg.innerHTML = '';
-    checkoutMsg.append(text + ' ');
-    const retryBtn = document.createElement('button');
-    retryBtn.type = 'button';
-    retryBtn.textContent = 'Try again';
-    retryBtn.style.cssText = 'border:0; background:none; padding:0; font:inherit; color:#292825; text-decoration:underline; cursor:pointer;';
-    retryBtn.addEventListener('click', () => {
-      paypalRendered = false;
-      showCheckoutMessage('');
-      renderPaypalButtons();
-    });
-    checkoutMsg.append(retryBtn);
   }
 
-  async function renderPaypalButtons() {
-    if (paypalRendered) return;
-    const container = document.querySelector('[data-paypal-container]');
-    if (!container) return;
+  function showCheckoutButton() {
+    const button = document.querySelector('[data-checkout]');
+    if (button) button.style.display = 'inline-flex';
+  }
 
-    showCheckoutMessage('Loading PayPal…');
+  async function startCheckout() {
+    if (checkoutInFlight) return;
+    const button = document.querySelector('[data-checkout]');
+    const items = getCart();
+    if (!items.length) return;
 
-    let config;
+    checkoutInFlight = true;
+    if (button) { button.disabled = true; button.style.opacity = '.6'; }
+    showCheckoutMessage('Taking you to secure checkout…');
+
     try {
-      const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/config'));
-      config = await response.json();
-    } catch (error) {
-      showCheckoutMessage('Unable to reach the checkout service.', { retry: true });
-      return;
-    }
+      const response = await fetch('/api/checkout/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(item => ({ id: item.id, qty: item.qty })),
+          currency: getCurrency()
+        })
+      });
+      const result = await response.json().catch(() => ({}));
 
-    if (!config || !config.paypalClientId) {
-      showCheckoutMessage('PayPal checkout is not available right now.', { retry: true });
-      return;
-    }
-
-    let paypal;
-    try {
-      paypal = await loadPaypalSdk(config.paypalClientId, config.currency || 'USD');
-    } catch (error) {
-      console.error('PayPal SDK failed to load:', error);
-      showCheckoutMessage('Unable to load PayPal. Please check your connection.', { retry: true });
-      return;
-    }
-
-    paypalRendered = true;
-    container.style.display = 'block';
-    container.innerHTML = '';
-    showCheckoutMessage('');
-
-    let capturing = false;
-
-    paypal.Buttons({
-      style: { layout: 'vertical', shape: 'pill', color: 'black', label: 'pay' },
-
-      createOrder: async () => {
-        const currentItems = getCart();
-        if (!currentItems.length) {
-          showCheckoutMessage('Your cart is empty.');
-          throw new Error('Cart is empty.');
-        }
-        let response;
-        try {
-          response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/create-order'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: currentItems.map(item => ({ id: item.id, qty: item.qty })) })
-          });
-        } catch (error) {
-          showCheckoutMessage('Network error - please check your connection and try again.');
-          throw error;
-        }
-        const data = await response.json();
-        if (!response.ok || !data.success) {
-          showCheckoutMessage(data.message || 'Could not start checkout. Please try again.');
-          throw new Error(data.message || 'create-order failed');
-        }
-        return data.paypalOrderId;
-      },
-
-      onApprove: async (data) => {
-        if (capturing) return;
-        capturing = true;
-        showCheckoutMessage('Confirming your payment…');
-
-        try {
-          const response = await fetch(getCatalogApiUrl().replace('/api/products', '/api/paypal/capture-order'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paypalOrderId: data.orderID })
-          });
-          const result = await response.json();
-
-          if (!response.ok || !result.success) {
-            showCheckoutMessage(result.message || 'Payment could not be confirmed. Please contact support if you were charged.');
-            capturing = false;
-            return;
-          }
-
-          clearCart();
-          const target = new URL('/order', window.location.href);
-          target.searchParams.set('order', result.orderId);
-          target.searchParams.set('token', result.token);
-          window.location.href = target.toString();
-        } catch (error) {
-          console.error('Capture failed:', error);
-          showCheckoutMessage('Something went wrong confirming your payment. Please try again.');
-          capturing = false;
-        }
-      },
-
-      onCancel: () => {
-        showCheckoutMessage('Payment cancelled - your cart is still saved.');
-      },
-
-      onError: (err) => {
-        console.error('PayPal error:', err);
-        showCheckoutMessage('Something went wrong with PayPal. Please try again.');
+      if (!response.ok || !result.success || !result.url) {
+        showCheckoutMessage(result.message || 'Could not start checkout.', { retry: true });
+        checkoutInFlight = false;
+        if (button) { button.disabled = false; button.style.opacity = '1'; }
+        return;
       }
-    }).render(container);
+
+      // The cart is deliberately NOT cleared here. The buyer has not paid yet,
+      // and abandoning Stripe's page must leave the cart as they left it.
+      window.location.href = result.url;
+    } catch (error) {
+      console.error('Checkout failed:', error);
+      showCheckoutMessage('Could not reach the checkout service.', { retry: true });
+      checkoutInFlight = false;
+      if (button) { button.disabled = false; button.style.opacity = '1'; }
+    }
   }
+
+  document.querySelectorAll('[data-checkout]').forEach(button => {
+    button.addEventListener('click', startCheckout);
+  });
 
   async function loadRecommended() {
     const grid = document.querySelector('[data-rec-grid]');

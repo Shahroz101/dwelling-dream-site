@@ -15,6 +15,7 @@
     "sharp": "^0.35.4"
   },
   "dependencies": {
-    "nodemailer": "^10.0.2"
+    "nodemailer": "^10.0.2",
+    "stripe": "^22.6.2"
   }
 }

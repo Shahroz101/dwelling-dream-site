@@ -140,7 +140,7 @@ async function main() {
 
       // A credential leaking into a public feed is the worst possible outcome
       // here, so check explicitly rather than trusting the templating.
-      for (const [label, secret] of [['service key', SUPABASE_SERVICE_KEY], ['PayPal secret', process.env.PAYPAL_CLIENT_SECRET], ['admin password', process.env.ADMIN_PASSWORD]]) {
+      for (const [label, secret] of [['service key', SUPABASE_SERVICE_KEY], ['Stripe secret key', process.env.STRIPE_SECRET_KEY], ['admin password', process.env.ADMIN_PASSWORD]]) {
         if (secret && secret.length > 8 && body.includes(secret)) {
           failed = true;
           console.log(`  x CREDENTIAL LEAK: ${label} appears in the feed body`);
