@@ -1676,6 +1676,57 @@ const server = http.createServer(async (req, res) => {
   // Also answers on /google-shopping-feed.xml and /pinterest-feed.xml. Some
   // feed ingesters key off a recognised file extension, and an extensionless
   // /api/ path gives them nothing to go on.
+  // Pinterest's CSV data source. Deliberately a separate endpoint from the
+  // Google feed, and from the Pinterest RSS above: Pinterest specifies its
+  // column formats far more precisely than its XML dialect, so this is the one
+  // to point a data source at. The Google feed is untouched by any of it.
+  if (['/api/pinterest-feed.csv', '/pinterest-feed.csv'].includes(reqPath)) {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      sendJson(res, 405, { success: false, message: 'Method not allowed.' });
+      return;
+    }
+
+    const startedAt = Date.now();
+    console.log('[pinterest-csv] feed generation started');
+
+    let products;
+    try {
+      products = await readProducts();
+    } catch (error) {
+      // Plain-text 503 rather than an empty feed: a crawler handed zero
+      // products reads that as "delist everything".
+      console.error(`[pinterest-csv] aborted - product database unreachable: ${error.message}`);
+      res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(`Product feed unavailable: could not reach the product database.\n`);
+      return;
+    }
+
+    let built;
+    try {
+      built = productFeed.buildFeedCsv(products, { currency: 'USD' });
+    } catch (error) {
+      console.error(`[pinterest-csv] aborted - could not build the feed: ${error.message}`);
+      res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end('Product feed unavailable.\n');
+      return;
+    }
+
+    const { processed, valid, skipped } = built.stats;
+    for (const item of skipped) {
+      // Product ids and the reason only - no customer data, no credentials.
+      console.warn(`[pinterest-csv] skipped ${item.id || '(no id)'}: ${item.reason}`);
+    }
+    console.log(`[pinterest-csv] processed=${processed} valid=${valid} skipped=${skipped.length} bytes=${Buffer.byteLength(built.csv)} ms=${Date.now() - startedAt}`);
+
+    res.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Length': Buffer.byteLength(built.csv),
+      'Cache-Control': 'public, max-age=1800'
+    });
+    res.end(req.method === 'HEAD' ? undefined : built.csv);
+    return;
+  }
+
   if (['/api/google-shopping-feed', '/api/pinterest-feed',
        '/google-shopping-feed.xml', '/pinterest-feed.xml',
        '/api/google-shopping-feed-gb', '/google-shopping-feed-gb.xml'].includes(reqPath)) {
@@ -1748,6 +1799,8 @@ const server = http.createServer(async (req, res) => {
       'Allow: /api/pinterest-feed',
       'Allow: /google-shopping-feed.xml',
       'Allow: /pinterest-feed.xml',
+      'Allow: /api/pinterest-feed.csv',
+      'Allow: /pinterest-feed.csv',
       'Allow: /product-image/',
       'Allow: /',
       'Disallow: /admin.html',
