@@ -20,6 +20,10 @@ DATA_DIR = ROOT / "data"
 UPLOADS_DIR = DATA_DIR / "uploads"  # legacy local-disk fallback for the /uploads/ route only
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+# A generated password has to be printed - it exists nowhere else, so the log is
+# the only way to learn it. A configured one must NOT be, which is what this
+# flag distinguishes at startup below.
+ADMIN_PASSWORD_GENERATED = not ADMIN_PASSWORD
 if not ADMIN_PASSWORD:
     ADMIN_PASSWORD = os.urandom(9).hex()
     print(f"No ADMIN_PASSWORD set - generated one for this run: {ADMIN_PASSWORD}")
@@ -1742,5 +1746,11 @@ if __name__ == "__main__":
     ensure_storage()
     server = ThreadingHTTPServer(("0.0.0.0", PORT), AdminHandler)
     print(f"Dwelling Dream admin app running at http://localhost:{PORT}")
-    print(f"Default admin login: username={ADMIN_USERNAME} password={ADMIN_PASSWORD}")
+    # This line used to print the real password on every start, leaving the live
+    # credential in the runtime log for anyone with panel access to read. Only
+    # the throwaway generated one is worth printing.
+    if ADMIN_PASSWORD_GENERATED:
+        print(f"Default admin login: username={ADMIN_USERNAME} password={ADMIN_PASSWORD}")
+    else:
+        print(f"Admin login: username={ADMIN_USERNAME} (password from ADMIN_PASSWORD)")
     server.serve_forever()

@@ -34,6 +34,10 @@ const DATA_DIR = path.join(ROOT, 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads'); // legacy local-disk fallback for the /uploads/ route only
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+// A generated password has to be printed - it exists nowhere else, so the log
+// is the only way to learn it. A configured one must NOT be, which is what
+// this flag distinguishes at startup below.
+const ADMIN_PASSWORD_GENERATED = !ADMIN_PASSWORD;
 if (!ADMIN_PASSWORD) {
   ADMIN_PASSWORD = crypto.randomBytes(9).toString('hex');
   console.log(`No ADMIN_PASSWORD set - generated one for this run: ${ADMIN_PASSWORD}`);
@@ -2016,5 +2020,13 @@ const server = http.createServer(async (req, res) => {
 ensureDataFolders();
 server.listen(PORT, () => {
   console.log(`Dwelling Dream admin app running at http://localhost:${PORT}`);
-  console.log(`Default admin login: username=admin password=${ADMIN_PASSWORD}`);
+  // This line used to print the real password on every start, so the live
+  // credential sat in Hostinger's runtime log for anyone with panel access to
+  // read. Only the throwaway generated one is worth printing; a configured
+  // password is already known to whoever configured it.
+  if (ADMIN_PASSWORD_GENERATED) {
+    console.log(`Default admin login: username=${ADMIN_USERNAME} password=${ADMIN_PASSWORD}`);
+  } else {
+    console.log(`Admin login: username=${ADMIN_USERNAME} (password from ADMIN_PASSWORD)`);
+  }
 });
