@@ -2058,7 +2058,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (reqPath.endsWith('.html') || reqPath.endsWith('.css') || reqPath.endsWith('.js') || reqPath.endsWith('.svg') || reqPath.endsWith('.png') || reqPath.endsWith('.jpg') || reqPath.endsWith('.jpeg') || reqPath.endsWith('.webp') || reqPath.endsWith('.gif')) {
+  // .xml is on this list so a static feed file placed in the project root is
+  // actually served. Without it such a file 404s, which is easy to miss: both
+  // real feeds answer from explicit routes rather than from disk, so the gap
+  // only shows up for a hand-written file like pinterest-test.xml.
+  if (reqPath.endsWith('.html') || reqPath.endsWith('.css') || reqPath.endsWith('.js') || reqPath.endsWith('.svg') || reqPath.endsWith('.png') || reqPath.endsWith('.jpg') || reqPath.endsWith('.jpeg') || reqPath.endsWith('.webp') || reqPath.endsWith('.gif') || reqPath.endsWith('.xml')) {
     const filePath = path.join(ROOT, reqPath.replace(/^\//, ''));
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       serveFile(res, filePath);
