@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>Dwelling Dream</title>
+    <link>https://dwellingdream.shop/</link>
+    <description>Independent single-product test feed for Pinterest catalog diagnostics.</description>
+    <item>
+      <g:id>TEST-001</g:id>
+      <g:title>Test Product</g:title>
+      <g:description>Simple test product for Pinterest catalog diagnostics.</g:description>
+      <g:link>https://dwellingdream.shop/</g:link>
+      <g:image_link>https://dhemjhbbkehuufblafkv.supabase.co/storage/v1/object/public/product-images/BEHR-LAKE-9658-00.jpg</g:image_link>
+      <g:price>10.00 USD</g:price>
+      <g:availability>in stock</g:availability>
+    </item>
+  </channel>
+</rss>
