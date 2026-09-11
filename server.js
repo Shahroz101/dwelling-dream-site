@@ -790,6 +790,16 @@ function serveHtmlText(res, htmlText, statusCode = 200) {
   res.end(content);
 }
 
+// One line per feed fetch: who asked, from where, for what. Used to establish
+// whether a crawler is reaching this process at all, which no amount of testing
+// from outside can answer.
+function logFeedRequest(req, reqPath) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const ip = forwarded || (req.socket && req.socket.remoteAddress) || 'unknown';
+  const ua = String(req.headers['user-agent'] || '(none)').slice(0, 120);
+  console.log(`[feed] ${req.method} ${reqPath} ip=${ip} ua="${ua}"`);
+}
+
 function serveFile(res, filePath) {
   fs.readFile(filePath, (error, data) => {
     if (error) {
@@ -1691,7 +1701,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const startedAt = Date.now();
-    console.log('[pinterest-csv] feed generation started');
+    logFeedRequest(req, reqPath);
 
     let products;
     try {
@@ -1748,6 +1758,13 @@ const server = http.createServer(async (req, res) => {
       res.end(`Product feed unavailable: could not reach the product database.\n${error.message}\n`);
       return;
     }
+
+    // Who is actually fetching these. Pinterest's saved copy of the data source
+    // is empty every time, while the bytes serve correctly to every client
+    // tested from outside - so the open question is whether Pinterest's fetcher
+    // reaches this process at all. Nothing here identifies a person: a feed is
+    // public, and the only clients are crawlers.
+    logFeedRequest(req, reqPath);
 
     const dialect = reqPath.includes('pinterest') ? 'pinterest' : 'google';
     // One feed per Merchant Center target country, each in that country's
@@ -2076,6 +2093,7 @@ const server = http.createServer(async (req, res) => {
   if (reqPath.endsWith('.html') || reqPath.endsWith('.css') || reqPath.endsWith('.js') || reqPath.endsWith('.svg') || reqPath.endsWith('.png') || reqPath.endsWith('.jpg') || reqPath.endsWith('.jpeg') || reqPath.endsWith('.webp') || reqPath.endsWith('.gif') || reqPath.endsWith('.xml')) {
     const filePath = path.join(ROOT, reqPath.replace(/^\//, ''));
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        if (reqPath.endsWith('.xml')) logFeedRequest(req, reqPath);
       serveFile(res, filePath);
       return;
     }
