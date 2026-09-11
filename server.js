@@ -1799,7 +1799,8 @@ const server = http.createServer(async (req, res) => {
       products = [];
     }
     const esc = productFeed.escapeXml;
-    const staticPaths = ['/', '/palettes', '/about', '/help', '/contact'];
+    const staticPaths = ['/', '/palettes', '/about', '/help', '/contact',
+      '/help/shipping-policy', '/help/return-policy', '/help/privacy-policy', '/help/terms-of-service'];
     const urls = staticPaths.map(p => `  <url>\n    <loc>${esc(SITE_ORIGIN + p)}</loc>\n  </url>`);
     for (const product of products) {
       if (!productFeed.isListable(product)) continue;
@@ -1999,7 +2000,15 @@ const server = http.createServer(async (req, res) => {
     '/cart': 'Dwelling Dream Cart.dc.html',
     '/order': 'Dwelling Dream Order.dc.html',
     '/palettes': 'Dwelling Dream Palettes.dc.html',
-    '/contact': 'Dwelling Dream Contact.dc.html'
+    '/contact': 'Dwelling Dream Contact.dc.html',
+    // Each policy Pinterest's merchant guidelines name, on its own URL with
+    // that exact name. They existed only as anchors on /help, which is easy to
+    // miss for anyone - reviewer or customer - working down a checklist looking
+    // for "a shipping policy" rather than reading a long page.
+    '/help/shipping-policy': 'Dwelling Dream Shipping Policy.dc.html',
+    '/help/return-policy': 'Dwelling Dream Return Policy.dc.html',
+    '/help/privacy-policy': 'Dwelling Dream Privacy Policy.dc.html',
+    '/help/terms-of-service': 'Dwelling Dream Terms of Service.dc.html'
   };
   const LEGACY_PAGE_PATHS = {
     '/Dwelling Dream About.dc.html': '/about',
@@ -2008,6 +2017,10 @@ const server = http.createServer(async (req, res) => {
     '/Dwelling Dream Order.dc.html': '/order',
     '/Dwelling Dream Palettes.dc.html': '/palettes',
     '/Dwelling Dream Contact.dc.html': '/contact',
+    '/Dwelling Dream Shipping Policy.dc.html': '/help/shipping-policy',
+    '/Dwelling Dream Return Policy.dc.html': '/help/return-policy',
+    '/Dwelling Dream Privacy Policy.dc.html': '/help/privacy-policy',
+    '/Dwelling Dream Terms of Service.dc.html': '/help/terms-of-service',
     '/Dwelling Dream Homepage v2.dc.html': '/'
   };
 
