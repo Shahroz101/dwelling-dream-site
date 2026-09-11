@@ -800,6 +800,9 @@ function serveFile(res, filePath) {
 
     res.writeHead(200, {
       'Content-Type': getMimeType(filePath),
+      // Same reason as the feed routes: a chunked response with no declared
+      // length is what a strict fetcher stores as an empty file.
+      'Content-Length': data.length,
       'Cache-Control': 'no-store'
     });
     res.end(data);
@@ -1756,8 +1759,15 @@ const server = http.createServer(async (req, res) => {
     // meant to keep the XML itself out of search results - but a feed crawler
     // that honours the header can read it as "do not use this resource" and
     // fail the whole ingestion with no explanation.
+    // Content-Length matters here beyond tidiness. Without it Node streams the
+    // response chunked over HTTP/1.1, and a feed fetcher that sizes its buffer
+    // from the header - or validates the download against it - can store a
+    // zero-byte file while the bytes themselves arrived intact. Pinterest's
+    // saved copy of this data source was empty for exactly that shape of
+    // reason. Sent on HEAD too, which is what HEAD is for.
     res.writeHead(200, {
       'Content-Type': 'application/xml; charset=utf-8',
+      'Content-Length': Buffer.byteLength(xml),
       'Cache-Control': 'public, max-age=1800'
     });
     res.end(req.method === 'HEAD' ? undefined : xml);
