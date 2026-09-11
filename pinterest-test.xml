@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>Dwelling Dream</title>
+    <link>https://dwellingdream.shop</link>
+    <description>Static single-product test feed for Pinterest ingestion diagnosis.</description>
+    <item>
+      <g:id>TEST-001</g:id>
+      <title>Test Product</title>
+      <description>This is a test product.</description>
+      <link>https://dwellingdream.shop/</link>
+      <g:image_link>https://dwellingdream.shop/product-image/BENJ-GRAY-39ca8a4ca277b213.jpg</g:image_link>
+      <g:price>10.00 USD</g:price>
+      <g:availability>in stock</g:availability>
+      <g:condition>new</g:condition>
+      <g:brand>Dwelling Dream</g:brand>
+    </item>
+  </channel>
+</rss>
