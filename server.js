@@ -272,13 +272,34 @@ function injectProductMeta(htmlText, product, currency) {
   htmlText = htmlText.replace(/<title>.*?<\/title>/s, `<title>${esc(pageTitle)}</title>`);
   htmlText = htmlText.replace(/<meta name="description" content=".*?" \/>/s, `<meta name="description" content="${esc(description)}" />`);
 
+  // Price and availability, in the meta tags Pinterest names. Its merchant
+  // guidelines say it scrapes product landing pages for current price and
+  // in-stock status; until now the page carried og:type=product but none of
+  // the price/availability tags that go with it, so a scrape found nothing.
+  // Both the og: and product: spellings are emitted - different consumers read
+  // different ones - and every value is read from the same Supabase row as the
+  // JSON-LD and the feeds, so none of them can disagree.
+  const priceAmount = productFeed.priceIn(product, currency) || productFeed.priceAmount(product) || '';
+  const priceCurrency = productFeed.currencyConfig(currency).code;
+  const inStock = productFeed.availabilityOf(product) === 'in_stock';
+
   const ogTags = [
     `<link rel="canonical" href="${esc(canonicalUrl)}" />`,
     `<meta property="og:title" content="${esc(pageTitle)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
     `<meta property="og:image" content="${esc(imageUrl)}" />`,
     `<meta property="og:url" content="${esc(canonicalUrl)}" />`,
-    `<meta property="og:type" content="product" />`
+    `<meta property="og:type" content="product" />`,
+    `<meta property="og:price:amount" content="${esc(priceAmount)}" />`,
+    `<meta property="og:price:currency" content="${esc(priceCurrency)}" />`,
+    // Open Graph's own vocabulary for this is "instock" / "oos".
+    `<meta property="og:availability" content="${inStock ? 'instock' : 'oos'}" />`,
+    `<meta property="product:price:amount" content="${esc(priceAmount)}" />`,
+    `<meta property="product:price:currency" content="${esc(priceCurrency)}" />`,
+    `<meta property="product:availability" content="${inStock ? 'in stock' : 'out of stock'}" />`,
+    `<meta property="product:condition" content="new" />`,
+    `<meta property="product:brand" content="${esc(productFeed.BRAND)}" />`,
+    ...(product.sku ? [`<meta property="product:retailer_item_id" content="${esc(product.sku)}" />`] : [])
   ].join('\n') + '\n';
 
   // Product JSON-LD is injected server-side, from the same Supabase row that
