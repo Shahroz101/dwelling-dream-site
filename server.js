@@ -972,14 +972,14 @@ async function handleApiProducts(req, res) {
         const description = String(payload.description || '').trim();
         const category = String(payload.category || '').trim();
         const price = Number(payload.price || 0);
-        const validCategories = new Set(['Behr', 'Sherwin Williams', 'Benjamin Moore']);
+        const validCategories = new Set(['Behr Color Matches', 'Sherwin-Williams Color Matches', 'Benjamin Moore Color Matches']);
 
         if (!title || !description || !category || price <= 0) {
           sendJson(res, 400, { success: false, message: 'Title, description, category, and price are required.' });
           return;
         }
         if (!validCategories.has(category)) {
-          sendJson(res, 400, { success: false, message: 'Category must be Behr, Sherwin Williams, or Benjamin Moore.' });
+          sendJson(res, 400, { success: false, message: 'Category must be Behr Color Matches, Sherwin-Williams Color Matches, or Benjamin Moore Color Matches.' });
           return;
         }
 
