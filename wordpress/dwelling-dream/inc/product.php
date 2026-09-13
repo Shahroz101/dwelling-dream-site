@@ -112,7 +112,7 @@ function dd_product_json_ld(array $dd) {
     )
   );
   if ($dd['sku']) $schema['sku'] = $dd['sku'];
-  if ($dd['category']) $schema['category'] = 'Paint Color Palettes > ' . $dd['category'];
+  $schema['category'] = 'Paint Color Palettes';
   return '<script type="application/ld+json">' . str_replace('<', '\\u003c', wp_json_encode($schema, JSON_UNESCAPED_SLASHES)) . '</script>';
 }
 

@@ -157,6 +157,10 @@ add_filter('big_image_size_threshold', function () { return 2000; });
 define('DD_GOOGLE_PRODUCT_CATEGORY', 'Home & Garden > Decor > Artwork > Posters, Prints, & Visual Artwork');
 
 add_filter('pinterest_for_woocommerce_feed_item_xml', function ($xml, $product) {
+  // The plugin puts the product category (the paint manufacturer a palette
+  // matches) in product_type; Pinterest's merchant review reads a
+  // manufacturer's name there as a claim about who made the product.
+  $xml = preg_replace('#<g:product_type>.*?</g:product_type>#s', '<g:product_type>Paint Color Palettes</g:product_type>', $xml);
   $extra = '';
   if (strpos($xml, '<g:condition>') === false) {
     $extra .= "\t\t\t<g:condition>new</g:condition>\n";
