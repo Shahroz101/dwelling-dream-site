@@ -1,0 +1,35 @@
+/*
+Theme Name: Dwelling Dream
+Theme URI: https://dwellingdream.shop
+Author: Dwelling Dream
+Description: The Dwelling Dream storefront - curated paint palettes as instant downloads. Built from the site's design pages; WooCommerce handles catalogue, cart, checkout and delivery.
+Version: 1.0.0
+Requires at least: 6.5
+Tested up to: 7.1
+Requires PHP: 8.1
+License: Proprietary
+Text Domain: dwelling-dream
+*/
+
+/* Every page carries its own inline styles (see the design pages); this file
+   exists because WordPress requires it and holds only the shared reset. */
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+* { box-sizing: border-box; }
+a { color: #292825; text-decoration: none; }
+a:hover { color: #817A6E; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+::selection { background: #DFD3C3; }
+@keyframes dd-float { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-12px) rotate(var(--r,0deg)); } }
+@keyframes dd-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+@media (max-width: 860px) {
+  nav[aria-label="Primary"] { gap: 10px !important; }
+  nav[aria-label="Primary"] > a:not([data-cart]) { display: none !important; }
+  nav[aria-label="Primary"] [data-mobile-menu] { display: inline-block !important; }
+  [data-mobile-menu] summary::-webkit-details-marker { display: none; }
+}
+/* WordPress adds a 32px admin bar for logged-in users; keep the fixed nav below it. */
+body.admin-bar [data-nav] { top: 32px; }
+@media (max-width: 782px) { body.admin-bar [data-nav] { top: 46px; } }

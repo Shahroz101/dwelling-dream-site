@@ -1,0 +1,613 @@
+<?php
+// Generated from "Dwelling Dream Cart.dc.html" by scripts/build-wp-theme.js - edit the
+// design page and rebuild rather than editing this file.
+if (!defined('ABSPATH')) exit;
+dd_page_head(array(
+  'title' => 'Your Cart — Dwelling Dream',
+  'description' => 'Your Dwelling Dream cart — review your palettes and check out to receive your instant PDF downloads.',
+  'style' => <<<'CSS'
+html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  a { color: #292825; text-decoration: none; }
+  a:hover { color: #817A6E; }
+  button { font: inherit; color: inherit; }
+  input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+  ::selection { background: #DFD3C3; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+  /* Grid and flex children default to min-width:auto, so they refuse to shrink
+     below their content's intrinsic width. One wide child - the product
+     thumbnail strip is 11 x 56px - therefore forces its whole column wider
+     than the phone screen, and every sibling in that column (hero image,
+     description, price, buttons) gets clipped off the right edge. Allowing
+     them to shrink lets the scroll container scroll instead. No effect on
+     wider screens, where the content already fits. */
+  [data-foot-grid] > *,
+  [data-rec-grid] > * { min-width: 0; }
+  @media (max-width: 860px) {
+    nav[aria-label="Primary"] { gap: 10px !important; }
+    nav[aria-label="Primary"] > a:not([data-cart]) { display: none !important; }
+    nav[aria-label="Primary"] [data-mobile-menu] { display: inline-block !important; }
+    [data-mobile-menu] summary::-webkit-details-marker { display: none; }
+    [data-cart-empty] { grid-template-columns: 1fr !important; }
+    [data-cart-filled] { grid-template-columns: 1fr !important; }
+    [data-cart-filled] aside { position: static !important; }
+    [data-foot-grid] { grid-template-columns: 1fr !important; gap: 32px !important; }
+  }
+  @media (max-width: 480px) {
+    [data-cart-row] { flex-wrap: wrap !important; gap: 12px 18px !important; }
+    [data-cart-row] [data-thumb] { width: 84px !important; height: 84px !important; }
+    [data-cart-row] > p { width: auto !important; margin-left: auto !important; }
+  }
+CSS
+));
+get_header();
+?>
+<main id="top">
+
+    <section aria-labelledby="cart-h" style="position: relative; padding: clamp(104px, 14vh, 160px) clamp(18px, 3.4vw, 54px) clamp(40px, 6vh, 64px); overflow: hidden;">
+      <div data-atmosphere="" aria-hidden="true" style="position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .045; background: radial-gradient(58% 58% at 18% 0%, #ACAD97, transparent 70%); transition: background 1s ease, opacity 1s ease;"></div>
+      <div data-color-band="" aria-hidden="true" hidden="hidden" style="position: absolute; left: 0; right: 0; top: 0; height: 4px; z-index: 1; display: none; opacity: .55;"></div>
+
+      <nav aria-label="Breadcrumb" style="position: relative; z-index: 2; margin-bottom: clamp(26px, 3.6vh, 40px); font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #A9A29A;">
+        <a href="/" style="color: #A9A29A;" style-hover="color: #292825;">Home</a>
+        <span aria-hidden="true" style="padding: 0 8px;">/</span>
+        <span style="color: #292825;">Cart</span>
+      </nav>
+
+      <div style="position: relative; z-index: 2; display: flex; flex-direction: column; gap: 16px; max-width: 640px;">
+        <div data-reveal="" aria-hidden="true" style="display: flex; align-items: flex-start; gap: 7px;">
+          <span style="display: block; width: 30px; height: 30px; background: #DFD3C3; transform: rotate(-5deg);"></span>
+          <span style="display: block; width: 30px; height: 30px; background: #9BBFC9; transform: rotate(3deg); margin-top: 9px;"></span>
+          <span style="display: block; width: 30px; height: 30px; background: #AC6B53; transform: rotate(-2deg);"></span>
+        </div>
+        <h1 id="cart-h" data-reveal="" style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(36px, 4.8vw, 74px); line-height: 1.03; letter-spacing: -.01em;">Your color story <em style="font-style: italic; font-weight: 400;">starts here.</em></h1>
+        <p data-reveal="" style="margin: 0; max-width: 52ch; font-size: clamp(14px, 1.05vw, 16.5px); line-height: 1.75; color: #5F5A54;">Review your selected palettes before bringing them home.</p>
+        <p data-cart-item-count="" style="margin: 4px 0 0; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #78736E;"></p>
+      </div>
+    </section>
+
+    <section aria-label="Cart contents" style="position: relative; padding: 0 clamp(18px, 3.4vw, 54px) clamp(60px, 9vh, 110px);">
+
+      <div data-cart-empty="" hidden="hidden" style="display: none; grid-template-columns: 1fr 1fr; gap: clamp(28px, 4.4vw, 66px); align-items: center; margin: clamp(6px, 1.4vh, 18px) 0 clamp(48px, 7vh, 90px);">
+        <div style="position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #E3DED3;">
+          <img src="<?php echo DD_ASSETS; ?>/dd2-hero.webp" alt="Warm, sunlit living room interior" style="width: 100%; height: 100%; display: block; object-fit: cover;" />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          <h2 style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(28px, 3.6vw, 52px); line-height: 1.03;">Your palette is <em style="font-style: italic; font-weight: 400;">waiting.</em></h2>
+          <p style="margin: 0; max-width: 42ch; font-size: 14.5px; line-height: 1.75; color: #5F5A54;">Explore curated color combinations and find the palette that feels right for your space.</p>
+          <a data-magnetic="" href="/palettes/" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 9px; padding: 17px 30px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; box-shadow: 0 18px 34px rgba(41,40,37,.16); transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #3F3D37;">Explore Palettes <span aria-hidden="true">→</span></a>
+          <div data-empty-previews="" style="display: flex; gap: 14px; margin-top: 8px;"></div>
+        </div>
+      </div>
+
+      <div data-cart-filled="" hidden="hidden" style="display: none; grid-template-columns: 3fr 2fr; gap: clamp(28px, 4.4vw, 70px); align-items: start;">
+
+        <div style="display: flex; flex-direction: column;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 15px; border-bottom: 1px solid #292825;">
+            <p style="margin: 0; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #78736E;">Palette</p>
+            <p style="margin: 0; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #78736E;">Total</p>
+          </div>
+          <div data-cart-items=""></div>
+          <a data-magnetic="" href="/palettes/" style="align-self: flex-start; margin-top: 28px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; border-bottom: 1px solid #D8D2C8; padding-bottom: 4px; transition: transform .45s cubic-bezier(.22,1,.36,1), color .3s ease;">← Continue shopping</a>
+        </div>
+
+        <aside style="position: sticky; top: clamp(100px, 14vh, 180px); display: flex; flex-direction: column; gap: 20px; padding: clamp(26px, 3.4vw, 38px); background: #EDEAE0;">
+          <h2 style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(21px, 2.1vw, 28px); line-height: 1;">Your order</h2>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px;">
+            <span style="color: #5F5A54;">Subtotal</span>
+            <span data-cart-subtotal="" style="font-weight: 500;">$0.00</span>
+          </div>
+          <div data-discount-row="" hidden="hidden" style="display: none; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px;">
+            <span style="color: #5F5A54;">Discount</span>
+            <span data-cart-discount="" style="font-weight: 500; color: #6E8B6B;">-$0.00</span>
+          </div>
+          <p style="margin: -8px 0 0; font-size: 11px; letter-spacing: .06em; color: #A9A29A;">Instant PDF download · no shipping</p>
+
+          <div style="display: flex; align-items: center; gap: 10px; padding-top: 2px;">
+            <input data-promo-input type="text" placeholder="Promo code" aria-label="Promo code" style="flex: 1 1 auto; min-width: 0; padding: 13px 16px; border: 1px solid #D8D2C8; border-radius: 999px; background: rgba(255,255,255,.5); font-size: 12.5px; transition: border-color .3s ease, background .3s ease;" />
+            <button type="button" data-promo-apply style="flex: 0 0 auto; padding: 13px 18px; border: 1px solid #292825; border-radius: 999px; background: transparent; font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .3s ease, color .3s ease;" style-hover="background: #292825; color: #F5F2EA;">Apply</button>
+          </div>
+          <p data-promo-msg="" role="status" aria-live="polite" style="margin: -10px 0 0; min-height: 14px; font-size: 11px; letter-spacing: .08em; color: #78736E;"></p>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; border-top: 1px solid #D8D2C8;">
+            <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px;">Total</span>
+            <span data-cart-total="" style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(25px, 2.5vw, 34px);">$0.00</span>
+          </div>
+
+          <button data-checkout="" data-magnetic="" type="button" style="display: none; align-items: center; justify-content: center; width: 100%; padding: 18px 28px; border: 0; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; transition: background .35s ease, opacity .25s ease;" style-hover="background: #47443E;">Checkout securely</button>
+          <p data-checkout-msg="" role="status" aria-live="polite" style="margin: 0; min-height: 14px; font-size: 11px; letter-spacing: .08em; color: #78736E;"></p>
+
+          <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding-top: 20px; border-top: 1px solid #D8D2C8;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span aria-hidden="true" style="flex: 0 0 auto; color: #78736E;"><svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6.5 8.5 10 12l3.5-3.5"/><path d="M3.5 14.5v1.5a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-1.5"/></svg></span>
+              <div>
+                <p style="margin: 0 0 2px; font-size: 12.5px; font-weight: 500;">Instant access</p>
+                <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: #78736E;">Your digital palette is available immediately after purchase.</p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span aria-hidden="true" style="flex: 0 0 auto; color: #78736E;"><svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5 10 3l7 3.5-7 3.5-7-3.5Z"/><path d="M3 6.5V14l7 3.5M17 6.5V14l-7 3.5M10 10v7.5"/><path d="M3 17 17 3" stroke-width="1.1"/></svg></span>
+              <div>
+                <p style="margin: 0 0 2px; font-size: 12.5px; font-weight: 500;">No shipping</p>
+                <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: #78736E;">Everything is delivered digitally — nothing to wait for.</p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span aria-hidden="true" style="flex: 0 0 auto; color: #78736E;"><svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5c.6 3 2 4.4 5 5-3 .6-4.4 2-5 5-.6-3-2-4.4-5-5 3-.6 4.4-2 5-5Z"/></svg></span>
+              <div>
+                <p style="margin: 0 0 2px; font-size: 12.5px; font-weight: 500;">Designed to inspire</p>
+                <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: #78736E;">Curated colors designed to make choosing paint easier.</p>
+              </div>
+            </div>
+          </div>
+
+          <p style="margin: 0; font-size: 10.5px; letter-spacing: .08em; color: #A9A29A;">Secure checkout · Instant digital delivery · No physical shipping</p>
+        </aside>
+      </div>
+    </section>
+
+    <section aria-labelledby="rec-h" style="padding: clamp(64px, 10vh, 130px) clamp(18px, 3.4vw, 54px); background: #EDEAE0;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; flex-wrap: wrap; margin-bottom: clamp(28px, 4vh, 48px);">
+        <div style="max-width: 560px;">
+          <p style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Keep exploring</p>
+          <h2 id="rec-h" style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(28px, 3.8vw, 60px); line-height: 1;">More palettes for spaces <em style="font-style: italic;">that feel like you.</em></h2>
+        </div>
+        <a data-magnetic="" href="/palettes/" style="font-size: 11px; letter-spacing: .2em; text-transform: uppercase; border-bottom: 1px solid #D8D2C8; padding-bottom: 4px; transition: transform .45s cubic-bezier(.22,1,.36,1), color .3s ease;">All palettes →</a>
+      </div>
+
+      <div data-rec-grid="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 340px)); justify-content: start; gap: clamp(18px, 2.2vw, 34px);">
+      </div>
+    </section>
+
+    
+  </main>
+
+  <div data-toast="" role="status" aria-live="polite" style="position: fixed; left: 50%; bottom: 28px; z-index: 110; transform: translate(-50%, 140%); display: inline-flex; align-items: center; gap: 12px; padding: 13px 20px; background: #292825; color: #F5F2EA; font-size: 12px; letter-spacing: .06em; box-shadow: 0 22px 44px rgba(0,0,0,.28); border-radius: 999px; opacity: 0; transition: transform .45s cubic-bezier(.22,1,.36,1), opacity .35s ease; pointer-events: none;">
+    <span data-toast-text=""></span>
+    <button type="button" data-toast-undo hidden="hidden" style="display: none; border: 0; background: none; padding: 0; color: #DFD3C3; font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; pointer-events: auto;">Undo</button>
+  </div>
+<script type="module">
+import { initDwellingDream } from '<?php echo DD_URI; ?>/js/interactions.js';
+  import { getCart, addItem, setQty, removeItem, getSubtotal, getDiscount, getTotal, getCoupons, applyCoupon, removeCoupon, onCartChange, refresh, isLoaded, syncCartBadge } from '<?php echo DD_URI; ?>/js/cart.js';
+
+  // Same page as the design file; the cart itself now lives in WooCommerce
+  // (see js/cart.js), so rows key on the cart-item key, checkout is
+  // WooCommerce's, and promo codes are WooCommerce coupons.
+  initDwellingDream(document, { navThreshold: -1 });
+  syncCartBadge(document);
+
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ASSETS = '<?php echo DD_ASSETS; ?>';
+  const SYMBOL = <?php echo wp_json_encode(dd_currency_symbol()); ?>;
+
+  const PALETTE_SWATCHES = {
+    'sea salt': ['#DCDDD8', '#EDEAE0', '#F0E1D8', '#D1C7B8', '#CDD2CA', '#C8CBC4', '#596E79', '#2F3D4C', '#434341'],
+    'greek villa': ['#EDECE6', '#F0ECE2', '#DFD3C3', '#C8BCAB', '#95978A', '#CDD2CA', '#708D9E', '#7B8070', '#5D6F7F'],
+    'redend point': ['#EDEAE0', '#E6DFD3', '#D1C7B8', '#95978A', '#C0B2A2', '#AE8E7E', '#AC6B53', '#7A8076', '#434341'],
+    'anew gray': ['#E2DED8', '#D3CEC4', '#C8CBC4', '#A6B2B5', '#BFB6AA', '#95978A', '#92948D', '#908A83', '#5D6F7F'],
+    'iron ore': ['#EDECE6', '#EDEAE0', '#D1CBC1', '#CDB592', '#95978A', '#AA866E', '#7C8E87', '#434341', '#2F3D4C'],
+    'naval': ['#EDECE6', '#F0ECE2', '#E5DFD2', '#CDD2CA', '#D1CBC1', '#ADBBB2', '#A6B2B5', '#98A9B7', '#2F3D4C'],
+    'french country': ['#EDEAE0', '#DFD3C3', '#ACAD97', '#C2DAE0', '#D1C6D2', '#EBD1CF', '#817A6E', '#9BBFC9', '#78736E'],
+    'coastal farmhouse': ['#EDEAE0', '#E6DFD3', '#DCD8D0', '#DFD3C3', '#CDD2D2', '#BCCBCE', '#CDD2CA', '#98A9B7', '#2F3D4C'],
+    'beach house': ['#F2EFE8', '#EEE8DD', '#E4D7C4', '#F2E4DE', '#D6DBD4', '#ABBFB4', '#A6B2B5', '#98A9B7', '#465667'],
+    'cottagecore': ['#EDEAE0', '#E6DFD3', '#D1C7B8', '#CBB8C0', '#BFC9D0', '#DECABD', '#CDD2CA', '#7B8070', '#708D9E'],
+    'cozy neutral': ['#EDEAE0', '#F5F2E8', '#DFD3C3', '#BFC9D0', '#EADCD2', '#ACAD97', '#7B8070', '#9E8F7C', '#78736E'],
+    'bohemian': ['#F0ECE2', '#DFD3C3', '#CDB592', '#BFC9D0', '#CDD2CA', '#DECABD', '#AC6B53', '#7B8070', '#54504A'],
+    'mid-century': ['#EDEAE0', '#D6CEC3', '#CBA576', '#A0AEAF', '#AE8E7E', '#AC6B53', '#596E79', '#7B8070', '#54504A']
+  };
+  const PALETTE_ALIASES = { boho: 'bohemian', 'mid century': 'mid-century', midcentury: 'mid-century' };
+  const NEUTRAL_SWATCHES = ['#F5F2EA', '#EDEAE0', '#E3DED3', '#D8D2C8', '#DDD7CC', '#C8CBC4', '#A9A29A', '#78736E', '#292825'];
+
+  function normalizeTitle(title) {
+    return String(title || '').toLowerCase().replace(/palettes?|paints?/g, '').replace(/[^a-z\s-]/g, '').trim().replace(/\s+/g, ' ');
+  }
+
+  function paletteKeyFor(title) {
+    const key = normalizeTitle(title);
+    if (PALETTE_SWATCHES[key]) return key;
+    if (PALETTE_ALIASES[key]) return PALETTE_ALIASES[key];
+    const match = Object.keys(PALETTE_SWATCHES).find(k => key.includes(k) || k.includes(key));
+    return match || null;
+  }
+
+  function getSwatches(title) {
+    const key = paletteKeyFor(title);
+    return key ? PALETTE_SWATCHES[key] : NEUTRAL_SWATCHES;
+  }
+
+  function swatchStripHTML(hexes) {
+    return `<div data-swatch-strip style="display: flex; gap: 2px; height: 14px; width: 100%; max-width: 220px;">${hexes.map(hex => `<span data-swatch style="flex: 1; background: ${hex}; transform-origin: bottom; transition: transform .35s cubic-bezier(.22,1,.36,1);"></span>`).join('')}</div>`;
+  }
+
+  function animateSwatches(container, scaleUp) {
+    if (REDUCED || !container) return;
+    Array.from(container.querySelectorAll('[data-swatch]')).forEach((swatch, i) => {
+      swatch.style.transitionDelay = `${i * 18}ms`;
+      swatch.style.transform = scaleUp ? 'scaleY(1.35)' : 'scaleY(1)';
+    });
+  }
+
+  const escapeHtml = value => String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function normalizeImageUrl(image) {
+    return image || `${ASSETS}/dd2-feat-seasalt.webp`;
+  }
+
+  const formatPrice = amount => `${SYMBOL}${Number(amount || 0).toFixed(2)}`;
+
+  let catalogCache = null;
+  async function loadCatalog() {
+    if (catalogCache) return catalogCache;
+    try {
+      const response = await fetch('/wp-json/dd/v1/products');
+      if (!response.ok) return [];
+      const data = await response.json();
+      catalogCache = Array.isArray(data.products) ? data.products : [];
+      return catalogCache;
+    } catch (error) {
+      console.error('Failed to load catalog:', error);
+      return [];
+    }
+  }
+
+  // The Store API does not say which brand a cart line belongs to; the
+  // catalogue does.
+  function brandFor(item) {
+    const product = (catalogCache || []).find(p => String(p.id) === String(item.id));
+    return product ? product.category : '';
+  }
+
+  const toast = document.querySelector('[data-toast]');
+  const toastText = toast ? toast.querySelector('[data-toast-text]') : null;
+  const toastUndo = toast ? toast.querySelector('[data-toast-undo]') : null;
+  let toastTimer = null;
+
+  function showToast(message, onUndo) {
+    if (!toast || !toastText) return;
+    clearTimeout(toastTimer);
+    toastText.textContent = message;
+    if (onUndo) {
+      toastUndo.hidden = false;
+      toastUndo.style.display = 'inline-block';
+      toastUndo.onclick = () => {
+        onUndo();
+        hideToast();
+      };
+    } else {
+      toastUndo.hidden = true;
+      toastUndo.style.display = 'none';
+      toastUndo.onclick = null;
+    }
+    toast.style.opacity = '1';
+    toast.style.transform = 'translate(-50%, 0)';
+    toastTimer = setTimeout(hideToast, onUndo ? 5000 : 2400);
+  }
+
+  function hideToast() {
+    if (!toast) return;
+    toast.style.opacity = '0';
+    toast.style.transform = 'translate(-50%, 140%)';
+  }
+
+  function computeAtmosphere(items) {
+    const atmosphereEl = document.querySelector('[data-atmosphere]');
+    const bandEl = document.querySelector('[data-color-band]');
+    if (!atmosphereEl || !bandEl) return;
+
+    const keys = [...new Set(items.map(item => paletteKeyFor(item.title)).filter(Boolean))];
+
+    if (keys.length === 0) {
+      atmosphereEl.style.background = 'radial-gradient(58% 58% at 18% 0%, #ACAD97, transparent 70%)';
+      atmosphereEl.style.opacity = '.045';
+      bandEl.hidden = true;
+      bandEl.style.display = 'none';
+      return;
+    }
+
+    if (keys.length === 1) {
+      const hexes = PALETTE_SWATCHES[keys[0]];
+      const accent = hexes[Math.floor(hexes.length / 2)];
+      atmosphereEl.style.background = `radial-gradient(58% 58% at 18% 0%, ${accent}, transparent 70%)`;
+      atmosphereEl.style.opacity = '.08';
+      bandEl.hidden = true;
+      bandEl.style.display = 'none';
+    } else {
+      const accents = keys.map(key => {
+        const hexes = PALETTE_SWATCHES[key];
+        return hexes[Math.floor(hexes.length / 2)];
+      });
+      bandEl.style.background = `linear-gradient(90deg, ${accents.join(', ')})`;
+      bandEl.hidden = false;
+      bandEl.style.display = 'block';
+      atmosphereEl.style.opacity = '.03';
+    }
+  }
+
+  function applyResponsive() {
+    const narrow = window.innerWidth < 900;
+    const filled = document.querySelector('[data-cart-filled]');
+    const empty = document.querySelector('[data-cart-empty]');
+    if (filled) filled.style.gridTemplateColumns = narrow ? '1fr' : '3fr 2fr';
+    if (empty) empty.style.gridTemplateColumns = narrow ? '1fr' : '1fr 1fr';
+  }
+  window.addEventListener('resize', applyResponsive);
+
+  const reportError = error => showToast(error && error.message ? error.message : 'The cart could not be updated.');
+
+  function wireQtyRow(row, item) {
+    const inc = row.querySelector('[data-cart-inc]');
+    const dec = row.querySelector('[data-cart-dec]');
+    const removeBtn = row.querySelector('[data-cart-remove]');
+    const thumbImg = row.querySelector('[data-thumb-img]');
+    const thumb = row.querySelector('[data-thumb]');
+
+    inc.addEventListener('click', () => setQty(item.key, item.qty + 1).catch(reportError));
+    dec.addEventListener('click', () => setQty(item.key, item.qty - 1).catch(reportError));
+
+    removeBtn.addEventListener('click', () => {
+      const snapshot = { ...item };
+      row.style.maxHeight = row.scrollHeight + 'px';
+      requestAnimationFrame(() => {
+        row.style.overflow = 'hidden';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(14px)';
+        row.style.maxHeight = '0px';
+        row.style.paddingTop = '0px';
+        row.style.paddingBottom = '0px';
+      });
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        removeItem(item.key).catch(reportError);
+      };
+      if (REDUCED) {
+        finish();
+      } else {
+        row.addEventListener('transitionend', finish, { once: true });
+        setTimeout(finish, 600);
+      }
+      showToast(`${snapshot.title} removed`, () => addItem({ id: snapshot.id }, snapshot.qty).catch(reportError));
+    });
+
+    if (!REDUCED) {
+      row.addEventListener('pointerenter', () => {
+        if (thumbImg) thumbImg.style.transform = 'scale(1.07)';
+        if (thumb) thumb.style.boxShadow = '0 16px 32px rgba(41,40,37,.15)';
+      });
+      row.addEventListener('pointerleave', () => {
+        if (thumbImg) thumbImg.style.transform = 'none';
+        if (thumb) thumb.style.boxShadow = 'none';
+      });
+    }
+  }
+
+  function renderCartRow(item) {
+    const row = document.createElement('div');
+    row.setAttribute('data-cart-row', '');
+    row.style.cssText = 'display:flex; gap:18px; align-items:flex-start; padding:26px 0; border-bottom:1px solid #D8D2C8; opacity:0; transform:translateY(10px); transition: opacity .5s ease, transform .5s cubic-bezier(.22,1,.36,1), max-height .45s ease, padding .45s ease;';
+    row.innerHTML = `
+      <div data-thumb style="flex: 0 0 auto; width: 108px; height: 108px; overflow: hidden; background: #E3DED3; transition: box-shadow .4s ease;">
+        <img data-thumb-img src="${escapeHtml(normalizeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" style="width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .6s cubic-bezier(.22,1,.36,1);" />
+      </div>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 9px;">
+        <div>
+          <p style="margin: 0 0 4px; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #A9A29A;">${escapeHtml(brandFor(item) || 'Palette')}</p>
+          <h3 style="margin: 0 0 5px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(19px, 1.7vw, 25px); line-height: 1;">${escapeHtml(item.title)}</h3>
+          <p style="margin: 0; font-size: 11.5px; letter-spacing: .06em; color: #78736E;">9 curated colors · Digital Download</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; margin-top: 2px;">
+          <div style="display: flex; align-items: center; gap: 4px; border: 1px solid #D8D2C8; border-radius: 999px; padding: 4px 6px;">
+            <button type="button" data-cart-dec aria-label="Decrease quantity" style="width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; font-size: 15px; cursor: pointer;">−</button>
+            <span style="min-width: 18px; text-align: center; font-size: 13px;">${item.qty}</span>
+            <button type="button" data-cart-inc aria-label="Increase quantity" style="width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; font-size: 15px; cursor: pointer;">+</button>
+          </div>
+          <button type="button" data-cart-remove style="border: 0; background: none; padding: 0; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #78736E; cursor: pointer; border-bottom: 1px solid #D8D2C8;">Remove</button>
+        </div>
+      </div>
+      <p style="flex: 0 0 auto; width: 78px; text-align: right; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px;">${formatPrice(item.lineTotal)}</p>
+    `;
+    wireQtyRow(row, item);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      row.style.opacity = '1';
+      row.style.transform = 'none';
+    }));
+    return row;
+  }
+
+  async function renderEmptyPreviews() {
+    const wrap = document.querySelector('[data-empty-previews]');
+    if (!wrap) return;
+    const products = await loadCatalog();
+    wrap.innerHTML = products.slice(0, 3).map(product => `
+      <a href="/palettes/${escapeHtml(product.slug)}/" style="display: flex; flex-direction: column; gap: 6px; width: 76px; text-decoration: none; color: inherit;">
+        <span style="display: block; aspect-ratio: 1; overflow: hidden; background: #E3DED3;"><img src="${escapeHtml(normalizeImageUrl(Array.isArray(product.images) ? product.images[0] : null))}" alt="${escapeHtml(product.title || 'Palette')}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; display: block;" /></span>
+        <span style="font-size: 10.5px; letter-spacing: .04em; color: #5F5A54;">${escapeHtml(product.title || 'Palette')}</span>
+      </a>
+    `).join('');
+  }
+
+  function renderCart() {
+    // Rows need the catalogue (for brands) and the cart; wait for both.
+    if (!isLoaded() || !catalogCache) return;
+    const items = getCart();
+    const emptyEl = document.querySelector('[data-cart-empty]');
+    const filledEl = document.querySelector('[data-cart-filled]');
+    const listEl = document.querySelector('[data-cart-items]');
+    const countEl = document.querySelector('[data-cart-item-count]');
+    const subtotalEl = document.querySelector('[data-cart-subtotal]');
+    const discountRow = document.querySelector('[data-discount-row]');
+    const discountEl = document.querySelector('[data-cart-discount]');
+    const totalEl = document.querySelector('[data-cart-total]');
+
+    const hasItems = items.length > 0;
+    if (emptyEl) {
+      emptyEl.hidden = hasItems;
+      emptyEl.style.display = hasItems ? 'none' : 'grid';
+    }
+    if (filledEl) {
+      filledEl.hidden = !hasItems;
+      filledEl.style.display = hasItems ? 'grid' : 'none';
+    }
+    applyResponsive();
+    computeAtmosphere(items);
+
+    if (countEl) {
+      const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+      countEl.textContent = hasItems ? `${totalQty} palette${totalQty === 1 ? '' : 's'} in your cart` : '';
+    }
+
+    if (!hasItems) {
+      renderEmptyPreviews();
+      const button = document.querySelector('[data-checkout]');
+      if (button) button.style.display = 'none';
+      const msg = document.querySelector('[data-checkout-msg]');
+      if (msg) msg.textContent = '';
+      return;
+    }
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    items.forEach(item => listEl.appendChild(renderCartRow(item)));
+
+    if (subtotalEl) subtotalEl.textContent = formatPrice(getSubtotal());
+    const discount = getDiscount();
+    if (discountRow) {
+      discountRow.hidden = discount <= 0;
+      discountRow.style.display = discount > 0 ? 'flex' : 'none';
+    }
+    if (discountEl) discountEl.textContent = `-${formatPrice(discount)}`;
+    if (totalEl) totalEl.textContent = formatPrice(getTotal());
+
+    const coupons = getCoupons();
+    const promoInput = document.querySelector('[data-promo-input]');
+    if (promoInput && coupons.length && !promoInput.value) promoInput.value = coupons[0];
+
+    showCheckoutButton();
+  }
+
+  // --- Promo codes: WooCommerce coupons.
+  const promoInput = document.querySelector('[data-promo-input]');
+  const promoApply = document.querySelector('[data-promo-apply]');
+  const promoMsg = document.querySelector('[data-promo-msg]');
+  if (promoApply && promoInput) {
+    promoApply.addEventListener('click', async () => {
+      const code = promoInput.value.trim();
+      if (!code) return;
+      promoApply.disabled = true;
+      if (promoMsg) promoMsg.textContent = 'Checking…';
+      try {
+        const applied = getCoupons();
+        for (const existing of applied) {
+          if (existing.toLowerCase() !== code.toLowerCase()) await removeCoupon(existing);
+        }
+        if (!applied.some(c => c.toLowerCase() === code.toLowerCase())) await applyCoupon(code);
+        if (promoMsg) promoMsg.textContent = `Code ${code.toUpperCase()} applied`;
+      } catch (error) {
+        if (promoMsg) promoMsg.textContent = error.message || 'That code could not be applied.';
+      } finally {
+        promoApply.disabled = false;
+      }
+    });
+  }
+
+  function showCheckoutButton() {
+    const button = document.querySelector('[data-checkout]');
+    if (button) button.style.display = 'inline-flex';
+  }
+
+  document.querySelectorAll('[data-checkout]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (!getCart().length) return;
+      button.disabled = true;
+      button.style.opacity = '.6';
+      const msg = document.querySelector('[data-checkout-msg]');
+      if (msg) msg.textContent = 'Taking you to secure checkout…';
+      window.location.href = '/checkout/';
+    });
+  });
+
+  async function loadRecommended() {
+    const grid = document.querySelector('[data-rec-grid]');
+    if (!grid) return;
+    const products = await loadCatalog();
+    const cartIds = new Set(getCart().map(item => String(item.id)));
+    const recommended = products.filter(product => !cartIds.has(String(product.id))).slice(0, 3);
+
+    grid.innerHTML = recommended.map(product => {
+      const id = product.id || product.sku || '';
+      const slug = product.slug;
+      const price = Number(product.price || 0);
+      return `
+      <article data-rcard="" data-product-id="${escapeHtml(id)}" style="display: flex; flex-direction: column; background: #F5F2EA; transition: transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease;">
+        <a href="/palettes/${escapeHtml(slug)}/" style="display: block; text-decoration: none; color: inherit;">
+          <div data-rmedia style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;">
+            <img src="${escapeHtml(normalizeImageUrl(Array.isArray(product.images) ? product.images[0] : null))}" alt="${escapeHtml(product.title || 'Product')}" loading="lazy" style="width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .8s cubic-bezier(.22,1,.36,1);" />
+          </div>
+        </a>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 22px;">
+          <a href="/palettes/${escapeHtml(slug)}/" style="text-decoration: none; color: inherit;">
+            <p style="margin: 0 0 5px; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #A9A29A;">${escapeHtml(product.category || 'Product')}</p>
+            <h3 data-rtitle style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(19px, 1.7vw, 26px); line-height: 1; transition: transform .4s cubic-bezier(.22,1,.36,1);">${escapeHtml(product.title || 'Product')}</h3>
+          </a>
+          ${swatchStripHTML(getSwatches(product.title))}
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px;">
+            <p style="margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px;">${formatPrice(price)}</p>
+            <button type="button" data-rec-add style="padding: 10px 16px; border: 1px solid #292825; border-radius: 999px; background: transparent; font-size: 10.5px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: background .3s ease, color .3s ease, transform .3s ease;">Add to Cart</button>
+          </div>
+        </div>
+      </article>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-rcard]').forEach(card => {
+      const media = card.querySelector('[data-rmedia] img');
+      const swatchStrip = card.querySelector('[data-swatch-strip]');
+      const title = card.querySelector('[data-rtitle]');
+      const addBtn = card.querySelector('[data-rec-add]');
+
+      if (!REDUCED) {
+        card.addEventListener('pointerenter', () => {
+          card.style.transform = 'translateY(-7px)';
+          card.style.boxShadow = '0 26px 46px rgba(41,40,37,.13)';
+          if (media) media.style.transform = 'scale(1.06)';
+          if (title) title.style.transform = 'translateX(3px)';
+          animateSwatches(swatchStrip, true);
+          if (addBtn) { addBtn.style.background = '#292825'; addBtn.style.color = '#F5F2EA'; }
+        });
+        card.addEventListener('pointerleave', () => {
+          card.style.transform = 'none';
+          card.style.boxShadow = 'none';
+          if (media) media.style.transform = 'none';
+          if (title) title.style.transform = 'none';
+          animateSwatches(swatchStrip, false);
+          if (addBtn) { addBtn.style.background = 'transparent'; addBtn.style.color = '#292825'; }
+        });
+      }
+
+      if (addBtn) {
+        addBtn.addEventListener('click', async () => {
+          const id = card.getAttribute('data-product-id');
+          const product = recommended.find(p => String(p.id || p.sku || '') === id);
+          if (!product) return;
+          try {
+            await addItem(product);
+            showToast('Added to your cart');
+          } catch (error) {
+            reportError(error);
+          }
+        });
+      }
+    });
+  }
+
+  onCartChange(renderCart);
+  onCartChange(loadRecommended);
+  // The catalogue supplies brands and recommendations; the cart supplies rows.
+  loadCatalog().then(() => refresh()).catch(reportError);
+</script>
+<?php get_footer(); ?>

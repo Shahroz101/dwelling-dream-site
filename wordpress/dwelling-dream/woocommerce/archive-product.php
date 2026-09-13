@@ -1,0 +1,393 @@
+<?php
+// Generated from "Dwelling Dream Palettes.dc.html" by scripts/build-wp-theme.js - edit the
+// design page and rebuild rather than editing this file.
+if (!defined('ABSPATH')) exit;
+dd_page_head(array(
+  'title' => 'All Palettes — Dwelling Dream',
+  'description' => 'Every Dwelling Dream palette — curated nine-color paint palettes with exact hex values, organized by paint brand.',
+  'style' => <<<'CSS'
+html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F5F2EA; color: #292825; font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  a { color: #292825; text-decoration: none; }
+  a:hover { color: #817A6E; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid #817A6E; outline-offset: 3px; }
+  ::selection { background: #DFD3C3; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; } }
+  /* Grid and flex children default to min-width:auto, so they refuse to shrink
+     below their content's intrinsic width. One wide child - the product
+     thumbnail strip is 11 x 56px - therefore forces its whole column wider
+     than the phone screen, and every sibling in that column (hero image,
+     description, price, buttons) gets clipped off the right edge. Allowing
+     them to shrink lets the scroll container scroll instead. No effect on
+     wider screens, where the content already fits. */
+  [data-foot-grid] > *,
+  [data-grid] > * { min-width: 0; }
+  @media (max-width: 860px) {
+    nav[aria-label="Primary"] { gap: 10px !important; }
+    nav[aria-label="Primary"] > a:not([data-cart]) { display: none !important; }
+    nav[aria-label="Primary"] [data-mobile-menu] { display: inline-block !important; }
+    [data-mobile-menu] summary::-webkit-details-marker { display: none; }
+    [data-foot-grid] { grid-template-columns: 1fr !important; gap: 32px !important; }
+  }
+CSS
+));
+get_header();
+?>
+<main id="top">
+
+    <section aria-labelledby="ph-h" style="position: relative; padding: clamp(120px, 17vh, 200px) clamp(18px, 3.4vw, 54px) clamp(40px, 6vh, 70px);">
+      <p data-reveal="" style="margin: 0 0 20px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">The library</p>
+      <h1 id="ph-h" data-reveal="" style="margin: 0 0 26px; max-width: 20ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(42px, 6.6vw, 118px); line-height: .95; letter-spacing: -.015em;">Every palette, <em style="font-style: italic; font-weight: 400;">in one place.</em></h1>
+      <p data-reveal="" style="margin: 0; max-width: 56ch; font-size: clamp(15px, 1.15vw, 18px); line-height: 1.7; color: #5F5A54;">Every palette brings nine colors that already belong together — hex codes, real rooms they live in, two tested pairings for each shade, and the guidance to place them with confidence.</p>
+    </section>
+
+    <section id="all" aria-label="All palettes" style="position: relative; padding: 0 clamp(18px, 3.4vw, 54px) clamp(70px, 11vh, 130px);">
+
+      <div style="position: sticky; top: clamp(78px, 10vh, 96px); z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 16px 0 18px; margin-bottom: clamp(22px, 3vh, 34px); background: linear-gradient(180deg, #F5F2EA 68%, rgba(245,242,234,0));">
+        <div role="tablist" aria-label="Filter palettes by brand" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button data-filter="all" role="tab" aria-selected="true" style="padding: 9px 16px; border: 1px solid #292825; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: all .35s ease;">All</button>
+          <button data-filter="sherwin" role="tab" aria-selected="false" style="padding: 9px 16px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: all .35s ease;">Sherwin-Williams</button>
+          <button data-filter="behr" role="tab" aria-selected="false" style="padding: 9px 16px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: all .35s ease;">Behr</button>
+          <button data-filter="benjamin" role="tab" aria-selected="false" style="padding: 9px 16px; border: 1px solid #D8D2C8; border-radius: 999px; background: transparent; font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: all .35s ease;">Benjamin Moore</button>
+        </div>
+        <p data-count="" style="margin: 0; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #A9A29A;">1 palette · 9 colors</p>
+      </div>
+
+      <div data-grid="" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: clamp(16px, 2vw, 30px);">
+      </div>
+
+      <p data-empty="" hidden="hidden" style="margin: clamp(40px, 6vh, 70px) 0 0; text-align: center; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; color: #78736E;">No palettes from this brand yet.</p>
+
+      <nav data-pagination="" aria-label="Palette pages" hidden="hidden" style="display: none; align-items: center; justify-content: center; gap: 10px; margin-top: clamp(40px, 6vh, 64px); flex-wrap: wrap;"></nav>
+    </section>
+
+    <section aria-labelledby="cta-h" style="position: relative; padding: clamp(70px, 11vh, 140px) clamp(18px, 3.4vw, 54px); background: #292825; color: #F5F2EA; text-align: center;">
+      <h2 id="cta-h" data-reveal="" style="margin: 0 auto 20px; max-width: 22ch; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 5vw, 84px); line-height: .98;">Take one palette and <em style="font-style: italic; font-weight: 400;">start painting.</em></h2>
+      <p data-reveal="" style="margin: 0 auto 32px; max-width: 50ch; font-size: clamp(14px, 1vw, 16px); line-height: 1.7; color: rgba(245,242,234,.84);">Every palette comes with LRV values, hex codes, placement guidance and two pairings per color.</p>
+      <a data-magnetic="" data-reveal="" href="/#loved" style="display: inline-flex; align-items: center; padding: 19px 34px; border-radius: 999px; background: #F5F2EA; color: #292825; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; transition: transform .45s cubic-bezier(.22,1,.36,1), background .35s ease;" style-hover="background: #DFD3C3; color: #292825;">Shop the guide bundle</a>
+    </section>
+
+    
+  </main>
+
+  <div data-tip="" role="status" aria-live="polite" style="position: fixed; left: 0; top: 0; z-index: 70; padding: 9px 13px; background: rgba(41,40,37,.92); color: #F5F2EA; font-size: 12px; letter-spacing: .12em; opacity: 0; transform: translate(-50%, -140%); transition: opacity .25s ease; pointer-events: none;">#EDEAE0</div>
+
+  <div data-modal="" role="dialog" aria-modal="true" aria-labelledby="modal-h" hidden="hidden" style="position: fixed; inset: 0; z-index: 100; display: none; justify-content: flex-end;">
+    <div data-scrim="" style="position: absolute; inset: 0; background: rgba(41,40,37,.44); opacity: 0; transition: opacity .5s ease;"></div>
+    <div data-panel="" style="position: relative; width: min(540px, 100%); height: 100%; overflow-y: auto; padding: clamp(28px, 4vw, 56px); background: #F5F2EA; box-shadow: -30px 0 80px rgba(41,40,37,.28); transform: translateX(100%); transition: transform .7s cubic-bezier(.22,1,.36,1);">
+      <button data-close="" aria-label="Close palette details" style="position: absolute; right: 20px; top: 20px; width: 40px; height: 40px; border: 1px solid #D8D2C8; border-radius: 50%; background: none; cursor: pointer;" style-hover="background: #EDEAE0;">✕</button>
+      <p data-mbrand="" style="margin: 0 0 14px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #78736E;">Sherwin Williams</p>
+      <h2 id="modal-h" data-mname="" style="margin: 0 0 10px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(32px, 4vw, 52px); line-height: 1;">Sea Salt</h2>
+      <p data-mmood="" style="margin: 0 0 28px; font-size: 14px; line-height: 1.7; color: #78736E;"></p>
+      <div data-mcolors="" style="display: flex; flex-direction: column; gap: 2px; margin-bottom: 30px;"></div>
+      <a data-magnetic="" href="/#loved" style="display: inline-flex; align-items: center; padding: 17px 30px; border-radius: 999px; background: #292825; color: #F5F2EA; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; transition: transform .45s cubic-bezier(.22,1,.36,1);">Shop this palette</a>
+    </div>
+  </div>
+<script type="module">
+import { initDwellingDream } from '<?php echo DD_URI; ?>/js/interactions.js';
+  import { addItem, syncCartBadge } from '<?php echo DD_URI; ?>/js/cart.js';
+
+  const PAGE_SIZE = 9;
+  const CATEGORY_TO_TAG = {
+    'Sherwin-Williams Color Matches': 'sherwin',
+    'Behr Color Matches': 'behr',
+    'Benjamin Moore Color Matches': 'benjamin',
+    // Values the catalogue used before the rename.
+    'Sherwin Williams': 'sherwin',
+    'Behr': 'behr',
+    'Benjamin Moore': 'benjamin'
+  };
+
+  let allProducts = [];
+  let currentTag = 'all';
+  let currentPage = 1;
+
+  initDwellingDream(document, { navThreshold: -1 });
+  syncCartBadge(document);
+
+  function getCatalogApiUrl() {
+    const base = location.protocol === 'file:' ? 'http://127.0.0.1:3000' : '';
+    return '/wp-json/dd/v1/products';
+  }
+
+  function slugify(value) {
+    return String(value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  // Mirrors productSlug()/matchesSlug() in lib/product-feed.js. The stored
+  // slug is canonical; the derived one is what URLs looked like before slugs
+  // were shortened, and a product still answers to both. Deriving only - as
+  // this did - meant 26 of 44 products looked for a slug no URL uses, so the
+  // page reported the product missing.
+  function derivedSlug(product) {
+    const title = product.title || '';
+    const category = product.category || '';
+    const base = title.toLowerCase().includes(category.toLowerCase()) ? title : `${category} ${title}`;
+    return slugify(base);
+  }
+
+  function productSlug(product) {
+    const stored = typeof product.slug === 'string' ? product.slug.trim() : '';
+    return stored || derivedSlug(product);
+  }
+
+  function normalizeImageUrl(image) {
+    if (!image) return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"%3E%3Crect fill="%23E3DED3" width="4" height="3"/%3E%3C/svg%3E';
+    if (/^https?:\/\//i.test(image)) return image;
+    if (image.startsWith('/')) return `${location.protocol === 'file:' ? 'http://127.0.0.1:3000' : ''}${image}`;
+    return image;
+  }
+
+  function ensureProductModal() {
+    let modal = document.getElementById('catalog-product-modal');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'catalog-product-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.hidden = true;
+    modal.style.position = 'fixed';
+    modal.style.inset = '0';
+    modal.style.zIndex = '120';
+    modal.style.display = 'none';
+    modal.style.justifyContent = 'flex-end';
+    modal.innerHTML = `
+      <div data-product-scrim style="position:absolute; inset:0; background:rgba(41,40,37,.44); opacity:0; transition:opacity .35s ease;"></div>
+      <div data-product-panel style="position:relative; width:min(560px,100%); height:100%; background:#F5F2EA; box-shadow:-30px 0 80px rgba(41,40,37,.28); transform:translateX(100%); transition:transform .6s cubic-bezier(.22,1,.36,1); overflow-y:auto; padding:clamp(24px,4vw,42px);">
+        <button type="button" data-product-close aria-label="Close product details" style="position:absolute; right:20px; top:20px; width:40px; height:40px; border:1px solid #D8D2C8; border-radius:50%; background:none; cursor:pointer;">✕</button>
+        <div style="display:grid; gap:20px;">
+          <img data-product-image alt="Product" style="width:100%; height:320px; object-fit:cover; display:block; border-radius:18px; background:#E3DED3;" />
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <p data-product-brand style="margin:0; font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:#78736E;">Brand</p>
+            <h2 data-product-title style="margin:0; font-family:'Cormorant Garamond', Georgia, serif; font-size:clamp(30px,4vw,52px); line-height:1; font-weight:500;">Product name</h2>
+            <p data-product-description style="margin:0; font-size:15px; line-height:1.7; color:#5F5A54;">Description</p>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+              <span data-product-price style="font-size:24px; font-weight:600; color:#292825;">$0.00</span>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;">
+              <button type="button" data-product-buy style="flex:1; min-width:160px; padding:16px 18px; border:1px solid #292825; border-radius:999px; background:#292825; color:#F5F2EA; font-size:12px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; cursor:pointer;">Buy now</button>
+              <button type="button" data-product-add style="flex:1; min-width:160px; padding:16px 18px; border:1px solid #D8D2C8; border-radius:999px; background:#F5F2EA; color:#292825; font-size:12px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; cursor:pointer;">Add to cart</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const scrim = modal.querySelector('[data-product-scrim]');
+    const panel = modal.querySelector('[data-product-panel]');
+    const closeBtn = modal.querySelector('[data-product-close]');
+    const addBtn = modal.querySelector('[data-product-add]');
+    const buyBtn = modal.querySelector('[data-product-buy]');
+
+    const hide = () => {
+      modal.hidden = true;
+      modal.style.display = 'none';
+      if (scrim) scrim.style.opacity = '0';
+      if (panel) panel.style.transform = 'translateX(100%)';
+    };
+
+    const open = (product) => {
+      const image = normalizeImageUrl(Array.isArray(product.images) ? product.images[0] : null);
+      const title = product.title || 'Product';
+      const description = product.description || 'No description provided.';
+      const category = product.category || 'Product';
+      const price = Number(product.price || 0);
+      const imageEl = modal.querySelector('[data-product-image]');
+      const titleEl = modal.querySelector('[data-product-title]');
+      const descriptionEl = modal.querySelector('[data-product-description]');
+      const brandEl = modal.querySelector('[data-product-brand]');
+      const priceEl = modal.querySelector('[data-product-price]');
+
+      if (imageEl) imageEl.src = image;
+      if (titleEl) titleEl.textContent = title;
+      if (descriptionEl) descriptionEl.textContent = description;
+      if (brandEl) brandEl.textContent = category;
+      if (priceEl) priceEl.textContent = `$${price.toFixed(2)}`;
+
+      modal.hidden = false;
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => {
+        if (scrim) scrim.style.opacity = '1';
+        if (panel) panel.style.transform = 'translateX(0)';
+      });
+
+      if (addBtn) {
+        addBtn.onclick = () => {
+          addItem(product);
+          hide();
+        };
+      }
+
+      if (buyBtn) {
+        buyBtn.onclick = () => {
+          window.location.href = `/palettes/${productSlug(product)}/`;
+        };
+      }
+    };
+
+    if (scrim) scrim.onclick = hide;
+    if (closeBtn) closeBtn.onclick = hide;
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !modal.hidden) hide();
+    });
+
+    modal.open = open;
+    modal.close = hide;
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function buildCard(product) {
+    const category = product.category || 'General';
+    const image = normalizeImageUrl(Array.isArray(product.images) ? product.images[0] : null);
+
+    const card = document.createElement('article');
+    card.setAttribute('data-card', '');
+    card.setAttribute('data-name', product.title || 'Palette');
+    card.setAttribute('data-brand', category);
+    card.setAttribute('data-hexes', '');
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.background = '#EDEAE0';
+    card.style.transition = 'transform .6s cubic-bezier(.22,1,.36,1), box-shadow .6s ease, opacity .4s ease';
+
+    const viewLink = document.createElement('a');
+    viewLink.href = `/palettes/${productSlug(product)}/`;
+    viewLink.style.display = 'flex';
+    viewLink.style.flexDirection = 'column';
+    viewLink.style.textDecoration = 'none';
+    viewLink.style.color = 'inherit';
+
+    card.innerHTML = `
+      <div data-media="" style="position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #E3DED3;">
+        <img src="${image}" alt="${product.title || 'Palette'} product image" style="width: 100%; height: 100%; display: block; object-fit: cover;" />
+      </div>
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 22px 24px;">
+        <div>
+          <p style="margin: 0 0 7px; font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: #A9A29A;">${category}</p>
+          <h2 style="margin: 0 0 6px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: clamp(22px, 2vw, 30px); line-height: 1;">${product.title || 'Palette'}</h2>
+          <p style="margin: 0; max-width: 34ch; font-size: 12.5px; line-height: 1.65; color: #6E675E;">${product.description || ''}</p>
+        </div>
+        <span style="flex: 0 0 auto; padding: 0; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #78736E; cursor: pointer; border-bottom: 1px solid #D8D2C8;">View</span>
+      </div>
+    `;
+
+    viewLink.appendChild(card);
+    return viewLink;
+  }
+
+  function paginationButtonStyle(active) {
+    return `min-width: 38px; height: 38px; padding: 0 10px; border: 1px solid ${active ? '#292825' : '#D8D2C8'}; border-radius: 999px; background: ${active ? '#292825' : 'transparent'}; color: ${active ? '#F5F2EA' : '#292825'}; font-size: 11px; font-weight: 500; letter-spacing: .08em; cursor: pointer; transition: all .3s ease;`;
+  }
+
+  function renderPagination(totalPages) {
+    const nav = document.querySelector('[data-pagination]');
+    if (!nav) return;
+
+    if (totalPages <= 1) {
+      nav.hidden = true;
+      nav.style.display = 'none';
+      nav.innerHTML = '';
+      return;
+    }
+
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+
+    nav.innerHTML = `
+      <button type="button" data-page="prev" ${currentPage === 1 ? 'disabled' : ''} style="${paginationButtonStyle(false)} ${currentPage === 1 ? 'opacity:.4; cursor:default;' : ''}">←</button>
+      ${pages.map(p => `<button type="button" data-page="${p}" aria-current="${p === currentPage ? 'page' : 'false'}" style="${paginationButtonStyle(p === currentPage)}">${p}</button>`).join('')}
+      <button type="button" data-page="next" ${currentPage === totalPages ? 'disabled' : ''} style="${paginationButtonStyle(false)} ${currentPage === totalPages ? 'opacity:.4; cursor:default;' : ''}">→</button>
+    `;
+
+    nav.hidden = false;
+    nav.style.display = 'flex';
+
+    nav.querySelectorAll('[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        const raw = btn.dataset.page;
+        currentPage = raw === 'prev' ? currentPage - 1 : raw === 'next' ? currentPage + 1 : Number(raw);
+        renderCatalog();
+        document.querySelector('#all').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function renderCatalog() {
+    const grid = document.querySelector('[data-grid]');
+    const countEl = document.querySelector('[data-count]');
+    const emptyEl = document.querySelector('[data-empty]');
+    if (!grid) return;
+
+    const filtered = currentTag === 'all'
+      ? allProducts
+      : allProducts.filter(product => (CATEGORY_TO_TAG[product.category] || String(product.category || '').toLowerCase()) === currentTag);
+
+    const totalCount = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+    const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+    grid.innerHTML = '';
+    pageItems.forEach(product => grid.appendChild(buildCard(product)));
+
+    if (countEl) {
+      countEl.textContent = `${totalCount} palette${totalCount === 1 ? '' : 's'} · ${totalCount * 9} colors`;
+    }
+
+    if (emptyEl) {
+      emptyEl.hidden = totalCount > 0;
+      emptyEl.style.display = totalCount > 0 ? 'none' : 'block';
+    }
+
+    renderPagination(totalPages);
+  }
+
+  document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTag = btn.dataset.filter;
+      currentPage = 1;
+      document.querySelectorAll('[data-filter]').forEach(other => {
+        const active = other === btn;
+        other.setAttribute('aria-selected', active ? 'true' : 'false');
+        other.style.background = active ? '#292825' : 'transparent';
+        other.style.color = active ? '#F5F2EA' : '#292825';
+        other.style.borderColor = active ? '#292825' : '#D8D2C8';
+      });
+      renderCatalog();
+    });
+  });
+
+  async function loadCatalogProducts() {
+    try {
+      const response = await fetch(getCatalogApiUrl());
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        console.error('Catalog API error:', response.status, body);
+        return;
+      }
+
+      const data = await response.json();
+      allProducts = Array.isArray(data.products) ? data.products : [];
+      renderCatalog();
+    } catch (error) {
+      console.error('Failed to load catalog products:', error);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(loadCatalogProducts, 300));
+  } else {
+    setTimeout(loadCatalogProducts, 300);
+  }
+</script>
+<?php get_footer(); ?>
